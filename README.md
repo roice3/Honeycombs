@@ -1,6 +1,9 @@
 # Honeycombs
-Code related to visualizing honeycombs (Shapeways models, Pov-Ray renderings, Upper half space boundary images).  This code, written by Roice Nelson, is a companion to the paper "Visualizing Hyperbolic Honeycombs" by Roice Nelson and Henry Segerman.
+Code for visualizing spherical, euclidean, and hyperbolic honeycombs in various ways:
+  * Generating STL models for Shapeways
+  * Generating Pov-Ray definition files for rendering
+  * Upper half space boundary images for hyperideal honeycombs
 
-Some areas of it might be considered an overgrown garden that could use some refactoring/reorganization, but I still wanted to publish it for those who might like to try to recreate some of the calculations we've done.  There is no UI, and I made heavy use of commenting in the main Program.cs file (and in some other files) for controlling the particular behavior I was going for.
+This code is a companion to the paper "Visualizing Hyperbolic Honeycombs" by Roice Nelson and Henry Segerman.  The code itself was authored by Roice.
 
-The shared R3.Core library contains a great deal of code not related to the Honeycombs project.  It was initially developed as part of the MagicTile project.
+I consider some areas an overgrown garden in need of refactoring/reorganization, but I still wanted to publish it along with our paper for any who might like to try to recreate some of the calculations we've done.  There is no UI, and I made use of commenting in the main Program.cs file (and in some other files) to control particular outputs I was going for.  Furthermore, the shared R3.Core library contains code not related to honeycombs - that library was mainly developed as part of the MagicTile project.
