@@ -1,7 +1,7 @@
 # Honeycombs
 Code for visualizing spherical, euclidean, and hyperbolic honeycombs in various ways:
-  * Generating STL models for Shapeways
-  * Generating Pov-Ray definition files for rendering
+  * STL models for Shapeways
+  * Pov-Ray definition files for rendering
   * Upper half space boundary images for hyperideal honeycombs
 
 This code is a companion to the paper "Visualizing Hyperbolic Honeycombs" by Roice Nelson and Henry Segerman.  The code itself was authored by Roice.
