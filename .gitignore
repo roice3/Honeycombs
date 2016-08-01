@@ -43,6 +43,7 @@ Temporary Items
 .apdisk
 
 
+code/HyperbolicModels/*.suo
 code/HyperbolicModels/bin/Debug
 code/HyperbolicModels/bin/Release
 code/HyperbolicModels/obj
