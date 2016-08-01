@@ -48,12 +48,40 @@
 		{
 			double a = 1;
 			double b = 0.0;
+			return Dini2( uv );
 			return Dini( uv, a, b );
 		}
 
 		private static double Sech( double val )
 		{
 			return 1.0 / Math.Cosh( val );
+		}
+		
+		/// <summary>
+		/// From the virtual math museum
+		/// </summary>
+		public static Vector3D Dini2( Vector3D disk )
+		{
+			Vector3D uv = DiskToUpper( disk );
+			double u = Math.Log( uv.Y );
+			//double v = DonHatch.acosh( 1 + ( Math.Pow( uv.X, 2 ) + 0 ) / ( 2 * Math.Pow( uv.Y, 2 ) ) ) ;
+			//if( uv.X < 0 )
+			//	v *= -1;
+			double v = uv.X;
+			if( u <= -4 || u > 4 ||
+				v < -6 * Math.PI || v > 6 * Math.PI )
+				return Infinity.InfinityVector;
+
+			double psi = 0.5;
+			psi *= Math.PI;
+			double sinpsi = Math.Sin( psi );
+			double cospsi = Math.Cos( psi );
+			double g = (u - cospsi * v) / sinpsi;
+			double s = Math.Exp( g );
+			double r = (2 * sinpsi) / (s + 1 / s);
+			double t = r * (s - 1 / s) * 0.5;
+
+			return new Vector3D( u - t, r * Math.Cos( v ), r * Math.Sin( v ) );
 		}
 
 		public static Vector3D Dini( Vector3D uv, double a, double b )

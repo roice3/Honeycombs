@@ -10,8 +10,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>HyperbolicModels</RootNamespace>
     <AssemblyName>HyperbolicModels</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
@@ -23,6 +24,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -32,6 +34,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -48,14 +51,20 @@
     <Compile Include="Catacombs.cs" />
     <Compile Include="Coloring.cs" />
     <Compile Include="CoxeterImages.cs" />
+    <Compile Include="Experiments\Acrohedron.cs" />
+    <Compile Include="Experiments\H3Ruled.cs" />
+    <Compile Include="Experiments\Hopf.cs" />
+    <Compile Include="Experiments\SphericalTrig.cs" />
+    <Compile Include="Experiments\ThreeFifty.cs" />
     <Compile Include="HoneycombGen.cs" />
-    <Compile Include="ImageGrid.cs" />
-    <Compile Include="Lawson.cs" />
+    <Compile Include="Experiments\ImageGrid.cs" />
+    <Compile Include="Experiments\Lawson.cs" />
+    <Compile Include="HoneycombPaper.cs" />
     <Compile Include="Nonuniform.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Recurse.cs" />
-    <Compile Include="Sandbox.cs" />
+    <Compile Include="Experiments\Sandbox.cs" />
     <Compile Include="Simplex.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>
@@ -64,6 +73,9 @@
       <Project>{8D56AB30-6E10-4D66-B10E-0DCC4A0F4051}</Project>
       <Name>R3.Core</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

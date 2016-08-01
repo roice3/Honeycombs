@@ -11,17 +11,32 @@
 				DrawCircle( c, g, i, pen );
 		}
 
-		static public void DrawCircle( Circle c, Graphics g, ImageSpace i, Pen p )
+		static private Rectangle? Rect( Circle c, ImageSpace i )
 		{
 			if( double.IsInfinity( c.Radius ) )
-				return;
+				return null;
 
 			Vector3D upperLeft = i.Pixel( new Vector3D( c.Center.X - c.Radius, c.Center.Y + c.Radius, 0 ) );
 			double width = i.Width( c.Radius * 2 );
 			double height = i.Height( c.Radius * 2 );
 			Rectangle rect = new Rectangle( (int)upperLeft.X, (int)upperLeft.Y, (int)width, (int)height );
+			return rect;
+		}
 
-			g.DrawEllipse( p, rect );
+		static public void DrawCircle( Circle c, Graphics g, ImageSpace i, Pen p )
+		{
+			Rectangle? rect = Rect( c, i );
+			if( rect == null )
+				return;
+			g.DrawEllipse( p, rect.Value );
+		}
+
+		static public void DrawFilledCircle( Circle c, Graphics g, ImageSpace i, Brush b )
+		{
+			Rectangle? rect = Rect( c, i );
+			if( rect == null )
+				return;
+			g.FillEllipse( b, rect.Value );
 		}
 
 		static public void DrawLine( Vector3D p1, Vector3D p2, Graphics g, ImageSpace i, Pen p )

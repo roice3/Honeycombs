@@ -17,7 +17,7 @@
 		{
 			public Settings() { Antialias = true; Dual = true; }
 
-			public HoneycombAndView Honeycomb { get; set; }
+			public HoneycombDef Honeycomb { get; set; }
 			public int Width { get; set; }
 			public int Height { get; set; }
 			public double Bounds { get; set; }			// y bounds (x will be scaled accordingly).
@@ -54,7 +54,13 @@
 
 		Sphere[] m_whiteBoundary;
 
-		public void GenImage( Settings settings )
+		/// <summary>
+		/// Generate an image.
+		/// </summary>
+		/// <param name="settings"></param>
+		/// <param name="t">An optional time parameter, for use in animations.
+		/// This value should be between 0 and 1, inclusive.</param>
+		public void GenImage( Settings settings, double t = 0.0 )
 		{
 			int width = settings.Width;
 			int height = settings.Height;
@@ -89,7 +95,12 @@
 
 					if( settings.Antialias )
 					{
-						const int div = 3;
+						// These are here for some culling Henry and I were attempting.
+						List<Vector3D> vectors = new List<Vector3D>();
+						int cellFlips = 0;
+
+						//const int div = 3;
+						const int div = 2;
 						List<Color> colors = new List<Color>();
 						for( int k=0; k<=div; k++ )
 						for( int l=0; l<=div; l++ )
@@ -98,23 +109,40 @@
 							double ya = y - yoff/2 + l * yoff/div;
 							Vector3D v = new Vector3D( xa, ya );
 
-							v = ApplyTransformation( v );
-							v = PlaneModelToBall( v );
-							Color color = CalcColor( settings, v );
+							v = ApplyTransformation( v, t );
+							v = PlaneModelToBall( v, t );
+							int cellFlipsTemp;
+							Color color = CalcColor( settings, ref v, out cellFlipsTemp );
+							cellFlips = Math.Max( cellFlips, cellFlipsTemp );
 							colors.Add( color );
+							vectors.Add( v );
 						}
 
 						lock( m_lock )
 						{
-							image.SetPixel( i, j, AvgColor( colors ) );
+							Color avg = AvgColor( colors );
+							image.SetPixel( i, j, avg );
+
+							// Experimental culling.
+							if( false && avg.A != 0 && NearBoundary( settings, i, j ) && Small( settings, vectors, i, j, cellFlips ) )
+							{
+								//avg = Color.Red;
+								int border = settings.Width / BorderDiv;
+								double dist = DistToBorder( settings, i, j );
+								dist /= border;
+								dist = Sigmoid( dist );
+								avg = Color.FromArgb( (int)(dist*255), avg.R, avg.G, avg.B );
+								image.SetPixel( i, j, avg );
+							}
 						}
 					}
 					else
 					{
 						lock( m_lock )
 						{
-							image.SetPixel( i, j, CalcColor( settings,
-								PlaneModelToBall( new Vector3D( x, y ) ) ) );
+							Vector3D v = PlaneModelToBall( new Vector3D( x, y ) );
+							int cellFlips;
+							image.SetPixel( i, j, CalcColor( settings, ref v, out cellFlips ) );
 						}
 					}
 				}
@@ -129,6 +157,14 @@
 			EncoderParameters encoderParams = new EncoderParameters( 1 );
 			encoderParams.Param[0] = encoderParam;
 			image.Save( settings.FileName, jgpEncoder, encoderParams );*/
+		}
+
+		/// <summary>
+		/// http://www.wolframalpha.com/input/?i=1%2F+%281%2Be%5E%28-10*%28x-0.5%29%29%29
+		/// </summary>
+		private double Sigmoid( double input )
+		{
+			return 1 / (1 + Math.Exp( -BorderDiv * (input - 0.5) ));
 		}
 
 		public struct RecursionStat
@@ -179,6 +215,7 @@
 						
 						cellFlips = Math.Min( 255, cellFlips );
 						image.SetPixel( i, j, Color.FromArgb( 255, cellFlips, cellFlips, cellFlips ) );
+
 						binnedFlips[cellFlips]++;
 					}
 				}
@@ -189,8 +226,6 @@
 			//settings.ColorScaling = 115 / Math.Sqrt( mean ); // Calibrated by looking at 733, 373, 337 and iii.
 			//settings.ColorScaling = 115 / Math.Sqrt( perc90 );
 
-			System.Console.WriteLine( string.Format( "Mean: {0:G}, Median: {1:G}", mean, median ) );
-			System.Console.WriteLine( string.Format( "Color Scale: {0:G}", settings.ColorScaling ) );
 			//image.Save( settings.FileName, ImageFormat.Png );
 
 			/*using( StreamWriter sw = File.AppendText( "binnedFlips.txt" ) )
@@ -204,6 +239,9 @@
 			// We want 1% of the pixels to go past black, halfway around the hexagon (hence the factor of 2).
 			settings.ColorScaling = (int)flipsPerPixel.ElementAtPercentage( 0.99 ) * 2;
 			settings.ColorScaling = 13.3 * Math.Sqrt( mean );	// equivalent to old method...  FINALLY SETTLED ON THIS!
+
+			System.Console.WriteLine( string.Format( "Mean: {0:G}, Median: {1:G}", mean, median ) );
+			System.Console.WriteLine( string.Format( "Color Scale: {0:G}", settings.ColorScaling ) );
 
 			//////////////////// Everything below is just exploratory.
 			List<RecursionStat> stats = new List<RecursionStat>();
@@ -221,49 +259,136 @@
 			return stats.ToArray();
 		}
 
+		private int BorderDiv { get { return 10; } }
+
+		private bool NearBoundary( Settings settings, int i, int j )
+		{
+			int border = settings.Width / BorderDiv;
+
+			// Avoid bottom boundary.
+			if( j > settings.Height - border
+				&& !( i > settings.Width - border || i < border ) )
+				return false;
+
+			return DistToBorder( settings, i, j ) < border;
+		}
+
+		private double DistToBorder( Settings settings, int i, int j )
+		{
+			int w = settings.Width, h = settings.Height;
+			int[] vals = new[] { i, j, w - i };
+			return vals.Min();
+		}
+
+		private bool Small( Settings settings, List<Vector3D> points, int i, int j, int cellFlips )
+		{
+			return cellFlips > 4;
+
+			// Measure of the spread of the points.
+			Vector3D total = new Vector3D();
+			points.ForEach( v => total += v );
+			total /= points.Count;
+			double spread = (total - points.First()).Abs();
+
+			/*double thresh = settings.Width/15 - DistToBorder( settings, i, j );
+			thresh /= settings.Width;
+			thresh = thresh * thresh;*/
+			//double thresh = 0.4;
+			double thresh = 0.05;
+			return spread > thresh;
+		}
+
 		/// <summary>
 		/// This allows us to change the model we have on the plane.
-		/// We usually want UHS, but for Pov-Ray mapping these images to sphere, we need to have it be an equirectangular projection
-		/// NOTE: The bounds should be set to 1.0 for this to work! v.X and v.Y must be in-between -1 and 1. (also, don't rotate simplex mirrors)  
+		/// We usually want UHS, but for Pov-Ray mapping these images to a sphere, we need to have it be an equirectangular projection
+		/// NOTE: The bounds should be set to 1.0 for this to work! v.X and v.Y must be in-between -1 and 1. (also, don't rotate simplex mirrors, for POV-Ray anyway)  
 		/// </summary>
-		private Vector3D PlaneModelToBall( Vector3D v )
+		private Vector3D PlaneModelToBall( Vector3D v, double t = 0.0 )
 		{
-			bool ballMapForPovRay = false;
-			if( !ballMapForPovRay )
+			bool equirectangular = false;
+			if( !equirectangular )
 			{
-				// Normal UHS.
+				// Normal UHS (sterographic projection).
 				return H3Models.UHSToBall( v );
 			}
 			else
 			{
+				// If you want output to have twice the width.
+				double xScale = 2;
+				v.X /= xScale;
+
 				// http://mathworld.wolfram.com/EquirectangularProjection.html
 				// y is the latitude
 				// x is the longitude
 				// Assume inputs go from -1 to 1.
 				Vector3D spherical = new Vector3D( 1, Math.PI / 2 * ( 1 - v.Y ), v.X * Math.PI );
-				return SphericalCoords.SphericalToCartesian( spherical );
+				Vector3D onBall = SphericalCoords.SphericalToCartesian( spherical );
+				return ApplyTransformationToSphere( onBall, t );
 			}
+		}
+
+		private Vector3D ApplyTransformationToSphere( Vector3D v, double t )
+		{
+			v = H3Models.BallToUHS( v );
+
+			// 437 (hyperbolic)
+			//v *= Math.Pow( 4.259171776329806, t*10-5 );
+
+			// 36i (parabolic)
+			//v += new Vector3D( Math.Cos( Math.PI / 6 ), Math.Sin( Math.PI / 6 ) ) * t;
+
+			// iii (loxodromic)
+			//Complex c = v.ToComplex();
+			//double x = Math.Sqrt( 2 ) - 1;
+			//Mobius m = new Mobius( new Complex( x, 0 ), Complex.One, new Complex( -x, 0 ) );
+
+			// 12,12,12 loxodromic
+			//m = new Mobius( new Complex( 0, 1 ), Complex.One, new Complex( 0, -1 ) );
+
+			/*
+			c = m.Apply( c );
+			c *= Complex.Exp( new Complex( 2.5, 4 * Math.PI ) * t );
+			c = m.Inverse().Apply( c );
+			v = Vector3D.FromComplex( c );
+			*/
+
+			// Center cell head in KolorEyes.
+			Mobius m = new Mobius();
+			m.UpperHalfPlane();
+			v = m.Inverse().Apply( v );
+			
+			return H3Models.UHSToBall( v );
+		}
+
+		private Vector3D BandModel( Vector3D v )
+		{
+			Complex vc = v.ToComplex();
+			Complex result = (Complex.Exp( Math.PI * vc / 2 ) - 1) / (Complex.Exp( Math.PI * vc / 2 ) + 1);
+			v = Vector3D.FromComplex( result );
+			return v;
 		}
 
 		/// <summary>
 		/// Using this to move the view around in interesting ways.
 		/// </summary>
-		private Vector3D ApplyTransformation( Vector3D v )
+		private Vector3D ApplyTransformation( Vector3D v, double t = 0.0 )
 		{
+			//v.RotateXY( Math.PI / 4 + 0.01 );
 			bool applyNone = true;
 			if( applyNone )
 				return v;
 
+			Mobius m0 = new Mobius(), m1 = new Mobius(), m2 = new Mobius(), m3 = new Mobius();
+			Sphere unitSphere = new Sphere();
+
 			// self-similar scale for 437
 			//v*= 4.259171776329806;
 
-			Mobius m1 = new Mobius(), m2 = new Mobius(), m3 = new Mobius();
-
-			m1.Isometry( Geometry.Hyperbolic, 0, new Vector3D( 0, -.75 ) );
-			//return m1.Apply( v );
-
-			Sphere unitSphere = new Sphere();
+			double s = 6.5;
+			v *= s;
+			v += new Vector3D( s/3, -s/3 );
 			v = unitSphere.ReflectPoint( v );
+			v.RotateXY( Math.PI/6 );
 			//v /= 3;
 			//v.RotateXY( Math.PI );
 			//v.RotateXY( Math.PI/2 );
@@ -272,14 +397,29 @@
 			//v.Y = v.Y / Math.Cos( Math.PI / 6 );	// 637 repeatable
 			//return v;
 
+			// 12,12,12
+			m0.Isometry( Geometry.Hyperbolic, 0, new Complex( .0, .0 ) );
+			m1 = Mobius.Identity();
+			m2 = Mobius.Identity();
+			m3 = Mobius.Identity();
+			v = (m0 * m1 * m2 * m3).Apply( v );
+			return v;
+
+			// i64
+			m0.Isometry( Geometry.Hyperbolic, 0, new Complex( .5, .5 ) );
+			m1.UpperHalfPlane();
+			m2 = Mobius.Scale( 1.333333 );
+			m3.Isometry( Geometry.Euclidean, 0, new Vector3D( 0, -1.1 ) );
+			v = (m1 * m2 * m3).Apply( v );
+			return v;
+
 			// 464
-			/*
-			// Also, don't apply rotations during simplex generation.
+			// NOTE: Also, don't apply rotations during simplex generation.
 			m1.UpperHalfPlane();
 			m2 = Mobius.Scale( 1.3 );
 			m3.Isometry( Geometry.Euclidean, 0, new Vector3D( 1.55, -1.1 ) );
 			v = ( m1 * m2 * m3 ).Apply( v );
-			return v;*/
+			return v;
 
 			// iii
 			m1.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, Math.Sqrt( 2 ) - 1 ) );
@@ -341,7 +481,7 @@
 			i.XMin = -b; i.XMax = b;
 			i.YMin = -b; i.YMax = b;
 
-			float scale = 16;
+			float scale = 2;
 
 			using( Graphics g = Graphics.FromImage( image ) )
 			using( Pen p = new Pen( Color.Red, scale*3.0f ) )
@@ -388,9 +528,10 @@
 			return Color.FromArgb( a, r, g, b );
 		}
 
-		private Color CalcColor( Settings settings, Vector3D v )
+		private Color CalcColor( Settings settings, ref Vector3D v, out int cellFlips )
 		{
-			int cellFlips = 0, totalFlips = 0;
+			cellFlips = 0;
+			int totalFlips = 0;
 			if( !ReflectToFundamental( settings, ref v, ref cellFlips, ref totalFlips ) )
 				return Color.White;
 
@@ -408,7 +549,7 @@
 			int iterationCount = 0;
 			cellFlips = 0;
 			totalFlips = 0;
-			//int clean = 0;
+			int[] flips = new int[4];
 			while( true && iterationCount < m_maxIterations )
 			{
 				/* Original way I did it (a la Anton), which ended up with potential for flips to get incremented within a cell when it shouldn't.
@@ -434,53 +575,51 @@
 				// First get things on the right side of the 3 mirrors which reflect within a cell.
 				// We have to do it this way so the flips across cells are calculated appropriately.
 				// (Otherwise, the cell boundary mirror can also reflect within a cell, and this avoids that).
-				Sphere[] temp = settings.Mirrors.Skip( 1 ).ToArray();
-				//Mirror[] temp = new Mirror[] { settings.Mirrors[0], settings.Mirrors[1], settings.Mirrors[3] };	// Experiments with using other mirrors as "cell" boundary.
-				if( !ReflectAcrossMirrors( temp, ref v, ref totalFlips, ref iterationCount ) )
+				// Update 1-22-16: doing all at once in reverse order seems to give the same results as this two-step
+				// algorithm, but I've left it as we did for the paper for now.
+				int[] indices = new int[] { 1, 2, 3 };
+				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref iterationCount ) )
 					continue;
 
-				if( !ReflectAcrossMirror( settings.Mirrors[0], ref v ) )
+				if( ReflectAcrossMirror( settings.Mirrors, ref v, 0, ref flips ) )
 				{
-					cellFlips++;
-					totalFlips++;
-				}
-				else
-				{
+					cellFlips = flips[0];
+					totalFlips = flips.Sum();
 					return true;
 				}
 
 				//iterationCount++;
 			}
 
-			System.Console.WriteLine( string.Format( "Did not converge at point {0}", original.ToString() ) );
+			//System.Console.WriteLine( string.Format( "Did not converge at point {0}", original.ToString() ) );
 			return false;
 		}
 
 		private int m_maxIterations = 4000;
 
-		private bool ReflectAcrossMirror( Sphere mirror, ref Vector3D v )
+		private bool ReflectAcrossMirror( Sphere[] mirrors, ref Vector3D v, int idx, ref int[] flips )
 		{
+			Sphere mirror = mirrors[idx];
 			bool outsideFacet = mirror.IsPointInside( v );
 			if( outsideFacet )
 			{
 				v = mirror.ReflectPoint( v );
+				flips[idx]++;
 				return false;
 			}
 
 			return true;
 		}
 
-		private bool ReflectAcrossMirrors( Sphere[] mirrors, ref Vector3D v, ref int flips, ref int iterationCount )
+		private bool ReflectAcrossMirrors( Sphere[] mirrors, ref Vector3D v, int[] indices, ref int[] flips, ref int iterationCount )
 		{
 			int clean = 0;
 			while( true && iterationCount < m_maxIterations )
 			{
-				for( int i=0; i<mirrors.Length; i++ )
+				foreach( int idx in indices )
 				{
-					Sphere mirror = mirrors[i];
-					if( !ReflectAcrossMirror( mirror, ref v ) )
+					if( !ReflectAcrossMirror( mirrors, ref v, idx, ref flips ) )
 					{
-						flips++;
 						clean = 0;
 					}
 					else
@@ -564,14 +703,23 @@
 
 			Sphere ball = new Sphere();
 			Circle3D midSphereIdealBall = ball.Intersection( midSphere ); // This should exist because we've filtered for honeycombs with hyperideal verts.
-			Circle3D midSphereIdeal3D = H3Models.BallToUHS( midSphereIdealBall );
-			Circle midSphereIdeal = new Circle { Center = midSphereIdeal3D.Center, Radius = midSphereIdeal3D.Radius };
+			Circle3D midSphereIdealUHS = H3Models.BallToUHS( midSphereIdealBall );
+			Circle midSphereIdeal = new Circle { Center = midSphereIdealUHS.Center, Radius = midSphereIdealUHS.Radius };
 
 			// The intersection point of our cell mirror and the disk of the apparent 2D tiling
 			// gives us "ideal" points on the apparent 2D boundary. These points will be on the new cell mirror.
 			Vector3D i1, i2;
 			if( 2 != Euclidean2D.IntersectionCircleCircle( cellMirrorIdeal, midSphereIdeal, out i1, out i2 ) )
-				throw new System.ArgumentException( "Since we have hyperideal vertices, we should have an intersection with 2 points." );
+			{ 
+				//throw new System.ArgumentException( "Since we have hyperideal vertices, we should have an intersection with 2 points." );
+
+				// Somehow works in the euclidean case.
+				// XXX - Make this better.
+				return H3Models.UHSToBall( new Sphere() { Center = Vector3D.DneVector(), Radius = double.NaN } );
+			}
+
+			double bananaThickness = 0.025;
+			bananaThickness = 0.04;
 
 			// Transform the intersection points to a standard Poincare disk.
 			// The midsphere radius is the scale of the apparent 2D tilings.
@@ -583,7 +731,7 @@
 			i2 /= scale;
 			Circle3D banana = H3Models.Ball.OrthogonalCircle( i1, i2 );
 			Vector3D i3 = H3Models.Ball.ClosestToOrigin( banana );
-			i3 = Hyperbolic2D.Offset( i3, -.025 );
+			i3 = Hyperbolic2D.Offset( i3, -bananaThickness );
 
 			// Transform back.
 			i1 *= scale; i2 *= scale; i3 *= scale;

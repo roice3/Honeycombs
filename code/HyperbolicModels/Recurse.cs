@@ -169,7 +169,8 @@
 				//if( completedCellIds.Count > 1000 )
 				//	return;
 
-				if( completedCellIds.Count > settings.MaxEdges/20 )
+				//if( completedCellIds.Count > settings.MaxEdges/5 )
+				if( completedCellIds.Count > settings.MaxEdges / 20 )
 					throw new System.Exception( "Maxing out cells - will result in uneven filling." );
 
 				H3.Cell newCell = cell.Clone();	
@@ -286,7 +287,8 @@
 			//thresh = 0.9992;	// catacombs
 
 			//thresh = 0.97;
-			thresh = 0.6;
+			//thresh = 0.6;
+			thresh = 0.03;
 			return thresh;
 		}
 
@@ -311,7 +313,7 @@
 			}
 		}
 
-		private static bool CellOk( H3.Cell cell, Settings s )
+		internal static bool CellOk( H3.Cell cell, Settings s )
 		{
 			if( s.G == Geometry.Spherical )
 				return true;
@@ -321,7 +323,7 @@
 			{
 				foreach( H3.Cell.Facet f in cell.Facets )
 				{
-					bool ball = s.Ball;
+					//bool ball = s.Ball;
 					bool radiusCutoff = true;
 					if( radiusCutoff )
 					{
@@ -332,9 +334,12 @@
 						//if( closestToOrigin > thresh )
 						//	return false;
 
-						if( f.Sphere.Radius < 0.001 )
+						//if( f.Sphere.Radius < 0.001 )
 						//if( f.Sphere.Radius < 0.01 )
-						//if( f.Sphere.Radius < 0.1 )
+						//if( f.Sphere.Radius < 0.02 )
+						//if( f.Sphere.Radius < 0.05 )
+						if( f.Sphere.Radius < 0.1 )
+						//if( f.Sphere.Radius < 0.25 )
 							return false;
 					}
 					else

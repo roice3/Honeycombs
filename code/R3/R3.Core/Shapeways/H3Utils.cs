@@ -55,6 +55,9 @@
 			return TransformHelper( v, fromUpperHalfPlane );
 		}
 
+		/// <summary>
+		/// NOTE! This should only be used if m is a transform that preserves the imaginary axis!
+		/// </summary>
 		public static Vector3D TransformHelper( Vector3D v, Mobius m )
 		{
 			Vector3D spherical = SphericalCoords.CartesianToSpherical( v );
@@ -201,6 +204,32 @@
 		}
 
 		/// <summary>
+		/// Transform a geodesic sphere in the ball model to the Klein model.
+		/// Output will be a plane.
+		/// </summary>
+		public static Sphere BallToKlein( Sphere s )
+		{
+			// If we are already a plane, no transformation is needed.
+			if( s.IsPlane )
+				return s.Clone();
+
+			Vector3D closest = Ball.ClosestToOrigin( s );
+			Vector3D p1 = HyperbolicModels.PoincareToKlein( closest );
+
+			// Ideal points are the same in the Klein/Poincare models, so grab
+			// two more plane points from the ideal circle.
+			Vector3D p2, p3, dummy;
+			Ball.IdealPoints( s, out p2, out dummy, out p3 );
+
+			Vector3D offset = p1;
+			Vector3D normal = (p2 - p1).Cross( p3 - p1 );
+			normal.Normalize();
+			if( !s.Invert )
+				normal *= -1;
+			return Sphere.Plane( offset, normal );
+		}
+
+		/// <summary>
 		/// This applies the same Mobius transform to all vertical planes through the z axis.
 		/// NOTE: m must therefore be a mobius transform that keeps the imaginary axis constant!
 		/// NOTE: s must be geodesic! (orthogonal to boundary).
@@ -283,7 +312,9 @@
 			Vector3D off = new Vector3D();
 			if( Infinity.IsInfinite( boundaryCircle.Radius ) )
 			{
+				boundaryCircle.Radius = double.PositiveInfinity;
 				Vector3D normal = b2 - b1;
+				normal.Normalize();
 				normal.RotateXY( -Math.PI / 2 );	// XXX - The direction isn't always correct.
 				cen = normal;
 				off = Euclidean2D.ProjectOntoLine( new Vector3D(), b1, b2 );
@@ -495,15 +526,25 @@
 
 			/// <summary>
 			/// Given 2 points in the interior of the ball, calculate the center and radius of the orthogonal circle.
-			/// v2 may optionally be on the boundary, but v1 must be in the interior.
+			/// One point may optionally be on the boundary, but one shoudl be in the interior.
+			/// If both points are on the boundary, we'll fall back on our other method.
 			/// </summary>
 			public static void OrthogonalCircleInterior( Vector3D v1, Vector3D v2, out Circle3D circle )
 			{
+				if( Tolerance.Equal( v1.Abs(), 1 ) &&
+					Tolerance.Equal( v2.Abs(), 1 ) )
+				{
+					circle = OrthogonalCircle( v1, v2 );
+					return;
+				}
+	
 				// http://www.math.washington.edu/~king/coursedir/m445w06/ortho/01-07-ortho-to3.html
 				// http://www.youtube.com/watch?v=Bkvo09KE1zo
 
+				Vector3D interior = Tolerance.Equal( v1.Abs(), 1 ) ? v2 : v1;
+				
 				Sphere ball = new Sphere();
-				Vector3D reflected = ball.ReflectPoint( v1 );
+				Vector3D reflected = ball.ReflectPoint( interior );
 				circle = new Circle3D( reflected, v1, v2 );
 			}
 
@@ -553,6 +594,7 @@
 
 			/// <summary>
 			/// Given a geodesic sphere, calculates 3 ideal points of the sphere.
+			/// NOTE: s1 and s2 will be antipodal on the ideal circle.
 			/// </summary>
 			public static void IdealPoints( Sphere s, out Vector3D s1, out Vector3D s2, out Vector3D s3 )
 			{
@@ -699,7 +741,7 @@
 
 			public static void Geodesic( Vector3D v1, Vector3D v2, out Vector3D center, out double radius, out Vector3D normal, out double angleTot )
 			{
-				bool finite = !Tolerance.Equal( v1.MagSquared(), 1 );
+				bool finite = !Tolerance.Equal( v1.MagSquared(), 1 ) || !Tolerance.Equal( v2.MagSquared(), 1 );
 				if( finite )
 				{
 					Circle3D c;
@@ -709,9 +751,13 @@
 				}
 				else
 					H3Models.Ball.OrthogonalCircle( v1, v2, out center, out radius );
-				normal = ( v1 - center ).Cross( v2 - center );
+				Vector3D t1 = v1 - center;
+				Vector3D t2 = v2 - center;
+				t1.Normalize();	// This was necessary so that the cross product below didn't get too small.
+				t2.Normalize();
+				normal = ( t1 ).Cross( t2 );
 				normal.Normalize();
-				angleTot = ( v1 - center ).AngleTo( v2 - center );
+				angleTot = ( t1 ).AngleTo( t2 );
 			}
 
 			/// <summary>
@@ -723,6 +769,17 @@
 				int div = 36;
 				//int div = 40; // Wiki
 				//LODThin( v1, v2, out div );
+				
+				// Be smart about the number of divisions.
+				Vector3D center, normal;
+				double radius, angleTot;
+				Geodesic( v1, v2, out center, out radius, out normal, out angleTot );
+				double length = radius * angleTot;
+				div = (int)(length * 57 / 2);
+
+				// Keep in reasonable range.
+				div = Math.Max( div, 11 );
+				div = Math.Min( div, 57 );
 
 				return GeodesicPoints( v1, v2, div );
 			}
@@ -836,7 +893,11 @@
 			/// </summary>
 			public static double SizeFunc( Vector3D v, double angularThickness )
 			{
-				return v.Z * Math.Tan( angularThickness );
+				double size = v.Z * Math.Tan( angularThickness );
+				//if( size == 0 )
+				//	size = 0.001;
+
+				return size;
 
 				/* OLD WAY
 				 			
@@ -876,6 +937,14 @@
 						return;
 					}
 
+					// If one point is ideal, we need to not reflect that one!
+					bool swapped = false;
+					if( Tolerance.Zero( v1.Z ) )
+					{
+						Utils.SwapPoints( ref v1, ref v2 );
+						swapped = true;
+					}
+
 					Vector3D v1_reflected = v1;
 					v1_reflected.Z *= -1;
 					Circle3D c = new Circle3D( v1_reflected, v1, v2 );
@@ -896,6 +965,8 @@
 					// Make sure the order will be right.
 					// (z1 closest to v1 along arc).
 					if( v1.Dist( z1 ) > v2.Dist( z1 ) )
+						Utils.SwapPoints( ref z1, ref z2 );
+					if( swapped )
 						Utils.SwapPoints( ref z1, ref z2 );
 				}
 			}
@@ -941,10 +1012,26 @@
 			/// </summary>
 			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2 )
 			{
+				return GeodesicPoints( v1, v2, 37 );
+			}
+
+			/// <summary>
+			/// Calculate points along a geodesic segment from v1 to v2.
+			/// </summary>
+			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2, int div )
+			{
 				Vector3D center, normal;
 				double radius, angleTot;
 				Geodesic( v1, v2, out center, out radius, out normal, out angleTot );
-				return Shapeways.CalcArcPoints( center, radius, v1, normal, angleTot );
+
+				// Vertical?
+				if( Infinity.IsInfinite( radius ) )
+				{
+					Segment seg = Segment.Line( v1, v2 );
+					return seg.Subdivide( div );
+				}
+
+				return Shapeways.CalcArcPoints( center, radius, v1, normal, angleTot, div );
 			}
 
 			/// <summary>

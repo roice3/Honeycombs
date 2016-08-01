@@ -126,6 +126,13 @@
 			}
 		}
 
+		public static Mobius CreateFromIsometry( Geometry g, double angle, Complex P )
+		{
+			Mobius m = new Mobius();
+			m.Isometry( g, angle, P );
+			return m;
+		}
+
 		/// <summary>
 		/// The identity Mobius transformation.
 		/// </summary>

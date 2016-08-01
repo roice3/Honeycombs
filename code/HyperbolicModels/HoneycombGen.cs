@@ -14,8 +14,16 @@
 		R
 	}
 
-	public struct HoneycombAndView
+	public struct HoneycombDef
 	{
+		public HoneycombDef( int p, int q, int r ) 
+		{ 
+			P = p; 
+			Q = q; 
+			R = r;
+			Projection = Polytope.Projection.VertexCentered;
+		}
+
 		public int P;
 		public int Q;
 		public int R;
@@ -58,7 +66,7 @@
 					throw new System.ArgumentException();
 			}
 
-			string fileName = string.Format( "{0}{1}{2}",
+			string fileName = string.Format( "{0}-{1}-{2}",
 				NorI( P ), NorI( Q ), NorI( R ) );
 			//string fileName = string.Format( "{{{0},{1},{2}}}",
 			//	NorI( P ), NorI( Q ), NorI( R ) );
@@ -160,7 +168,7 @@
 		/// <summary>
 		/// This generates a honeycomb by reflecting in 4 mirrors of the fundamental simplex.
 		/// </summary>
-		public static void OneHoneycombNew( HoneycombAndView imageData )
+		public static void OneHoneycombNew( HoneycombDef imageData )
 		{
 			int p = imageData.P;
 			int q = imageData.Q;
@@ -287,7 +295,7 @@
 				}
 
 				// Include just one cell?
-				bool includeOne = true;
+				bool includeOne = false;
 				if( includeOne )
 				{
 					edges = edges.Where( e => e.Depths[0] == 0 ).ToArray();
@@ -296,6 +304,8 @@
 			}
 
 			// Write the file
+			bool pov = false;
+			if( pov )
 			{
 				string filename = string.Format( "{0}{1}{2}.pov", p, q, r );
 				PovRay.WriteEdges( new PovRay.Parameters() { AngularThickness = thickness }, g, edges,
@@ -329,6 +339,17 @@
 				bool dummy = true;	// Doesn't matter for Pov-Ray, just Shapeways meshes.
 				H3.SaveToFile( fileName, edges, dummy, append: true );
 				*/
+			}
+			else
+			{
+				if( g == Geometry.Spherical )
+				{
+					edges = edges.Where( e => e.Start.Valid() && e.End.Valid() && !Infinity.IsInfinite( e.Start ) && !Infinity.IsInfinite( e.End ) ).ToArray();
+
+					S3.EdgesToStl( edges );
+				}
+				else
+					throw new System.NotImplementedException();
 			}
 		}
 
@@ -801,7 +822,7 @@
 			return new H3.Cell.Facet( facetVerts.ToArray() );
 		}
 
-		private static Sphere[] SphericalCellFacetMirrors( HoneycombAndView imageData )
+		private static Sphere[] SphericalCellFacetMirrors( HoneycombDef imageData )
 		{
 			int p = imageData.P;
 			int q = imageData.Q;

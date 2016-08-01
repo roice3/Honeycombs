@@ -14,6 +14,17 @@
 		{
 			//if( 0 == increments )
 			//	return Color.FromArgb( 255, 187, 23, 23 );
+				//return Color.FromArgb( 0, 255, 255, 255 );
+
+			//int temp = (increments - 2) * 125 + 80;
+			/*int temp = increments * 40;
+			if( temp < 0 )
+				temp = 0;
+			if( temp > 255 )
+				temp = 255;
+			Color gray = Color.FromArgb( 255, temp, temp, temp );
+			Color c = increments > 2 ? Color.White : gray;
+			return c;*/
 
 			//464
 			//increments = (int)( Math.Pow( (double)increments, 1.35 ) );

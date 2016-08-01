@@ -121,13 +121,59 @@
 			STL.SaveMeshToSTL( mesh.Mesh, @"D:\p4\R3\sample\out1.stl" );
 		}
 
+		public static void EdgesToStl( H3.Cell.Edge[] edges )
+		{
+			Shapeways mesh = new Shapeways();
+			
+			int divisions = 10;
+			foreach( H3.Cell.Edge edge in edges )
+			{
+				Segment seg = Segment.Line( 
+					Sterographic.R3toS3( edge.Start ), 
+					Sterographic.R3toS3( edge.End ) );
+				Vector3D[] points = seg.Subdivide( divisions );
+
+				ProjectAndAddS3Points( mesh, points );
+			}
+
+			for( int i = 0; i < mesh.Mesh.Triangles.Count; i++ )
+			{
+				mesh.Mesh.Triangles[i] = new Mesh.Triangle(
+					SphericalModels.GnomonicToStereo( mesh.Mesh.Triangles[i].a ),
+					SphericalModels.GnomonicToStereo( mesh.Mesh.Triangles[i].b ),
+					SphericalModels.GnomonicToStereo( mesh.Mesh.Triangles[i].c ) );
+			}
+
+			STL.SaveMeshToSTL( mesh.Mesh, @"output.stl" );
+		}
+
+		private static void ProjectAndAddS3Points( Shapeways mesh, Vector3D[] pointsS3 )
+		{
+			double r = 0.02;
+
+			List<Vector3D> projected = new List<Vector3D>();
+			List<double> radii = new List<double>();
+			foreach( Vector3D v in pointsS3 )
+			{
+				v.Normalize();
+				Vector3D c = v.ProjectTo3DSafe( 1.0 );
+
+				Vector3D p;
+				double d;
+				H3Models.Ball.DupinCyclideSphere( c, r, Geometry.Spherical, out p, out d );
+				projected.Add( p );
+				radii.Add( d );
+			}
+
+			mesh.AddCurve( projected.ToArray(), radii.ToArray() );
+		}
+
 		/// <summary>
 		/// Helper to project points from S3 -> S2, then add an associated curve.
 		/// XXX - Not completely correct.
 		/// </summary>
 		private static void ProjectAndAddS3Points( Shapeways mesh, Vector3D[] pointsS3, bool shrink )
 		{
-			// Project to S3, then to R3.
 			List<Vector3D> projected = new List<Vector3D>();
 			foreach( Vector3D v in pointsS3 )
 			{
@@ -150,7 +196,7 @@
 				// Constant thickness.
 				// return 0.08;
 
-				double sphericalThickness = 0.002;
+				double sphericalThickness = 0.05;
 
 				double abs = v.Abs();
 				if( shrink )

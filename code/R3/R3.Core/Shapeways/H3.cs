@@ -33,6 +33,9 @@
 			public Facet[] Facets;
 			public Vector3D Center;
 
+			// Not necessary.
+			public Mesh Mesh;
+
 			/// <summary>
 			/// Used to track recursing depth of reflections across various mirrors.
 			/// </summary>
@@ -212,23 +215,41 @@
 
 			public class Edge
 			{
-				public Edge( Vector3D v1, Vector3D v2 )
+				public Edge( Vector3D v1, Vector3D v2, bool order = true )
 				{
 					// Keep things "ordered", so we can easily compare edges.
-					Vector3D[] orderedVerts = new Vector3D[] { v1, v2 };
-					orderedVerts = orderedVerts.OrderBy( v => v, new Vector3DComparer() ).ToArray();
-					Start = orderedVerts[0];
-					End = orderedVerts[1];
+					if( order )
+					{
+						Vector3D[] orderedVerts = new Vector3D[] { v1, v2 };
+						orderedVerts = orderedVerts.OrderBy( v => v, new Vector3DComparer() ).ToArray();
+						Start = orderedVerts[0];
+						End = orderedVerts[1];
+					}
+					else
+					{
+						Start = v1;
+						End = v2;
+					}
+
 					Depths = new int[4];
 				}
 
 				public Vector3D Start;
 				public Vector3D End;
 
+				// The reason we use a vector here is so the components 
+				// can be interpreted in different color schemes (HLS, RGB, etc.)
+				public Vector3D Color;
+
 				/// <summary>
 				/// Used to track recursing depth of reflections across various mirrors.
 				/// </summary>
 				public int[] Depths;
+
+				public Edge Clone()
+				{
+					return (Edge)MemberwiseClone();
+				}
 
 				public Vector3D ID
 				{
@@ -326,6 +347,10 @@
 				Cell clone = new Cell( P, newFacets.ToArray() );
 				clone.Center = Center;
 				clone.Depths = (int[])Depths.Clone();
+
+				if( Mesh != null )
+					clone.Mesh = Mesh.Clone();
+
 				return clone;
 			}
 
@@ -370,6 +395,18 @@
 				foreach( Facet facet in Facets )
 					facet.Reflect( sphere );
 				Center = sphere.ReflectPoint( Center );
+
+				if( this.Mesh != null )
+				{
+					for( int i=0; i<Mesh.Triangles.Count; i++ )
+					{
+						Mesh.Triangle tri = Mesh.Triangles[i];
+						tri.a = sphere.ReflectPoint( tri.a );
+						tri.b = sphere.ReflectPoint( tri.b );
+						tri.c = sphere.ReflectPoint( tri.c );
+						Mesh.Triangles[i] = tri;
+					}
+				}
 			}
 		}
 

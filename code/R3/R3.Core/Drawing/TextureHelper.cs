@@ -79,9 +79,22 @@
 
 		private static Vector3D[] CalcViaProjections( Vector3D p1, Vector3D p2, Vector3D p3, int divisions, Geometry g )
 		{
-			Vector3D h1 = Sterographic.PlaneToHyperboloid( p1 );
-			Vector3D h2 = Sterographic.PlaneToHyperboloid( p2 );
-			Vector3D h3 = Sterographic.PlaneToHyperboloid( p3 );
+			if( g == Geometry.Euclidean )
+				throw new System.NotImplementedException();
+
+			Vector3D h1 = new Vector3D(), h2 = new Vector3D(), h3 = new Vector3D();
+			if( g == Geometry.Hyperbolic )
+			{
+				h1 = Sterographic.PlaneToHyperboloid( p1 );
+				h2 = Sterographic.PlaneToHyperboloid( p2 );
+				h3 = Sterographic.PlaneToHyperboloid( p3 );
+			}
+			else if( g == Geometry.Spherical )
+			{
+				h1 = Sterographic.PlaneToSphereSafe( p1 );
+				h2 = Sterographic.PlaneToSphereSafe( p2 );
+				h3 = Sterographic.PlaneToSphereSafe( p3 );
+			}
 
 			List<Vector3D> temp = new List<Vector3D>();
 			Segment seg1 = Segment.Line( h1, h2 );
@@ -99,8 +112,16 @@
 			foreach( Vector3D v in temp )
 			{
 				Vector3D copy = v;
-				Sterographic.NormalizeToHyperboloid( ref copy );
-				result.Add( Sterographic.HyperboloidToPlane( copy ) );
+				if( g == Geometry.Hyperbolic )
+				{
+					Sterographic.NormalizeToHyperboloid( ref copy );
+					result.Add( Sterographic.HyperboloidToPlane( copy ) );
+				}
+				else if( g == Geometry.Spherical )
+				{
+					copy.Normalize();
+					result.Add( Sterographic.SphereToPlane( copy ) );
+				}
 			}
 			return result.ToArray();
 		}
@@ -129,7 +150,7 @@
 		/// Helper to generate a set of texture coordinates.
 		/// ZZZ - make this a non-euclidean calc?
 		/// </summary>
-		public static Vector3D[] TextureCoords( Polygon poly, Geometry g )
+		public static Vector3D[] TextureCoords( Polygon poly, Geometry g, bool doGeodesicDome = false )
 		{
 			int divisions = m_maxSubdivisions;
 
@@ -139,7 +160,7 @@
 
 			// ZZZ - Should we do this different handling of triangles?
 			// I think no, this was just for investigating "geodesic saddles".
-			bool doGeodesicSaddles = false;
+			bool doGeodesicSaddles = doGeodesicDome;
 			if( 3 == poly.Segments.Count && doGeodesicSaddles )
 			{
 				Vector3D[] t1 = CalcPointsUsingTwoSegments( poly.Segments[0], poly.Segments[1], divisions, g );

@@ -25,6 +25,15 @@
 			return ( point - planePoint ).Dot( normalVector ) / normalVector.Abs();
 		}
 
+		public static Vector3D ProjectOntoLine( Vector3D nl, Vector3D pl, Vector3D point )
+		{
+			// http://gamedev.stackexchange.com/a/72529
+			// A + dot(AP,AB) / dot(AB,AB) * AB
+			Vector3D AP = point - pl;
+			Vector3D AB = nl;
+			return pl + AB * AP.Dot( AB ) / AB.Dot( AB );
+		}
+
 		public static Vector3D ProjectOntoPlane( Vector3D normalVector, Vector3D planePoint, Vector3D point )
 		{
 			if( !normalVector.Normalize() )

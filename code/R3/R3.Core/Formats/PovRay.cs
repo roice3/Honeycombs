@@ -17,6 +17,59 @@
 			public double AngularThickness = 0.13;
 		}
 
+		public static void WriteMesh( Mesh mesh, string fileName, bool append = false )
+		{
+			if( append )
+			{
+				using( StreamWriter sw = File.AppendText( fileName ) )
+					WriteMesh( sw, mesh, fileName, append );
+			}
+			else
+			{
+				using( StreamWriter sw = File.CreateText( fileName ) )
+					WriteMesh( sw, mesh, fileName, append );
+			}
+		}
+
+		private static void WriteMesh( StreamWriter sw, Mesh mesh, string fileName, bool append = false )
+		{
+			Vector3D[] verts, normals;
+			List<int[]> faces;
+			mesh.BuildIndexes( out verts, out normals, out faces );
+
+			// http://www.povray.org/documentation/view/3.6.0/68/
+			// http://www.povray.org/documentation/view/3.6.1/293/
+			// We are going to use mesh2 so that we can have per-vertex coloring.
+			sw.WriteLine( "mesh2 {" );
+
+			// Vertices
+			sw.WriteLine( "  vertex_vectors {" );
+			sw.WriteLine( "    " + verts.Length + "," );
+			foreach( Vector3D v in verts )
+				sw.WriteLine( "    " + FormatVec( v ) + "," );
+			sw.WriteLine( "  }" );
+			
+			// Normals for smooth triangles
+			sw.WriteLine( "  normal_vectors {" );
+			sw.WriteLine( "    " + verts.Length + "," );
+			foreach( Vector3D v in normals )
+			{
+				v.Normalize();
+				sw.WriteLine( "    " + FormatVec( v ) + "," );
+			}
+			sw.WriteLine( "  }" );
+
+			// Triangles
+			sw.WriteLine( "  face_indices {" );
+			sw.WriteLine( "    " + faces.Count + "," );
+			foreach( int[] face in faces )
+				sw.WriteLine( string.Format( "    <{0},{1},{2}>,", face[0], face[1], face[2] ) );
+			sw.WriteLine( "  }" );
+
+			sw.WriteLine( "texture {tex2}" );
+			sw.WriteLine( "}" );
+		}
+
 		/// <summary>
 		/// Make a povray file for all the edges of an H3 model.
 		/// Input edge locations are expected to live in the ball model.
@@ -57,17 +110,20 @@
 			Vector3D[] points = null;
 			Func<Vector3D, Sphere> sizeFunc = v => new Sphere() { Center = v, Radius = H3Models.SizeFuncConst( v, parameters.Scale ) };
 
+			double minRad = 0.0005;
+			//double minRad = 0.0017;
+
 			if( parameters.Halfspace )
 			{
-				v1 = H3Models.BallToUHS( v1 );
-				v2 = H3Models.BallToUHS( v2 );
+				//v1 = H3Models.BallToUHS( v1 );
+				//v2 = H3Models.BallToUHS( v2 );
 
 				points = H3Models.UHS.GeodesicPoints( v1, v2 );
 				if( !parameters.ThinEdges )
 					sizeFunc = v => 
 					{
 						// XXX, inexact
-						return new Sphere() { Center = v, Radius = H3Models.UHS.SizeFunc( v, parameters.AngularThickness ) };
+						return new Sphere() { Center = v, Radius = Math.Max( H3Models.UHS.SizeFunc( v, parameters.AngularThickness ), minRad ) };
 					};
 			}
 			else
@@ -95,7 +151,7 @@
 						Vector3D c;
 						double r;
 						H3Models.Ball.DupinCyclideSphere( v, parameters.AngularThickness/2, g, out c, out r );
-						return new Sphere() { Center = c, Radius = r };
+						return new Sphere() { Center = c, Radius = Math.Max( r, minRad ) };
 						//return new Sphere() { Center = v, Radius = H3Models.Ball.SizeFunc( v, parameters.AngularThickness ) }; // inexact
 					};
 			}
@@ -103,7 +159,7 @@
 			//if( g == Geometry.Euclidean )
 			//	return EdgeCylinder( points, sizeFunc );
 
-			return EdgeSphereSweep( points, sizeFunc );
+			return EdgeSphereSweep( points, sizeFunc, edge.Color );
 		}
 
 		private static string EdgeCylinder( Vector3D[] points, Func<Vector3D, Sphere> sphereFunc )
@@ -121,7 +177,7 @@
 				// >..< 
 		}
 
-		public static string EdgeSphereSweep( Vector3D[] points, Func<Vector3D,Sphere> sphereFunc )
+		public static string EdgeSphereSweep( Vector3D[] points, Func<Vector3D,Sphere> sphereFunc, Vector3D color = new Vector3D() )
 		{
 			if( points.Length < 2 )
 				throw new System.ArgumentException();
@@ -142,7 +198,12 @@
 			// options: b_spline, linear_spline, cubic_spline
 
 			string formattedPoints = string.Join( ",", appended.Select( formatVecAndSize ).ToArray() );
-			return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			//return string.Format( "sphere_sweep {{ linear_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			
+			// With color included.
+			return string.Format( "sphere_sweep {{ linear_spline {0}, {1} finish {{fin}} pigment {{color CHSL2RGB({2})}} }}", 
+				points.Length + 2, formattedPoints, FormatVec( color ) );
 		}
 
 		/// <summary>
@@ -296,6 +357,36 @@
 			return sb.ToString();
 		}
 
+		public static void AppendEuclideanPolygons( Polygon[] polys, string fileName )
+		{
+			using( StreamWriter sw = File.AppendText( fileName ) )
+			{
+				foreach( Polygon poly in polys )
+					sw.WriteLine( Polygon( poly ) );
+			}
+		}
+
+		private static string Polygon( Polygon poly )
+		{
+			/* FP precision causing these to not draw correctly, I assume because POV-Ray is deeming them non-coplanar.
+			string verts = string.Join( " ", poly.Vertices.Select( v => FormatVecHiRes( v ) ) );
+			return string.Format( "polygon {{ {0}, {1} texture {{tex}} }}",
+				poly.Vertices.Length, verts );
+			*/
+
+			if( poly.Segments.Count <= 2 )
+				return string.Empty;
+
+			StringBuilder sb = new StringBuilder();
+			Vector3D p1 = poly.Segments[0].P1;
+			for( int i=1; i<poly.Segments.Count; i++ )
+			{
+				sb.AppendLine( string.Format( "triangle {{ {0} {1} {2} texture {{tex}} }}",
+					FormatVec( p1 ), FormatVec( poly.Segments[i].P1 ), FormatVec( poly.Segments[i].P2 ) ) );
+			}
+			return sb.ToString();
+		}
+
 		private static string FormatSphereNoMaterial( Sphere sphere, bool invert, bool includeClosingBracket = true )
 		{
 			if( sphere.IsPlane )
@@ -318,15 +409,26 @@
 
 		public static string Sphere( Sphere sphere )
 		{
-			//return string.Format( "sphere {{ {0}, {1:G6} material {{ sphereMat2 }} }}",
-			//		FormatVec( sphere.Center ), sphere.Radius );
-			return string.Format( "sphere {{ {0}, rad material {{ sphereMat }} }}",
-				FormatVec( sphere.Center ) );
+			return string.Format( "sphere {{ {0}, {1:G6} material {{ sphereMat }} }}",
+					FormatVec( sphere.Center ), sphere.Radius );
+			//return string.Format( "sphere {{ {0}, rad material {{ sphereMat }} }}",
+			//	FormatVec( sphere.Center ) );
+		}
+
+		public static string Cylinder( Vector3D start, Vector3D end, double rad )
+		{
+			return string.Format( "cylinder {{ {0}, {1}, {2:G6} material {{ sphereMat }} }}",
+				FormatVec( start ), FormatVec( end ), rad );
 		}
 
 		private static string FormatVec( Vector3D v )
 		{
 			return string.Format( "<{0:G6},{1:G6},{2:G6}>", v.X, v.Y, v.Z );
+		}
+
+		private static string FormatVecHiRes( Vector3D v )
+		{
+			return string.Format( "<{0:G9},{1:G9},{2:G9}>", v.X, v.Y, v.Z );
 		}
 	}
 }

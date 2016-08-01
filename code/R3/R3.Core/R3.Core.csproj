@@ -10,8 +10,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>R3.Core</RootNamespace>
     <AssemblyName>R3.Core</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,12 +31,9 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\OpenTK\1.0\Binaries\OpenTK\$(Configuration)\OpenTK.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -51,10 +50,7 @@
     <Compile Include="Algorithm\GraphRelaxation.cs" />
     <Compile Include="Control\RotationHandler4D.cs" />
     <Compile Include="Control\Mouse.cs" />
-    <Compile Include="Drawing\Lighting.cs" />
-    <Compile Include="Drawing\RenderToTexture.cs" />
     <Compile Include="Drawing\TextureHelper.cs" />
-    <Compile Include="Drawing\VBO.cs" />
     <Compile Include="Formats\PovRay.cs" />
     <Compile Include="Formats\STL.cs" />
     <Compile Include="Formats\VEF.cs" />
@@ -81,7 +77,6 @@
     <Compile Include="Math\DonHatch.cs" />
     <Compile Include="Drawing\GraphicsUtils.cs" />
     <Compile Include="Geometry\Euclidean2D.cs" />
-    <Compile Include="Drawing\GLUtils.cs" />
     <Compile Include="Math\Golden.cs" />
     <Compile Include="Math\Graph.cs" />
     <Compile Include="Math\Infinity.cs" />

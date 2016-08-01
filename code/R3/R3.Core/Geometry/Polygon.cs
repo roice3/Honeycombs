@@ -600,6 +600,57 @@
 			}
 		}
 
+		public static double InteriorAngle( int n )
+		{
+			return Utils.DegreesToRadians( (n - 2) * 180 / n );
+		}
+
+		/// <summary>
+		/// Create a euclidean polygon with n points,
+		/// centered at the origin with the first vertex on the x axis.
+		/// </summary>
+		public static Polygon CreateEuclidean( int n )
+		{
+			List<Vector3D> polyPoints = new List<Vector3D>();
+
+			double centralAngle = 2 * Math.PI / n;
+			for( int i=0; i<n; i++ )
+			{
+				Vector3D v = new Vector3D( 1, 0 );
+				v.RotateXY( centralAngle * i );
+				polyPoints.Add( v );
+			}
+
+			Polygon poly = new Polygon();
+			poly.CreateEuclidean( polyPoints.ToArray() );
+			return poly;
+		}
+
+		public static Polygon CreateEuclidean( int n, Vector3D p1, Vector3D p2, Vector3D normal )
+		{
+			List<Vector3D> polyPoints = new List<Vector3D>();
+
+			double centralAngle = 2 * Math.PI / n;
+
+			Vector3D direction = p2 - p1;
+			direction.RotateAboutAxis( normal, Math.PI / 2 );
+			direction.Normalize();
+			double dist = ( (p2 - p1).Abs() / 2 ) / Math.Tan( Math.PI / n );
+			Vector3D center = p1 + (p2 - p1) / 2 + direction*dist;
+
+			for( int i=0; i<n; i++ )
+			{
+				Vector3D v = p1 - center;
+				v.RotateAboutAxis( normal, centralAngle * i );
+				v += center;
+				polyPoints.Add( v );
+			}
+
+			Polygon poly = new Polygon();
+			poly.CreateEuclidean( polyPoints.ToArray() );
+			return poly;
+		}
+
 		/// <summary>
 		/// Create a Euclidean polygon from a set of points.
 		/// NOTE: Do not include starting point twice.

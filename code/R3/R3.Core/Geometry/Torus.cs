@@ -1,7 +1,6 @@
 ﻿namespace R3.Geometry
 {
 	using Math = System.Math;
-	using OpenTK.Graphics.OpenGL;
 	using System.Diagnostics;
 	using System.Drawing;
 
@@ -117,67 +116,5 @@
 
 			return t;
 		}
-
-		/// <summary>
-		/// Render our Torus using OpenGL.
-		/// </summary>
-		public void Render( System.Func<Vector3D, Vector3D> rotateAndProject )
-		{
-			GL.PushAttrib(
-				AttribMask.LightingBit |
-				AttribMask.PolygonBit |
-				AttribMask.EnableBit );
-
-			GL.Disable( EnableCap.Lighting );
-			GL.Enable( EnableCap.DepthTest );
-
-			RenderInternal( rotateAndProject );
-
-			GL.PopAttrib();
-		}
-
-		public void RenderInternal( System.Func<Vector3D, Vector3D> rotateAndProject )
-		{
-			if( this.Vertices.Length <= 0 ||
-				this.Params.NumSegments1 != this.Vertices.Length ||
-				this.Params.NumSegments2 != this.Vertices[0].Length )
-			{
-				// Our vertices and parameters are out of sync.
-				Debug.Assert( false );
-				return;
-			}
-
-			// Direction 1
-			GL.Color3( Color.Blue );
-			for( int i = 0; i < this.Params.NumSegments2; i++ )
-			{
-				GL.Begin( BeginMode.LineLoop );
-				for( int j = 0; j < this.Params.NumSegments1; j++ )
-				{
-					Vector3D transformed = rotateAndProject( this.Vertices[j][i] );
-					GL.Vertex3(
-						transformed.X,
-						transformed.Y,
-						transformed.Z );
-				}
-				GL.End();
-			}
-
-			// Direction 2
-			GL.Color3( Color.Red );
-			for( int i = 0; i < this.Params.NumSegments1; i++ )
-			{
-				GL.Begin( BeginMode.LineLoop );
-				for( int j = 0; j < this.Params.NumSegments2; j++ )
-				{
-					Vector3D transformed = rotateAndProject( this.Vertices[i][j] );
-					GL.Vertex3(
-						transformed.X,
-						transformed.Y,
-						transformed.Z );
-				}
-				GL.End();
-			}
-		}	
 	}
 }

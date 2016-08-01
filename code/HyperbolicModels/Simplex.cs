@@ -132,7 +132,7 @@
 		public static H3.Cell.Edge HoneycombEdgeBall( Sphere[] facets, Vector3D vertex )
 		{
 			Vector3D v1 = vertex;
-			Vector3D v2 = facets[2].ReflectPoint( v1 );
+			Vector3D v2 = facets[3].ReflectPoint( v1 );
 			return new H3.Cell.Edge( v1, v2 );
 		}
 
@@ -300,7 +300,7 @@
 			surfaces[0].Invert = true;
 
 			// Apply rotations.
-			bool applyRotations = false;
+			bool applyRotations = true;
 			if( applyRotations )
 			{
 				double rotation = Math.PI / 2;
@@ -398,15 +398,85 @@
 		/// </summary>
 		public static Vector3D[] VertsBall( int p, int q, int r )
 		{
+			throw new System.Exception( "Bad impl" );
+
 			Sphere[] facets = Mirrors( p, q, r, moveToBall: true );
 
-			// Order is same as facets (these are the points opposite facets).
-			Vector3D origin = new Vector3D();	// Not true for Euclidean cells, it's at infinity!  And beyond that for hyperbolic cells!  or is it the vertex figure which determines the location???
-			Vector3D faceCenter = facets[0].ProjectToSurface( origin );
+			// Order same as facets (these are the points opposite facets).
+			Vector3D cellCenter = new Vector3D();	// Not true for Euclidean cells, it's at infinity!  And beyond that for hyperbolic cells!  or is it the vertex figure which determines the location???
+			Vector3D faceCenter = facets[0].ProjectToSurface( cellCenter );
+			Vector3D edgeCenter = MidEdgePointBall( p, q, r );
 			Vector3D vertexPoint = VertexPointBall( p, q, r );
-			Vector3D midPoint = MidEdgePointBall( p, q, r );
 
-			return new Vector3D[] { origin, faceCenter, vertexPoint, midPoint };
+			return new Vector3D[] { cellCenter, faceCenter, edgeCenter, vertexPoint };
+		}
+
+				/// <summary>
+		/// Returns the 6 simplex edges in the Ball model.
+		/// </summary>
+		public static H3.Cell.Edge[] SimplexEdgesBall( int p, int q, int r )
+		{
+			H3.Cell.Edge[] edges = SimplexEdgesUHS( p, q, r );
+			foreach( H3.Cell.Edge e in edges )
+			{
+				e.Start = H3Models.UHSToBall( e.Start );
+				e.End = H3Models.UHSToBall( e.End );
+			}
+			return edges;
+		}
+
+		/// <summary>
+		/// Returns the 6 simplex edges in the UHS model.
+		/// </summary>
+		public static H3.Cell.Edge[] SimplexEdgesUHS( int p, int q, int r )
+		{
+			// Only implemented for honeycombs with both hyperideal edges/vertices right now.
+			if( !( Geometry2D.GetGeometry( p, q ) == Geometry.Hyperbolic &&
+					Geometry2D.GetGeometry( q, r ) == Geometry.Hyperbolic ) )
+				throw new System.NotImplementedException();
+
+			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, moveToBall: false );
+
+			Circle[] circles = simplex.Select( s => H3Models.UHS.IdealCircle( s ) ).ToArray();
+
+			Vector3D[] defPoints = new Vector3D[6];
+			Vector3D dummy;
+			Euclidean2D.IntersectionLineCircle( circles[1].P1, circles[1].P2, circles[0], out defPoints[0], out dummy );
+			Euclidean2D.IntersectionLineCircle( circles[2].P1, circles[2].P2, circles[0], out defPoints[1], out dummy );
+			Euclidean2D.IntersectionLineCircle( circles[1].P1, circles[1].P2, circles[3], out defPoints[2], out dummy );
+			Euclidean2D.IntersectionLineCircle( circles[2].P1, circles[2].P2, circles[3], out defPoints[3], out dummy );
+
+			Circle3D c = simplex[0].Intersection( simplex[3] );
+
+			Vector3D normal = c.Normal;
+			normal.RotateXY( Math.PI / 2 );
+			Vector3D intersection;
+			double height, off;
+
+			Euclidean2D.IntersectionLineLine( c.Center, c.Center + normal, circles[1].P1, circles[1].P2, out intersection );
+			off = ( intersection - c.Center ).Abs();
+			height = Math.Sqrt( c.Radius * c.Radius - off * off );
+			intersection.Z = height;
+			defPoints[4] = intersection;
+
+			Euclidean2D.IntersectionLineLine( c.Center, c.Center + normal, circles[2].P1, circles[2].P2, out intersection );
+			off = ( intersection - c.Center ).Abs();
+			height = Math.Sqrt( c.Radius * c.Radius - off * off );
+			intersection.Z = height;
+			defPoints[5] = intersection;
+
+			bool order = false;
+			H3.Cell.Edge[] edges = new H3.Cell.Edge[]
+			{
+				new H3.Cell.Edge( new Vector3D(), new Vector3D( 0, 0, 10 ) ),
+				new H3.Cell.Edge( defPoints[4], defPoints[5], order ),
+				new H3.Cell.Edge( defPoints[0], defPoints[4], order ),
+				new H3.Cell.Edge( defPoints[1], defPoints[5], order ),
+				new H3.Cell.Edge( defPoints[2], defPoints[4], order ),
+				new H3.Cell.Edge( defPoints[3], defPoints[5], order ),
+			};
+
+			return edges;
 		}
 
 		/// <summary>
@@ -591,16 +661,7 @@
 			bool facetCentered = false;
 			if( facetCentered )
 			{
-				Mobius m = new Mobius();
-				//p1 = new Vector3D( 0, 0.5176, 0 );
-				m.Isometry( cellGeometry, 0, -p1 );
-
-				foreach( Sphere s in surfaces )
-					H3Models.TransformInUHS2( s, m );
-
-				// surfaces[3].Center *= -1; // Super-hack for 437, since transform function is falling short.
-
-				cellCenter = m.ApplyToQuaternion( cellCenter );
+				PrepForFacetCentering( p, q, surfaces, ref cellCenter );
 			}
 
 			// Move to ball if needed.
@@ -608,6 +669,35 @@
 			cellCenter = moveToBall ? H3Models.UHSToBall( cellCenter ) : cellCenter;
 
 			return result;
+		}
+
+		/// <summary>
+		/// Inputs must be in UHS!
+		/// </summary>
+		public static void PrepForFacetCentering( int p, int q, Sphere[] spheres, ref Vector3D cellCenter )
+		{
+			Mobius m = FCOrientMobius( p, q );
+			foreach( Sphere s in spheres )
+				H3Models.TransformInUHS2( s, m );
+
+			spheres[3].Center *= -1; // Super-hack for 437 & 737, since TransformInUHS2 function is falling short.
+			//spheres[2].Center *= -1;
+
+			cellCenter = m.ApplyToQuaternion( cellCenter );
+		}
+
+		public static Mobius FCOrientMobius( int p, int q )
+		{
+			Vector3D p1, p2, p3;
+			Segment seg = null;
+			TilePoints( p, q, out p1, out p2, out p3, out seg );
+			Geometry cellGeometry = Geometry2D.GetGeometry( p, q );
+
+			p1.RotateXY( Math.PI / 2 );	// XXX - repeated from above.  Implement a better way to sequence transformations.
+
+			Mobius m = new Mobius();
+			m.Isometry( cellGeometry, 0, -p1 );
+			return m;
 		}
 
 		/// <summary>
@@ -676,6 +766,8 @@
 			// The reason for the special case ordering is to make sure
 			// the last mirror is always the cell-reflecting mirror of the dual honeycomb.
 			// The order we want are the mirrors opposite: cell, face, edge, vertex
+			// NOTE: This also puts the mirrors in the same order as in standard presentations, 
+			// e.g. from Coxeter's 57-cell paper.
 			Sphere[] surfaces;
 			if( !Infinite( p ) && Infinite( q ) )
 				surfaces = new Sphere[] { s2, s1, s3 };

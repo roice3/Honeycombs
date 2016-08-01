@@ -107,9 +107,7 @@
 
 			// A useful page describing the cases in this function is:
 			// http://ozviz.wasp.uwa.edu.au/~pbourke/geometry/2circle/
-
-			p1.Empty();
-			p2.Empty();
+			// Maybe here now? http://paulbourke.net/geometry/circlesphere/
 
 			// Vector and distance between the centers.
 			Vector3D v = c2.Center - c1.Center;

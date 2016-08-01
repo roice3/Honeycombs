@@ -5,6 +5,7 @@
 	using R3.Math;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Runtime.Serialization;
 
 	public class Circle3D
@@ -33,6 +34,43 @@
 			Normal = normal;
 		}
 
+		public Circle3D Clone()
+		{
+			return (Circle3D)MemberwiseClone();
+		}
+
+		/// <summary>
+		/// Caller is responsible to make sure our normal is in the z direction.
+		/// </summary>
+		public Circle ToFlatCircle()
+		{
+			return new Circle { Center = Center, Radius = Radius };
+		}
+
+		public static Circle3D FromCenterAnd2Points( Vector3D cen, Vector3D p1, Vector3D p2 )
+		{
+			Circle3D circle = new Circle3D();
+			circle.Center = cen;
+			circle.Radius = ( p1 - cen ).Abs();
+
+			if( !Tolerance.Equal( circle.Radius, ( p2 - cen ).Abs() ) )
+				throw new System.ArgumentException( "Points are not on the same circle." );
+
+			Vector3D normal = ( p2 - cen ).Cross( p1 - cen );
+			normal.Normalize();
+			circle.Normal = normal;
+			return circle;
+		}
+
+		public Vector3D PointOnCircle
+		{
+			get
+			{
+				Vector3D[] points = Subdivide( 1 );
+				return points.First();
+			}
+		}
+
 		/// <summary>
 		/// Returns 3 points that will define the circle (120 degrees apart).
 		/// </summary>
@@ -40,13 +78,28 @@
 		{
 			get
 			{
-				Vector3D p1 = Normal.Perpendicular();
-				p1 *= Radius;
-				Vector3D p2 = p1, p3 = p1;
-				p2.RotateAboutAxis( Normal, 2 * Math.PI / 3 );
-				p3.RotateAboutAxis( Normal, 2 * Math.PI * 2 / 3 );
-				return new Vector3D[] { p1 + Center, p2 + Center, p3 + Center };
+				return Subdivide( 3 );
 			}
+		}
+
+		/// <summary>
+		/// Calculate n points around the circle
+		/// </summary>
+		public Vector3D[] Subdivide( int n )
+		{
+			List<Vector3D> points = new List<Vector3D>();
+			Vector3D start = Normal.Perpendicular();
+			start *= Radius;
+
+			double angleInc = 2 * Math.PI / n;
+			for( int i=0; i<n; i++ )
+			{
+				Vector3D v = start;
+				v.RotateAboutAxis( Normal, angleInc * i );
+				points.Add( Center + v );
+			}
+
+			return points.ToArray();
 		}
 
 		private static void From3Points( Vector3D v1, Vector3D v2, Vector3D v3, 

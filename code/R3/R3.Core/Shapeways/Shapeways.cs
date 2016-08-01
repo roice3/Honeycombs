@@ -87,6 +87,15 @@
 			AddCurve( disks, points, start, end );
 		}
 
+		public void AddCurve( Vector3D[] points, double[] radii )
+		{
+			if( points.Length < 2 )
+				throw new System.ArgumentException( "AddCurve requires at least two input points." );
+
+			List<Vector3D[]> disks = CalcDisks( points, radii );
+			AddCurve( disks, points, points.First(), points.Last() );
+		}
+
 		private void AddCurve( List<Vector3D[]> disks, Vector3D[] points, Vector3D start, Vector3D end )
 		{
 			// Cap1
@@ -153,6 +162,7 @@
 			int numPoints = 8;
 			//int numPoints = (int)(Math.Sqrt(radius) * divisions);
 			numPoints = Math.Max( 3, numPoints );
+			numPoints = 57;
 
 			return CalcArcPoints( center, radius, v1, normal, angleTot, numPoints );
 		}
@@ -254,6 +264,24 @@
 				//	p3 = Euclidean3D.ProjectOntoPlane( p2, p2, p3 );
 				//else if( i == points.Length - 1 )
 				//	p1 = Euclidean3D.ProjectOntoPlane( p2, p2, p1 );
+
+				Vector3D axis = CurveAxis( p1, p2, p3 );
+				Vector3D perpendicular = CurvePerp( p1, p2, p3 );
+				perpendicular *= radius;
+				disks.Add( Disk( p2, axis, perpendicular, this.Div, reverse ) );
+			}
+			return disks;
+		}
+
+		private List<Vector3D[]> CalcDisks( Vector3D[] points, double[] radii, bool reverse = false )
+		{
+			List<Vector3D[]> disks = new List<Vector3D[]>();
+			for( int i=0; i<points.Length; i++ )
+			{
+				Vector3D p1 = i == 0 ? points[0] : points[i - 1];
+				Vector3D p2 = points[i];
+				Vector3D p3 = i == points.Length - 1 ? points[points.Length - 1] : points[i + 1];
+				double radius = radii[i];
 
 				Vector3D axis = CurveAxis( p1, p2, p3 );
 				Vector3D perpendicular = CurvePerp( p1, p2, p3 );
