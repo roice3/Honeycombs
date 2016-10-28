@@ -99,8 +99,8 @@
 						List<Vector3D> vectors = new List<Vector3D>();
 						int cellFlips = 0;
 
-						//const int div = 3;
-						const int div = 2;
+						const int div = 3;
+						//const int div = 2;
 						List<Color> colors = new List<Color>();
 						for( int k=0; k<=div; k++ )
 						for( int l=0; l<=div; l++ )
@@ -483,13 +483,18 @@
 
 			float scale = 2;
 
+			List<Sphere> toDraw = new List<Sphere>();
+			toDraw.AddRange( settings.Mirrors );
+			toDraw.Add( AlteredFacetForTrueApparent2DTilings( settings.Mirrors ) );
+
 			using( Graphics g = Graphics.FromImage( image ) )
-			using( Pen p = new Pen( Color.Red, scale*3.0f ) )
+			using( Pen p = new Pen( Color.Red, scale * 3.0f ) )
 			//using( Pen p2 = new Pen( Color.FromArgb( 255, 255, 214, 0 ), 3.0f ) )
-			using( Pen p2 = new Pen( Color.Orange, scale*3.0f ) )
-			for( int m=0; m<settings.Mirrors.Length; m++ )			
+			using( Pen p2 = new Pen( Color.Orange, scale * 3.0f ) )
+			using( Pen p3 = new Pen( Color.Orange, scale * 3.0f ) )
+			for( int m=0; m<toDraw.Count; m++ )			
 			{
-				Sphere s = settings.Mirrors[m];
+				Sphere s = toDraw[m];
 				Circle c = H3Models.UHS.IdealCircle( s );	// XXX - not correct
 				if( c.IsLine )
 				{
@@ -498,7 +503,7 @@
 				else
 				{
 					Sphere temp = H3Models.BallToUHS( s );
-					DrawUtils.DrawCircle( new Circle { Center = temp.Center, Radius = temp.Radius }, g, i, m == 0 ? p2 : p );
+					DrawUtils.DrawCircle( new Circle { Center = temp.Center, Radius = temp.Radius }, g, i, m == 0 ? p2 : m == 4 ? p3 : p );
 				}
 
 				/* // iii
@@ -719,7 +724,8 @@
 			}
 
 			double bananaThickness = 0.025;
-			bananaThickness = 0.04;
+			//bananaThickness = 0.15;
+			//bananaThickness = 0.04;
 
 			// Transform the intersection points to a standard Poincare disk.
 			// The midsphere radius is the scale of the apparent 2D tilings.
