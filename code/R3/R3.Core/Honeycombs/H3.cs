@@ -239,7 +239,7 @@
 
 				// The reason we use a vector here is so the components 
 				// can be interpreted in different color schemes (HLS, RGB, etc.)
-				public Vector3D Color;
+				public Vector3D Color = new Vector3D( 1, 1, 1 );
 
 				/// <summary>
 				/// Used to track recursing depth of reflections across various mirrors.

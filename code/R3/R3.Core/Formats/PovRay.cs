@@ -110,7 +110,8 @@
 			Vector3D[] points = null;
 			Func<Vector3D, Sphere> sizeFunc = v => new Sphere() { Center = v, Radius = H3Models.SizeFuncConst( v, parameters.Scale ) };
 
-			double minRad = 0.0005;
+			//double minRad = 0.0005;
+			double minRad = 0.0000;
 			//double minRad = 0.0017;
 
 			if( parameters.Halfspace )
@@ -129,7 +130,7 @@
 			else
 			{
 				if( g == Geometry.Hyperbolic )
-					points = H3Models.Ball.GeodesicPoints( v1, v2 );
+					points = H3Models.Ball.GeodesicPoints( v1, v2, edge.Color.Z );
 				else if( g == Geometry.Spherical )
 				{
 					points = S3.GeodesicPoints( v1, v2 );
@@ -194,7 +195,7 @@
 				return string.Format( "<{0:G6},{1:G6},{2:G6}>,{3:G6}", s.Center.X, s.Center.Y, s.Center.Z, s.Radius );
 			};
 
-			// Use b_spline http://bugs.povray.org/task/81
+			// b_spline seems best overall http://bugs.povray.org/task/81
 			// options: b_spline, linear_spline, cubic_spline
 
 			string formattedPoints = string.Join( ",", appended.Select( formatVecAndSize ).ToArray() );
@@ -202,8 +203,60 @@
 			//return string.Format( "sphere_sweep {{ linear_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
 			
 			// With color included.
-			return string.Format( "sphere_sweep {{ linear_spline {0}, {1} finish {{fin}} pigment {{color CHSL2RGB({2})}} }}", 
-				points.Length + 2, formattedPoints, FormatVec( color ) );
+			return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2}}} }}",
+				points.Length + 2, formattedPoints, FormatVec( CHSL2RGB( color ) ) );
+			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color CHSL2RGB({2})}} }}", 
+			//	points.Length + 2, formattedPoints, FormatVec( color ) );
+		}
+
+		// Takes Hue value as input, returns RGB vector.
+		// Copied from POV-Ray
+		private static Vector3D CH2RGB( double H )
+		{
+			double R = 0, G = 0, B = 0;
+			if( H >= 0 && H < 120 )
+			{
+				R = (120 - H) / 60;
+				G = (H - 0) / 60;
+				B = 0;
+			}
+			else if( H >= 120 && H < 240 )
+			{
+				R = 0;
+				G = (240 - H) / 60;
+				B = (H - 120) / 60;
+			}
+			else if( H >= 240 && H <= 360 )
+			{
+				R = (H - 240) / 60;
+				G = 0;
+				B = (360 - H) / 60;
+			}
+
+			return new Vector3D(
+				Math.Min( R, 1 ),
+				Math.Min( G, 1 ),
+				Math.Min( B, 1 ) );
+		}
+
+		// Copied from POV-Ray
+		// Putting this here for speed. It was too expensive to do this at render time in POV-Ray.
+		private static Vector3D CHSL2RGB( Vector3D hsl )
+		{
+			Vector3D ones = new Vector3D( 1, 1, 1 );
+
+			double H = hsl.X;
+			double S = hsl.Y;
+			double L = hsl.Z;
+			Vector3D SatRGB = CH2RGB( H );
+			Vector3D Col = 2 * S * SatRGB + (1 - S) * ones;
+			Vector3D rgb;
+			if( L < 0.5 )
+				rgb = L * Col;
+			else
+				rgb = (1 - L) * Col + (2 * L - 1) * ones;
+
+			return rgb;
 		}
 
 		/// <summary>

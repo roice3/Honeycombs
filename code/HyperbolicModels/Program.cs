@@ -10,29 +10,16 @@
 		{
 			try
 			{
-				//Sandbox.TileImages();
-				//Sandbox.Polarity();
-
-				//Hopf hopf = new Hopf();
-				//hopf.GenPovRay();
-
-				//H3Ruled ruled = new H3Ruled();
-				//ruled.GenPovRay();
-
-				//Acrohedron a = new Acrohedron();
-				//a.Generate( 5, 5, 4 );
-
-				//Sandbox.Dini();
-
-				HoneycombPaper.DoStuff( args );
-				//ThreeFifty.GenImage();
-
-				//HoneycombGen.GoursatSet();
-
-				//List<HoneycombAndView> honeycombs = GetCoxeterSet().ToList();
-				//foreach( HoneycombAndView h in honeycombs )
-					//HoneycombGen.OneHoneycombNew( h );
-				//HoneycombGen.OneHoneycombNew( new HoneycombAndView() { P = 5, Q = 3, R = 3 } );
+				bool wiki = false;
+				if( wiki )
+				{
+					//HoneycombGen.GoursatSet();
+					HoneycombGen.ParacompactSet();
+				}
+				else
+				{ 
+					HoneycombPaper.DoStuff( args );
+				}
 			}
 			catch( System.Exception ex )
 			{

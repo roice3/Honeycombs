@@ -75,8 +75,8 @@
 			double slope = ( Math.Log( count2 ) - Math.Log( count1 ) ) / ( Math.Log( 80 ) - Math.Log( 60 ) );
 
 			// Why 1.3M?  We'll get 650k after we half this.
-			//double desiredCount = 1.3e6;
-			double desiredCount = 3e4;
+			double desiredCount = 2e6;
+			//double desiredCount = 3e4;	// For testing
 			double logDesiredCount = Math.Log( desiredCount );
 			double temp = Math.Log( 80 ) + ( logDesiredCount - Math.Log( count2 ) ) / slope;
 
@@ -125,6 +125,17 @@
 				// This tracks reflections across the cell facets.
 				newEdge.Depths[m]++;
 
+				// Edge color.
+				// Make the threshold length black, or the background color.
+				double percentWhite = ( r1.Dist( r2 ) - settings.Threshold ) / 0.015;
+				if( percentWhite < 0 )
+					percentWhite = 0;
+				if( percentWhite > 1 )
+					percentWhite = 1;
+				//newEdge.Color = new Vector3D( percentWhite, percentWhite, percentWhite );
+				newEdge.Color = m_background;
+				newEdge.Color.Z = 0.1 + 0.9 * percentWhite;
+
 				if( completedEdges.Add( newEdge ) )
 				{
 					// Haven't seen this edge yet, so 
@@ -135,6 +146,8 @@
 
 			ReflectEdgesRecursive( simplex, newEdges.ToArray(), settings, completedEdges );
 		}
+
+		public static Vector3D m_background;
 
 		public static H3.Cell[] CalcCells( Sphere[] mirrors, H3.Cell[] cells )
 		{

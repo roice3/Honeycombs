@@ -88,6 +88,7 @@
 	{
 		/// <summary>
 		/// This generates a honeycomb by reflecting in all facets of a cell.
+		/// </summary>
 		public static void OneHoneycombOldCode()
 		{
 			H3.GenHoneycomb( EHoneycomb.H435 );
@@ -345,7 +346,6 @@
 				if( g == Geometry.Spherical )
 				{
 					edges = edges.Where( e => e.Start.Valid() && e.End.Valid() && !Infinity.IsInfinite( e.Start ) && !Infinity.IsInfinite( e.End ) ).ToArray();
-
 					S3.EdgesToStl( edges );
 				}
 				else
@@ -536,21 +536,94 @@
 				OneHoneycombGoursat( active, baseName, baseHue );
 		}
 
-		private static void OneHoneycombGoursat( int[] active, string baseName, int baseHue )
+		public static void ParacompactSet()
+		{
+			List<int[]> toRun = new List<int[]>();
+			toRun.Add( new int[] { 0, 1 } );
+			toRun.Add( new int[] { 0, 2 } );
+			toRun.Add( new int[] { 0, 3 } );
+			toRun.Add( new int[] { 1, 2 } );
+			toRun.Add( new int[] { 1, 3 } );
+			toRun.Add( new int[] { 2, 3 } );
+			toRun.Add( new int[] { 0, 1, 2 } );
+			toRun.Add( new int[] { 0, 1, 3 } );
+			toRun.Add( new int[] { 0, 2, 3 } );
+			toRun.Add( new int[] { 1, 2, 3 } );
+			toRun.Add( new int[] { 0, 1, 2, 3 } );
+
+			//toRun.Clear();
+			//toRun.Add( new int[] { 0, 1, 3 } );
+
+			int baseHue = 0;
+			HoneycombDef def;
+
+			baseHue = 135;
+			def = new HoneycombDef( 6, 3, 3 );
+			foreach( int[] active in toRun )
+				Paracompact( def, active, baseHue );
+
+			baseHue = 220;
+			def = new HoneycombDef( 6, 3, 4 );
+			foreach( int[] active in toRun )
+				Paracompact( def, active, baseHue );
+
+			baseHue = 180;
+			def = new HoneycombDef( 6, 3, 5 );
+			foreach( int[] active in toRun )
+				Paracompact( def, active, baseHue );
+
+			baseHue = 255;
+			def = new HoneycombDef( 6, 3, 6 );
+			foreach( int[] active in toRun )
+				Paracompact( def, active, baseHue );
+
+			baseHue = 105;
+			def = new HoneycombDef( 3, 6, 3 );
+			foreach( int[] active in toRun )
+				Paracompact( def, active, baseHue );
+
+			baseHue = 300;
+			def = new HoneycombDef( 4, 4, 3 );
+			foreach( int[] active in toRun )
+				Paracompact( def, active, baseHue );
+
+			baseHue = 0;
+			def = new HoneycombDef( 4, 4, 4 );
+			foreach( int[] active in toRun )
+				Paracompact( def, active, baseHue );
+		}
+
+		private static void CalcThickness( int[] active )
 		{
 			double thickness = 0.04;
 			switch( active.Length )
 			{
-				case 2:
-					thickness = 0.025; break;
-				case 3:
-				case 4:
-					thickness = 0.02; break;
+			case 2:
+				thickness = 0.025;
+				break;
+			case 3:
+			case 4:
+				thickness = 0.02;
+				break;
 			}
 			H3.m_settings.AngularThickness = thickness;
+		}
+
+		private static string ActiveMirrorsString( int[] active )
+		{
+			Func<int, string> activeToString = i => active.Contains( i ) ? "1" : "0";
+			string mirrorsString = string.Format( "{0}{1}{2}{3}",
+				activeToString( 0 ), activeToString( 1 ), activeToString( 2 ), activeToString( 3 ) );
+			return mirrorsString;
+		}
+
+		private static void OneHoneycombGoursat( int[] active, string baseName, int baseHue )
+		{
+			CalcThickness( active );
 
 			// Create the simplex.
 			Simplex simplex = new Simplex();
+			simplex.InitializeGoursat(); 
 
 			// Map of labels for mirrors consistent with input scheme to Goursat function.
 			// Map is from wikipedia labeling scheme to the indices our function generates.
@@ -573,9 +646,7 @@
 			};
 
 			// We need to set this up before converting the mirrors.
-			Func<int, string> activeToString = i => active.Contains( i ) ? "1" : "0";
-			string mirrorsString = string.Format( "{0}{1}{2}{3}",
-				activeToString( 0 ), activeToString( 1 ), activeToString( 2 ), activeToString( 3 ) );
+			string mirrorsString = ActiveMirrorsString( active );
 			string suffix = "-" + mirrorsString;
 
 			// Convert our active mirrors into the Goursat tet indices.
@@ -649,6 +720,65 @@
 			}
 		}
 
+		private static void SetupBaseHue( string fileName, string mirrorsString, int baseHue )
+		{
+			// Setup Pov-ray stuff.
+			// We have 16 possible mirror states.  We'll calculate the hue by converting the binary state to decimal, and doubling.
+			// So for a given family, the hue will range over 32 numbers.
+			int hue = baseHue + 2 * Convert.ToInt32( mirrorsString, 2 );
+			using( StreamWriter sw = File.CreateText( fileName + ".pov" ) )
+			{
+				sw.WriteLine( "#include \"C:\\Users\\hrn\\Documents\\roice\\povray\\H3_paracompact\\H3_paracompact.pov\"" );
+				sw.WriteLine( string.Format( "background {{ CHSL2RGB( <{0}, 1, .1> ) }}", hue ) );
+			}
+		}
+
+		private static string BaseName( HoneycombDef def )
+		{
+			return string.Format( "{0}{1}{2}", def.P, def.Q, def.R );
+		}
+
+		public static void Paracompact( HoneycombDef def, int[] active, int baseHue )
+		{
+			string baseName = BaseName( def );
+			string mirrorsString = ActiveMirrorsString( active );
+			string suffix = "-" + mirrorsString;
+			string fileName = baseName + suffix;
+
+			if( File.Exists( fileName + ".pov" ) )
+			{
+				Console.WriteLine( string.Format( "Skipping {0}", fileName ) );
+				return;
+			}
+
+			Console.WriteLine( string.Format( "Building {0}", fileName ) );
+			CalcThickness( active );
+
+			// The wiki mirrors are labeled in the reverse of ours.
+			Func<int, int> mapMirror = i => 3 - i;
+			active = active.Select( i => mapMirror( i ) ).OrderBy( i => i ).ToArray();
+
+			Simplex simplex = new Simplex();
+			simplex.Facets = SimplexCalcs.Mirrors( def.P, def.Q, def.R );
+			simplex.Verts = SimplexCalcs.VertsBall( def.P, def.Q, def.R );
+
+			Vector3D startingPoint = IterateToStartingPoint( active, simplex );
+			if( startingPoint.DNE )
+				return;
+			List<H3.Cell.Edge> startingEdges = new List<H3.Cell.Edge>();
+			foreach( int a in active )
+			{
+				Vector3D reflected = simplex.ReflectInFacet( startingPoint, a );
+				startingEdges.Add( new H3.Cell.Edge( startingPoint, reflected ) );
+			}
+
+			SetupBaseHue( fileName, mirrorsString, baseHue );
+			Recurse.m_background = new Vector3D( baseHue, 1, .1 );
+
+			H3.Cell.Edge[] edges = Recurse.CalcEdgesSmart2( simplex.Facets, startingEdges.ToArray() );
+			H3.SaveToFile( fileName, edges, finite: true, append: true );
+		}
+
 		// CHEAT! (would be better to do a geometrical construction)
 		// We are going to iterate to the starting point that will make all edge lengths the same.
 		private static Vector3D IterateToStartingPoint( int[] activeMirrors, Simplex simplex )
@@ -700,11 +830,12 @@
 			bary = baryNormalize( bary );
 
 			// For each iteration, we'll shrink this search offset.
-			// NOTE: I'm not actually sure that the starting offset and decrease factor I'm using
-			// guarantee convergence, but it seems to be working pretty well (even when varying these parameters).
+			// NOTE: The starting offset and decrease factor I'm using don't guarantee convergence, 
+			// but it seems to be working pretty well (even when varying these parameters).
 			//double searchOffset = 1.0 - bary[activeMirrors[0]];
 			//double searchOffset = bary[activeMirrors[0]];
-			double searchOffset = bary[activeMirrors[0]] / 1.7;		// helped get 4353-1111 to converge	
+			double factor = 1.5;	// Adjusting this helps get some to converge, e.g. 4353-1111 
+			double searchOffset = bary[activeMirrors[0]] / factor;		
 
 			double min = double.MaxValue;
 			int iterations = 1000;
@@ -739,14 +870,20 @@
 					break;
 				}
 
-				searchOffset /= 1.7;
+				searchOffset /= factor;
 			}
 
 			if( !Tolerance.Equal( min, 0.0, 1e-14 ) )
 			{
 				System.Console.WriteLine( "Did not converge: " + min );
-				System.Console.ReadKey( true );
-				throw new System.Exception( "Boo. We did not converge." );
+
+				// Be a little looser before thrown an exception.
+				if( !Tolerance.Equal( min, 0.0, 1e-12 ) )
+				{
+					System.Console.ReadKey( true );
+					//throw new System.Exception( "Boo. We did not converge." );
+					return Vector3D.DneVector();
+				}
 			}
 
 			return HyperbolicModels.KleinToPoincare( baryToEuclidean( kleinVerts, bary ) );

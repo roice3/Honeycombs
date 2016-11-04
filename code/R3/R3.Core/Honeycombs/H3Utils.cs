@@ -762,23 +762,18 @@
 
 			/// <summary>
 			/// Calculate points along a geodesic segment from v1 to v2.
+			/// quality can vary from 0 to 1.
 			/// </summary>
-			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2 )
+			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2, double quality = 1.0 )
 			{
-				//int div = 20;
-				int div = 36;
-				//int div = 40; // Wiki
+				int div = 40; // Wiki
 				//LODThin( v1, v2, out div );
-				
-				// Be smart about the number of divisions.
-				Vector3D center, normal;
-				double radius, angleTot;
-				Geodesic( v1, v2, out center, out radius, out normal, out angleTot );
-				double length = radius * angleTot;
-				div = (int)(length * 57 / 2);
+
+				// Account for quality.
+				div = (int)(Math.Pow( quality, 1 ) * div);
 
 				// Keep in reasonable range.
-				div = Math.Max( div, 11 );
+				div = Math.Max( div, 4 );
 				div = Math.Min( div, 57 );
 
 				return GeodesicPoints( v1, v2, div );

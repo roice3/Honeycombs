@@ -10,7 +10,7 @@
 
 	public class Simplex
 	{
-		public Simplex() { Initialize(); }
+		public Simplex() {}
 
 		public Vector3D[] Verts { get; set; }
 		public Sphere[] Facets { get; set; }
@@ -23,7 +23,7 @@
 			return new H3.Cell.Edge( Verts[a], Verts[b] );
 		}
 
-		public void Initialize()
+		public void InitializeGoursat()
 		{
 			//Vector3D[] test = SimplexCalcs.GoursatTetrahedron( 3.5, 3.8, 3.1, 2.2, 2.01, 2.1 );	// Example values from paper.
 			//Verts = SimplexCalcs.GoursatTetrahedron( 2, 4, 3, 2, 3, 3 );				// 4,3,3,3
@@ -44,7 +44,7 @@
 			//Verts = SimplexCalcs.GoursatTetrahedron( 2, 5, 2, 2, 5, 3 );						// 5,3,5 (Alt)
 			//Verts = SimplexCalcs.GoursatTetrahedron( 2, 3, 5, 2, 3, 2 );						// 3,5,3
 
-			// Spherical doesn't work :(
+			// Spherical/Paracompact doesn't work :(
 			//Verts = SimplexCalcs.GoursatTetrahedron( 2, 5, 3, 2, 3, 2 );						// 5,3,3
 
 			Facets = SimplexCalcs.Mirrors( Verts );
@@ -122,6 +122,61 @@
 			throw new System.ArgumentException();
 		}
 
+		/// <summary>
+		/// Calculates the point of our simplex that is at the middle of an edge.
+		/// </summary>
+		private static Vector3D FaceCenterBall( int p, int q, int r )
+		{
+			Geometry cellGeometry = Geometry2D.GetGeometry( p, q );
+			switch( cellGeometry )
+			{
+			case Geometry.Spherical:
+				{
+					Vector3D cellCenter = CellCenterBall( p, q, r );
+					Sphere[] mirrors = Mirrors( p, q, r, moveToBall: true );
+					return mirrors[0].ProjectToSurface( cellCenter );
+				}
+			case Geometry.Euclidean:
+				{
+					Sphere[] mirrors = Mirrors( p, q, r, moveToBall: false );
+					Vector3D faceCenterUHS = mirrors[0].Center;
+					faceCenterUHS.Z += mirrors[0].Radius;
+					return H3Models.UHSToBall( faceCenterUHS );
+				}
+			case Geometry.Hyperbolic:
+				{
+					throw new System.NotImplementedException();
+				}
+			}
+
+			throw new System.ArgumentException();
+		}
+
+		/// <summary>
+		/// Calculates the point of our simplex that is at the middle of an edge.
+		/// </summary>
+		private static Vector3D CellCenterBall( int p, int q, int r )
+		{
+			Geometry cellGeometry = Geometry2D.GetGeometry( p, q );
+			switch( cellGeometry )
+			{
+			case Geometry.Spherical:
+				{
+					return new Vector3D();
+				}
+			case Geometry.Euclidean:
+				{
+					return new Vector3D( 0, 0, 1 );
+				}
+			case Geometry.Hyperbolic:
+				{
+					throw new System.NotImplementedException();
+				}
+			}
+
+			throw new System.ArgumentException();
+		}
+
 		public static H3.Cell.Edge HoneycombEdgeBall( int p, int q, int r )
 		{
 			Sphere[] facets = Mirrors( p, q, r, moveToBall: true );
@@ -148,73 +203,9 @@
 			Sphere[] simplex = Mirrors( p, q, r, moveToBall: false );
 			Sphere s1 = simplex[0].Clone();
 			Sphere s2 = s1.Clone();
-			s2.Reflect( simplex[3] );
+			s2.Reflect( simplex[1] );
 			Circle3D intersection = s1.Intersection( s2 );
 			return intersection;
-		}
-
-		public static H3.Cell.Edge RectifiedEdge( int p, int q, int r )
-		{
-			Sphere[] simplex = Mirrors( p, q, r );
-			Vector3D midVec = MidEdgePointBall( p, q, r );
-			Segment[] baseTileSegments = BaseTileSegments( q, p );	// Intentionally using dual.
-
-			// Experiment - only for euclidean cells.
-			/*
-			double x = intersection.Center.Abs();
-			double y = intersection.Radius;
-			double c = ( x * x + y * y - 1 ) / ( 2 * x );
-			double rad = Math.Sqrt( 1 + c * c );
-			double tm = c + rad;
-			Vector3D d1 = baseTileSegments[0].Midpoint;
-			Vector3D d2 = baseTileSegments[1].Midpoint;
-			d1.Normalize(); d1 *= tm;
-			d2.Normalize(); d2 *= tm;
-			Vector3D v1 = H3Models.UHSToBall( d1 );
-			Vector3D v2 = H3Models.UHSToBall( d2 );
-			 * */
-
-			/*
-			Vector3D midOnBoundary = new Sphere().ProjectToSurface( midVec );
-			double mid = H3Models.BallToUHS( midOnBoundary ).Abs();
-			Vector3D v1 = baseTileSegments[0].Midpoint;
-			Vector3D v2 = baseTileSegments[1].Midpoint;
-			v1.Normalize(); v1 *= mid;
-			v2.Normalize(); v2 *= mid;
-			v1 = H3Models.UHSToBall( v1 );
-			v2 = H3Models.UHSToBall( v2 );
-
-			//Vector3D v1 = H3Models.UHSToBall( baseTileSegments[0].Midpoint );	// Works for spherical
-			//Vector3D v2 = H3Models.UHSToBall( baseTileSegments[1].Midpoint );
-			v1.Normalize(); v1 *= midVec.Abs();
-			v2.Normalize(); v2 *= midVec.Abs();
-			*/
-
-			Vector3D v1 = midVec;
-			Vector3D v2 = simplex[1].ReflectPoint( v1 );
-			return new H3.Cell.Edge( v1, v2 );
-		}
-
-		public static H3.Cell.Edge[] TruncatedEdges( int p, int q, int r )
-		{
-			Sphere[] simplex = Mirrors( p, q, r );
-			Vector3D midEdgePoint = MidEdgePointBall( p, q, r );
-
-			// We need to calculate the point "halfway" between the vertex and midedge.
-			// When vertices are at infinity, this is a bit strange.
-			Circle3D edge = HoneycombEdgeUHS( p, q, r );
-			Vector3D truncationPoint = H3Models.BallToUHS( midEdgePoint );
-			truncationPoint -= edge.Center;
-			truncationPoint.RotateAboutAxis( edge.Normal, Math.PI / 12 );
-			truncationPoint += edge.Center;
-			truncationPoint = H3Models.UHSToBall( truncationPoint );
-
-			List<H3.Cell.Edge> result = new List<H3.Cell.Edge>();
-			Vector3D v1 = truncationPoint;
-			Vector3D v2 = simplex[1].ReflectPoint( v1 );
-			result.Add( new H3.Cell.Edge( v1, v2 ) );
-			result.Add( new H3.Cell.Edge( v1, midEdgePoint ) );
-			return result.ToArray();
 		}
 
 		private static Segment[] BaseTileSegments( int p, int q )
@@ -231,53 +222,6 @@
 		/// </summary>
 		public static Sphere[] MirrorsSpherical( int p, int q, int r )
 		{
-			/*
-			// Get a {q,p} tiling on the z=0 plane.
-			Segment[] baseTileSegments = BaseTileSegments( q, p );
-			Segment seg = seg = baseTileSegments.First();
-
-			Vector3D p1, p2, p3;
-			p1 = seg.P1;
-			p2 = seg.Midpoint;
-			p3 = p2;
-			p3.RotateXY( -Math.PI / 2 );
-
-			// Project to conformal model (ball analogue).
-			Vector3D pFaceDirection = H3Models.UHSToBall( p1 );
-			pFaceDirection.Normalize();
-
-			// Now we need the scale.
-			//pFaceDirection *= Spherical2D.s2eNorm( Honeycomb.InRadius( p, q, r ) );
-
-			// The 1.0 here comes from the origin-centered unit circle being geodesic.
-			// So we can move that circle around to get any other geodesic.
-			// All facets will be geodesic.
-			Vector3D center = new Vector3D();
-			double radius = 0;
-			H3Models.Ball.DupinCyclideSphere( pFaceDirection, 1.0, Geometry.Spherical, out center, out radius );
-
-			Sphere cellBoundary = new Sphere() { Center = center, Radius = radius };
-
-			// XZ-plane
-			Sphere s1 = new Sphere()
-			{
-				Center = new Vector3D( 0, 1, 0 ),
-				Radius = double.PositiveInfinity
-			};
-
-			Vector3D p2Conformal = H3Models.UHSToBall( p2 );
-			Sphere s2 = new Sphere();
-
-			Sphere s3 = new Sphere()
-			{
-				Center = p3,
-				Radius = double.PositiveInfinity
-			};
-
-			Sphere[] surfaces = new Sphere[] { cellBoundary, s1, s2, s3 };
-			return surfaces;
-			 * */
-
 			// Get a {q,p} tiling on the z=0 plane.
 			Segment[] baseTileSegments = BaseTileSegments( q, p );
 
@@ -394,24 +338,19 @@
 
 		/// <summary>
 		/// Return the 4 simplex vertices in the ball model.
-		/// XXX - needs work.
 		/// </summary>
 		public static Vector3D[] VertsBall( int p, int q, int r )
 		{
-			throw new System.Exception( "Bad impl" );
-
-			Sphere[] facets = Mirrors( p, q, r, moveToBall: true );
-
 			// Order same as facets (these are the points opposite facets).
-			Vector3D cellCenter = new Vector3D();	// Not true for Euclidean cells, it's at infinity!  And beyond that for hyperbolic cells!  or is it the vertex figure which determines the location???
-			Vector3D faceCenter = facets[0].ProjectToSurface( cellCenter );
+			Vector3D cellCenter = CellCenterBall( p, q, r );
+			Vector3D faceCenter = FaceCenterBall( p, q, r );
 			Vector3D edgeCenter = MidEdgePointBall( p, q, r );
 			Vector3D vertexPoint = VertexPointBall( p, q, r );
 
 			return new Vector3D[] { cellCenter, faceCenter, edgeCenter, vertexPoint };
 		}
 
-				/// <summary>
+		/// <summary>
 		/// Returns the 6 simplex edges in the Ball model.
 		/// </summary>
 		public static H3.Cell.Edge[] SimplexEdgesBall( int p, int q, int r )
@@ -552,6 +491,9 @@
 				double mag = Math.Sin( halfSide ) / Math.Cos( Util.PiOverNSafe( r ) );
 				mag = Math.Asin( mag );
 
+				// e.g. 43j
+				//mag *= 0.95;
+
 				// Move mag to p1.
 				mag = Spherical2D.s2eNorm( mag );
 				H3Models.Ball.DupinCyclideSphere( p1, mag, Geometry.Spherical, out center, out radius );
@@ -613,6 +555,11 @@
 				{
 					radius = p2.Abs(); // infinite r
 					radius = DonHatch.asinh( Math.Sinh( DonHatch.e2hNorm( p2.Abs() ) ) / Math.Cos( Util.PiOverNSafe( r ) ) );	// hyperbolic trig
+
+					// 4j3
+					//m_jOffset = radius * 0.02;
+					//radius += m_jOffset ;
+
 					radius = DonHatch.h2eNorm( radius );
 					center = new Vector3D();
 					rotation *= -1;
@@ -670,6 +617,9 @@
 
 			return result;
 		}
+
+		// This was used for making some images "beyond infinity" (paper appendix).
+		//private static double m_jOffset;
 
 		/// <summary>
 		/// Inputs must be in UHS!
@@ -740,6 +690,22 @@
 					Radius = seg.Radius,
 					//Invert = true
 				};
+
+				// j34
+				/*double off = seg.Center.Abs() - seg.Radius;
+				off *= 1.05;
+				Vector3D vOff = seg.Center;
+				vOff.Normalize();
+				vOff *= off;
+				s2 = H3Models.Ball.OrthogonalSphereInterior( vOff );*/
+
+				// 4j3
+				/*double off = seg.Center.Abs() - seg.Radius;
+				off = DonHatch.h2eNorm( DonHatch.e2hNorm( off ) + m_jOffset );
+				Vector3D vOff = seg.Center;
+				vOff.Normalize();
+				vOff *= off;
+				s2 = H3Models.Ball.OrthogonalSphereInterior( vOff );*/
 			}
 
 			Sphere s3;
