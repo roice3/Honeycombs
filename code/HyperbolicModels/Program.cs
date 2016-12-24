@@ -54,7 +54,6 @@
 
 		public static void OneImage( HoneycombDef imageData, double t = 0.0 )
 		{
-			//string filename = "batch/" + imageData.FormatFilename();
 			string filename = imageData.FormatFilename();
 			//if( File.Exists( filename ) )
 			//	return;
@@ -68,15 +67,8 @@
 
 			Sphere[] mirrors = SimplexCalcs.Mirrors( p, q, r );
 
-			//double bounds = gCell == Geometry.Spherical ? 9 : 1.1;
 			double bounds =  1.1;
 			bounds = 1;
-			//bounds = 5;
-			//bounds = 7;
-			//bounds = 4.4;
-			//bounds = 10;
-
-			CoxeterImages imageCalculator = new CoxeterImages();
 
 			int size = 200;
 			CoxeterImages.Settings settings = new CoxeterImages.Settings()
@@ -89,22 +81,17 @@
 				FileName = imageData.FormatFilename(),
 			};
 
+			CoxeterImages imageCalculator = new CoxeterImages();
 			imageCalculator.AutoCalcScale( settings );
-			//settings.ColorScaling = 45.1;	// 437
-			//settings.ColorScaling = 60; // 35.58;	// 438, 637 cathedral
-			//settings.ColorScaling = 20;	// 373
-			//settings.ColorScaling = 15; //464
 			if( settings.ColorScaling < 1 )
 				settings.ColorScaling = 15;
 
-			settings.ColorScaling = 39;
 			//size = 4320;
-			size = 2500;
+			size = 1000;
 			//settings.Width = size * 4 / 3;
 			settings.Width = size * 2;
 			settings.Width = size;
 			settings.Height = size;
-			//settings.FileName = imageData.FormatFilename( "jpg" );
 			settings.FileName = filename;
 
 			imageCalculator.GenImage( settings, t );

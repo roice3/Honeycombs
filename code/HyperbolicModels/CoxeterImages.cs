@@ -95,8 +95,6 @@
 
 					if( settings.Antialias )
 					{
-						// These are here for some culling Henry and I were attempting.
-						List<Vector3D> vectors = new List<Vector3D>();
 						int cellFlips = 0;
 
 						const int div = 3;
@@ -115,7 +113,6 @@
 							Color color = CalcColor( settings, ref v, out cellFlipsTemp );
 							cellFlips = Math.Max( cellFlips, cellFlipsTemp );
 							colors.Add( color );
-							vectors.Add( v );
 						}
 
 						lock( m_lock )
