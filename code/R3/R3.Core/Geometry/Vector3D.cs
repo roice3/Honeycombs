@@ -307,6 +307,16 @@
 			}
 		}
 
+		public bool IsZAxis
+		{
+			get
+			{
+				Vector3D copy = this;
+				copy.Normalize();
+				return Tolerance.Equal( 1.0, Math.Abs( copy.Z ) );
+			}
+		}
+
 		public double Dist( Vector3D v )
 		{
 			return ( this - v ).Abs();

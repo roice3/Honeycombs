@@ -35,6 +35,7 @@
 			//S3.Hypercube();
 			//R3.Geometry.Euclidean.GenEuclidean();
 			//HoneycombGen.OneHoneycombOldCode();
+			//AnimateCell( imageData );
 			//CreateCellPovRay( imageData );
 			//CreateCellSTL( imageData );
 			//CreateSimplex( imageData );
@@ -199,13 +200,17 @@
 			int frames = 5;
 			for( int i = 0; i < frames; i++ )
 			{
-				string num = i.ToString();
-				num = num.PadLeft( 3, '0' );
-
 				double t = (double)i/frames;
-				string filename = "batch/" + imageData.FormatFilename( string.Empty ) + "_" + num + ".png";
+				string filename = "batch/" + imageData.FormatFilename( string.Empty ) + FrameString( i ) + ".png";
 				OneAnimationFrame( imageData, filename, colorScaling, t );
 			}
+		}
+
+		private static string FrameString( int i )
+		{
+			string num = i.ToString();
+			num = num.PadLeft( 3, '0' );
+			return "_" + num;
 		}
 
 		private static double AnimColorScaling( HoneycombDef imageData )
@@ -253,7 +258,7 @@
 			imageCalculator.GenImage( settings, t );
 		}
 
-		internal static Vector3D CellCenBall
+		internal static Vector3D InteriorPointBall
 		{
 			get
 			{
@@ -265,36 +270,64 @@
 			}
 		}
 
-		private static void CreateCellPovRay( HoneycombDef imageData )
+		private static void AnimateCell( HoneycombDef imageData )
+		{
+			int numFrames = 100;
+			for( int i = 0; i < numFrames; i++ )
+			{
+				double t = (double)i / numFrames;
+				string filename = "batch/cell" + FrameString( i ) + ".pov";
+				Console.WriteLine( filename );
+
+				System.IO.File.Delete( filename );
+				using( StreamWriter sw = new StreamWriter( filename ) )
+					sw.WriteLine( "#include \"C:\\Users\\hrn\\Documents\\roice\\povray\\H3\\horosphere\\633.pov\"" );
+
+				CreateCellPovRay( imageData, filename, t );
+			}
+		}
+
+		private static void CreateCellPovRay( HoneycombDef imageData, string filename, double t = 0 )
 		{
 			int p = imageData.P;
 			int q = imageData.Q;
 			int r = imageData.R;
 
-			// Calculate scale to make vertex centered.
-			//Vector3D v = SimplexCalcs.VertexPointBall( p, q, r );
-			//v = H3Models.BallToUHS( v );
+			Vector3D trans = new Vector3D( 1.0/3, 0 ) * (2 + 2 * Math.Sin( Math.PI / 6 )) * t;
+			double scale = 1.8;
+			Vector3D[] sVerts = SimplexCalcs.VertsBall( p, q, r );
 
-			/*double t = Math.Sqrt( 1 - Math.Pow( v.Abs(), 2 ) );
-			v = new Vector3D( t, 0, v.Z );
-			v = H3Models.BallToUHS( v );
-			Vector3D v2 = H3Models.BallToUHS( new Vector3D( 1, 0, 0 ) );
-			t = v.Abs() / v2.Abs();
-			v = H3Models.UHSToBall( new Vector3D( t, 0, 0 ) );*/
-
-			double scale = Geometry2D.GetNormalizedCircumRadius( p, q );
-
-			Vector3D cen = CellCenBall;
+			//Vector3D cen = InteriorPointBall;
+			var kleinVerts = sVerts.Select( v => HyperbolicModels.PoincareToKlein( v ) );
+			Vector3D avg = new Vector3D();
+			foreach( Vector3D v in kleinVerts )
+				avg += v;
+			avg /= kleinVerts.Count();
+			Vector3D cen = HyperbolicModels.KleinToPoincare( avg );
 			cen = H3Models.BallToUHS( cen );
+			cen += trans;
+			cen *= scale;
+			cen = H3Models.UHSToBall( cen );
+
+			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, moveToBall: false );
+
+			// Apply transformations.
+			simplex = simplex.Select( s =>
+			{
+				Sphere.TranslateSphere( s, trans );
+				Sphere.ScaleSphere( s, scale );
+				return H3Models.UHSToBall( s );
+			} ).ToArray();
+
+			for( int i = 0; i < 4; i++ )
+				if( simplex[i].IsPointInside( cen ) )
+					simplex[i].Invert = true;
 
 			bool ball = true;
 			bool dual = false;
-			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, ref cen, moveToBall: ball/*, scaling: 1.0/v.Abs()*/ );
-			//Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, moveToBall: ball/*, scaling: 1.0/v.Abs()*/ );
-			//Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, moveToBall: ball, scaling: 1.0 / scale );
 			H3.Cell[] simplicesFinal = GenCell( simplex, null, cen, ball, dual );
 
-			System.IO.File.Delete( "cell.pov" );
+			// Output the facets.
 			foreach( H3.Cell cell in simplicesFinal )
 			{
 				//int[] include = new int[] { 0, 1, 2, 3 };
@@ -306,11 +339,34 @@
 				if( m_toKlein )
 					facets = facets.Select( s => H3Models.BallToKlein( s ) ).ToArray();
 
-				PovRay.AppendSimplex( facets, cell.Center, include, "cell.pov" );
+				PovRay.AppendSimplex( facets, cell.Center, include, filename );
+			}
+
+			// Output the edges/verts.
+			bool includeEdges = true;
+			if( includeEdges )
+			{
+				sVerts = sVerts.Select( v => 
+				{
+					v = H3Models.BallToUHS( v );
+					v += trans;
+					v *= scale;
+					return H3Models.UHSToBall( v );
+				} ).ToArray();
+
+				H3.Cell.Edge[] edges = Recurse.CalcEdges( simplex.Skip( 1 ).ToArray(), 
+					new H3.Cell.Edge[] { new H3.Cell.Edge( sVerts[2], sVerts[3], order: false ) },
+					new Recurse.Settings() { Threshold = 0.01 } );
+				PovRay.WriteH3Edges( new PovRay.Parameters { AngularThickness = 0.01 }, edges, filename, append: true );
+
+				HashSet<Vector3D> verts = new HashSet<Vector3D>();
+				foreach( H3.Cell.Edge e in edges )
+					verts.Add( e.End );
+				PovRay.WriteVerts( new PovRay.Parameters { AngularThickness = 0.02 }, Geometry.Hyperbolic, verts.ToArray(), filename, append: true );
 			}
 		}
 
-		private static bool m_toKlein = true;
+		private static bool m_toKlein = false;
 
 		/// <summary>
 		/// Used to generate a regular cell as a set of simplices and save to a Pov-ray file.
@@ -322,8 +378,8 @@
 			Sphere[] mirrors = simplex.Skip( 1 ).ToArray();
 			if( dual )
 				mirrors = new Sphere[] { simplex[0], simplex[1], simplex[2] };
-			Sphere[] allMirrors = simplex.ToArray();
-			mirrors = simplex.ToArray();
+			//Sphere[] allMirrors = simplex.ToArray();
+			//mirrors = simplex.ToArray();
 
 			// Simplices will be the "cells" in Recurse.CalcCells.
 			H3.Cell.Facet[] simplexFacets = simplex.Select( m => new H3.Cell.Facet( m ) ).ToArray();
@@ -340,8 +396,8 @@
 
 			// Layers.
 			int layer = 0;
-			return simplices.Where( s => s.Depths[0] <= layer /*&& s.Depths[0] == 3 && s.Depths[1] == 3*/ ).ToArray();
-			//return simplices.ToArray();
+			//return simplices.Where( s => s.Depths[0] <= layer /*&& s.Depths[0] == 3 && s.Depths[1] == 3*/ ).ToArray();
+			return simplices.ToArray();
 		}
 
 		/// <summary>
@@ -430,7 +486,7 @@
 			// XXX - We need to do this prior to mesh generation, so the mesh isn't stretched out by these transformations.
 			bool faceCentered = true;
 
-			Vector3D cen = CellCenBall;
+			Vector3D cen = InteriorPointBall;
 			if( faceCentered )
 				SimplexCalcs.PrepForFacetCentering( p, q, simplex, ref cen );
 
@@ -489,7 +545,7 @@
 			int q = imageData.Q;
 			int r = imageData.R;
 
-			Vector3D cen = CellCenBall;
+			Vector3D cen = InteriorPointBall;
 			bool ball = true;
 			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, ref cen, moveToBall: ball );
 
@@ -616,32 +672,6 @@
 			}
 
 			SVG.WriteSegments( "output2.svg", segs );
-		}
-
-		private static double GetScalingOld( HoneycombDef imageData )
-		{
-			// pqi, pir (3qr, p3r, pq3)
-			// Q = 3 = 50, Q = 7 = 130
-			double scaling = 50 + (imageData.Q - 3) * 20;
-			if( /*imageData.P == -1 ||*/ imageData.Q == -1 )
-				scaling = 130;
-
-			// iqr
-			//scaling = 100; (blue)
-			// scaling = 50; (when purple, did constant 50)
-
-			// Reverse: What did I use this for?
-			/*scaling = 130 - ( imageData.Q - 3 ) * 20;
-			if( imageData.Q == -1 )
-				scaling = 50;*/
-
-			// Euclidean cells/vertex figures.
-			scaling = 75;
-
-			// Gray scale
-			//scaling = 35;
-
-			return scaling;
 		}
 	}
 }

@@ -357,7 +357,7 @@
 			if( IsPlane )
 			{
 				Debug.Assert( !this.Normal.IsOrigin );
-				interiorPoint = -this.Normal;
+				interiorPoint = this.Offset - this.Normal;
 			}
 			else
 			{
@@ -553,6 +553,40 @@
 		}
 
 		/// <summary>
+		/// Get 4 points on the sphere.
+		/// </summary>
+		public Vector3D[] Get4Points()
+		{
+			Sphere s = this;
+			double rad = s.Radius;
+			Vector3D[] spherePoints;
+			if( s.IsPlane )
+			{
+				Vector3D perp = s.Normal.Perpendicular();
+				Vector3D perp2 = perp;
+				perp2.RotateAboutAxis( s.Normal, Math.PI / 2 );
+				spherePoints = new Vector3D[]
+				{
+					s.Offset,
+					s.Offset + perp,
+					s.Offset - perp,
+					s.Offset + perp2
+				};
+			}
+			else
+			{
+				spherePoints = new Vector3D[]
+				{
+					s.Center + new Vector3D( rad, 0, 0 ),
+					s.Center + new Vector3D( -rad, 0, 0 ),
+					s.Center + new Vector3D( 0, rad, 0 ),
+					s.Center + new Vector3D( 0, 0, rad )
+				};
+			}
+			return spherePoints;
+		}
+
+		/// <summary>
 		/// Radially project a point onto our surface.
 		/// </summary>
 		public Vector3D ProjectToSurface( Vector3D p )
@@ -613,9 +647,22 @@
 		{
 			if( s.IsPlane )
 				s.Offset *= factor;
+			else
+			{ 
+				s.Center *= factor;
+				s.Radius *= factor;
+			}
+		}
 
-			s.Center *= factor;
-			s.Radius *= factor;
+		public static void TranslateSphere( Sphere s, Vector3D t )
+		{
+			if( s.IsPlane )
+			{
+				Vector3D offsetAlongNormal = Euclidean3D.ProjectOntoLine( s.Normal, new Vector3D(), t );
+				s.Offset += offsetAlongNormal;
+			}
+			else
+				s.Center += t;
 		}
 	}
 }

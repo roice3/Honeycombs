@@ -103,6 +103,30 @@
 			}
 		}
 
+		/// <summary>
+		/// Make a povray file for all the vertices of a model.
+		/// Works for all geometries (in conformal models, e.g. Ball and Stereographic).
+		/// </summary>
+		public static void WriteVerts( Parameters parameters, Geometry g, Vector3D[] verts, string fileName, bool append )
+		{
+			if( append )
+			{
+				using( StreamWriter sw = File.AppendText( fileName ) )
+				{
+					foreach( Vector3D vert in verts )
+						sw.WriteLine( Vert( parameters, g, vert ) );
+				}
+			}
+			else
+			{
+				using( StreamWriter sw = File.CreateText( fileName ) )
+				{
+					foreach( Vector3D vert in verts )
+						sw.WriteLine( Vert( parameters, g, vert ) );
+				}
+			}
+		}
+
 		private static string Edge( Parameters parameters, Geometry g, H3.Cell.Edge edge )
 		{
 			Vector3D v1 = edge.Start, v2 = edge.End;
@@ -110,8 +134,8 @@
 			Vector3D[] points = null;
 			Func<Vector3D, Sphere> sizeFunc = v => new Sphere() { Center = v, Radius = H3Models.SizeFuncConst( v, parameters.Scale ) };
 
-			//double minRad = 0.0005;
-			double minRad = 0.0000;
+			double minRad = 0.0005;
+			//double minRad = 0.0000;
 			//double minRad = 0.0017;
 
 			if( parameters.Halfspace )
@@ -130,7 +154,7 @@
 			else
 			{
 				if( g == Geometry.Hyperbolic )
-					points = H3Models.Ball.GeodesicPoints( v1, v2, edge.Color.Z );
+					points = H3Models.Ball.GeodesicPoints( v1, v2, 1 - edge.Color.Z );
 				else if( g == Geometry.Spherical )
 				{
 					points = S3.GeodesicPoints( v1, v2 );
@@ -151,9 +175,8 @@
 					{
 						Vector3D c;
 						double r;
-						H3Models.Ball.DupinCyclideSphere( v, parameters.AngularThickness/2, g, out c, out r );
+						H3Models.Ball.DupinCyclideSphere( v, parameters.AngularThickness / 2, g, out c, out r );
 						return new Sphere() { Center = c, Radius = Math.Max( r, minRad ) };
-						//return new Sphere() { Center = v, Radius = H3Models.Ball.SizeFunc( v, parameters.AngularThickness ) }; // inexact
 					};
 			}
 
@@ -161,6 +184,14 @@
 			//	return EdgeCylinder( points, sizeFunc );
 
 			return EdgeSphereSweep( points, sizeFunc, edge.Color );
+		}
+
+		public static string Vert( Parameters parameters, Geometry g, Vector3D vert )
+		{
+			Vector3D c;
+			double r;
+			H3Models.Ball.DupinCyclideSphere( vert, parameters.AngularThickness / 2, g, out c, out r );
+			return string.Format( "sphere {{ {0}, {1} texture {{tex}} }}", FormatVec( c ), r );
 		}
 
 		private static string EdgeCylinder( Vector3D[] points, Func<Vector3D, Sphere> sphereFunc )
@@ -199,12 +230,13 @@
 			// options: b_spline, linear_spline, cubic_spline
 
 			string formattedPoints = string.Join( ",", appended.Select( formatVecAndSize ).ToArray() );
-			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
 			//return string.Format( "sphere_sweep {{ linear_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
 			
 			// With color included.
-			return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2}}} }}",
-				points.Length + 2, formattedPoints, FormatVec( CHSL2RGB( color ) ) );
+			//color = CHSL2RGB( color );	// May or may not want to do this.
+			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2}}} }}",
+			//	points.Length + 2, formattedPoints, FormatVecLowRes( color ) );
 			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color CHSL2RGB({2})}} }}", 
 			//	points.Length + 2, formattedPoints, FormatVec( color ) );
 		}
@@ -474,9 +506,14 @@
 				FormatVec( start ), FormatVec( end ), rad );
 		}
 
-		private static string FormatVec( Vector3D v )
+		public static string FormatVec( Vector3D v )
 		{
 			return string.Format( "<{0:G6},{1:G6},{2:G6}>", v.X, v.Y, v.Z );
+		}
+
+		private static string FormatVecLowRes( Vector3D v )
+		{
+			return string.Format( "<{0:G2},{1:G2},{2:G2}>", v.X, v.Y, v.Z );
 		}
 
 		private static string FormatVecHiRes( Vector3D v )

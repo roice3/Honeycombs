@@ -536,6 +536,21 @@
 				OneHoneycombGoursat( active, baseName, baseHue );
 		}
 
+		/// <summary>
+		/// The input time should lie in [0,1]
+		/// </summary>
+		/// <param name="t"></param>
+		public static void ParacompactAnimationFrame( double t )
+		{
+			var def = new HoneycombDef( 4, 4, 4 );
+			var active = new int[] { 1, 2 };
+			int baseHue = -1; // Black.
+			//baseHue = 135;
+			ViewPath.Time = t;
+			Paracompact( def, active, baseHue );
+		}
+		public static ViewPath ViewPath;
+
 		public static void ParacompactSet()
 		{
 			List<int[]> toRun = new List<int[]>();
@@ -603,7 +618,8 @@
 				break;
 			case 3:
 			case 4:
-				thickness = 0.02;
+				//thickness = 0.02;
+				thickness = 0.01;
 				break;
 			}
 			H3.m_settings.AngularThickness = thickness;
@@ -728,8 +744,15 @@
 			int hue = baseHue + 2 * Convert.ToInt32( mirrorsString, 2 );
 			using( StreamWriter sw = File.CreateText( fileName + ".pov" ) )
 			{
-				sw.WriteLine( "#include \"C:\\Users\\hrn\\Documents\\roice\\povray\\H3_paracompact\\H3_paracompact.pov\"" );
-				sw.WriteLine( string.Format( "background {{ CHSL2RGB( <{0}, 1, .1> ) }}", hue ) );
+				if( baseHue == -1 )
+					sw.WriteLine( "background { rgb 1 }" );
+				else
+					sw.WriteLine( string.Format( "background {{ CHSL2RGB( <{0}, 1, .1> ) }}", hue ) );
+				if( ViewPath != null )
+					sw.WriteLine( string.Format( "#declare lookAt = {0};", PovRay.FormatVec( ViewPath.LookAt ) ) );
+
+				// This needs to come last, since it relies on the lookAt.
+				sw.WriteLine( "#include \"D:\\roice\\povray\\H3_paracompact.pov\"" );
 			}
 		}
 
@@ -744,6 +767,8 @@
 			string mirrorsString = ActiveMirrorsString( active );
 			string suffix = "-" + mirrorsString;
 			string fileName = baseName + suffix;
+			if( ViewPath != null )
+				fileName += string.Format( "_{0:D4}", ViewPath.Step );
 
 			if( File.Exists( fileName + ".pov" ) )
 			{
@@ -772,8 +797,19 @@
 				startingEdges.Add( new H3.Cell.Edge( startingPoint, reflected ) );
 			}
 
+			// If we are doing a view path, transform our geometry.
+			/*if( ViewPath != null )
+			{
+				Vector3D p = ViewPath.Location;
+				simplex.Facets = simplex.Facets.Select( f => H3Models.TransformInBall( f, p ) ).ToArray();
+				simplex.Verts = simplex.Verts.Select( v => H3Models.TransformInBall( v, p ) ).ToArray();
+				startingEdges = startingEdges.Select( e => new H3.Cell.Edge(
+					H3Models.TransformInBall( e.Start, p ),
+					H3Models.TransformInBall( e.End, p ) ) ).ToList();
+			}*/
+
 			SetupBaseHue( fileName, mirrorsString, baseHue );
-			Recurse.m_background = new Vector3D( baseHue, 1, .1 );
+			Recurse.m_background =  baseHue == -1 ? new Vector3D() : new Vector3D( baseHue, 1, .1 );
 
 			H3.Cell.Edge[] edges = Recurse.CalcEdgesSmart2( simplex.Facets, startingEdges.ToArray() );
 			H3.SaveToFile( fileName, edges, finite: true, append: true );
@@ -834,7 +870,7 @@
 			// but it seems to be working pretty well (even when varying these parameters).
 			//double searchOffset = 1.0 - bary[activeMirrors[0]];
 			//double searchOffset = bary[activeMirrors[0]];
-			double factor = 1.5;	// Adjusting this helps get some to converge, e.g. 4353-1111 
+			double factor = 1.7;	// Adjusting this helps get some to converge, e.g. 4353-1111 
 			double searchOffset = bary[activeMirrors[0]] / factor;		
 
 			double min = double.MaxValue;

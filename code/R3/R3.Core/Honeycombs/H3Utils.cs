@@ -107,7 +107,12 @@
 				// It must be vertical (because it is orthogonal).
 				Vector3D b1 = H3Models.UHSToBall( Infinity.InfinityVector );
 				Vector3D b2 = H3Models.UHSToBall( s.Offset );
-				H3Models.Ball.OrthogonalCircle( b1, b2, out center, out rad );	// Safer to use OrthogonalSphere?
+				Vector3D b3 = s.Normal;
+				b3.RotateXY( Math.PI / 2 );
+				b3 = H3Models.UHSToBall( s.Offset + b3 );
+				Sphere tempS = H3Models.Ball.OrthogonalSphere( b1, b2, b3 );
+				center = tempS.Center;
+				rad = tempS.Radius;
 			}
 			else
 			{
@@ -144,55 +149,15 @@
 			};
 		}
 
-		// XXX - Not general yet.
+		// XXX - Not general yet, won't handle planes well.
 		// s does not have to be geodesic.
 		public static Sphere BallToUHS( Sphere s )
 		{
-			// Get 4 points on the sphere.
-			double rad = s.Radius;
-			Vector3D[] spherePoints;
-			if( s.IsPlane )
-			{
-				Vector3D perp = s.Normal.Perpendicular();
-				Vector3D perp2 = perp;
-				perp2.RotateAboutAxis( s.Normal, Math.PI / 2 );
-				spherePoints = new Vector3D[]
-				{
-					s.Offset,
-					s.Offset + perp,
-					s.Offset - perp,
-					s.Offset + perp2
-				};
-			}
-			else
-			{
-				spherePoints = new Vector3D[]
-				{
-					s.Center + new Vector3D( rad, 0, 0 ),
-					s.Center + new Vector3D( -rad, 0, 0 ),
-					s.Center + new Vector3D( 0, rad, 0 ),
-					s.Center + new Vector3D( 0, 0, rad )
-				};
-			}
-
+			var spherePoints = s.Get4Points();
 			for( int i=0; i<4; i++ )
 				spherePoints[i] = H3Models.BallToUHS( spherePoints[i] );
 
 			return Sphere.From4Points( spherePoints[0], spherePoints[1], spherePoints[2], spherePoints[3] );
-
-			/*
-			Vector3D s1, s2, s3;
-			H3Models.Ball.IdealPoints( s, out s1, out s2, out s3 );
-			s1 = H3Models.BallToUHS( s1 );
-			s2 = H3Models.BallToUHS( s2 );
-			s3 = H3Models.BallToUHS( s3 );
-
-			Circle3D c = new Circle3D( s1, s2, s3 );
-			return new Sphere()
-			{
-				Center = c.Center,
-				Radius = c.Radius
-			};*/
 		}
 
 		public static Circle3D BallToUHS( Circle3D c )
@@ -227,6 +192,50 @@
 			if( !s.Invert )
 				normal *= -1;
 			return Sphere.Plane( offset, normal );
+		}
+
+		/// <summary>
+		/// Transform a sphere in the ball, such that p goes to the origin.
+		/// ZZZ - Not tested well yet.
+		/// </summary>
+		public static Sphere Transform_PointToOrigin( Sphere s, Vector3D p )
+		{
+			Sphere clone = s.Clone();
+			Vector3D z = new Vector3D( 0, 0, 1 );
+			double a = p.AngleTo( z );
+			bool isZ = p.IsZAxis;
+			if( !isZ )
+				Sphere.RotateSphere( clone, p.Cross( z ), a );
+
+			Mobius m = new Mobius();
+			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, p.Z < 0 ? p.Abs() : -p.Abs() ) );
+			clone = TransformInBall( clone, m );
+
+			if( !isZ )
+				Sphere.RotateSphere( clone, p.Cross( z ), -a );
+
+			return clone;
+		}
+
+		/// <summary>
+		/// Transform a vector in the ball, such that p goes to the origin.
+		/// </summary>
+		public static Vector3D Transform_PointToOrigin( Vector3D v, Vector3D p )
+		{
+			Vector3D z = new Vector3D( 0, 0, 1 );
+			double a = p.AngleTo( z );
+			bool isZ = p.IsZAxis;
+			if( !isZ )
+				v.RotateAboutAxis( p.Cross( z ), a );
+
+			Mobius m = new Mobius();
+			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, p.Z < 0 ? p.Abs() : -p.Abs() ) );
+			v = TransformHelper( v, m );
+
+			if( !isZ )
+				v.RotateAboutAxis( p.Cross( z ), -a );
+
+			return v;
 		}
 
 		/// <summary>

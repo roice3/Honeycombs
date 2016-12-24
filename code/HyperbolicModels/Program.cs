@@ -1,5 +1,6 @@
 ﻿namespace HyperbolicModels
 {
+	using System.Collections.Generic;
 	using System.IO;
 	using R3.Core;
 	using R3.Geometry;
@@ -14,7 +15,30 @@
 				if( wiki )
 				{
 					//HoneycombGen.GoursatSet();
-					HoneycombGen.ParacompactSet();
+					//HoneycombGen.ParacompactSet();
+
+					ViewPath path = new ViewPath();
+					Vector3D[] locations = new Vector3D[]
+					{
+						new Vector3D(0,.1,-.5),
+						new Vector3D(-.4,0,-.1),
+						new Vector3D(0,-.2,-.5),
+						new Vector3D(.1,0,-.8),
+						new Vector3D(0,.1,-.5),
+						new Vector3D(-.4,0,-.1),
+						new Vector3D(0,-.2,-.5),
+						new Vector3D(.1,0,-.8),
+						new Vector3D(0,.1,-.5),
+					};
+					List<Vector3D> lookAts = new List<Vector3D>();
+					path.Initialize( locations, lookAts );
+					HoneycombGen.ViewPath = path;
+
+					for( double t = 0; t < 1; t += .0016 )
+					{
+						HoneycombGen.ParacompactAnimationFrame( t );
+						path.Step++;
+					}
 				}
 				else
 				{ 

@@ -475,7 +475,7 @@
 
 		public static void PovRayModel()
 		{
-			Vector3D cen = HoneycombPaper.CellCenBall;
+			Vector3D cen = HoneycombPaper.InteriorPointBall;
 			cen = H3Models.BallToUHS( cen );
 			Sphere[] simplex = Simplex( ref cen );
 
@@ -560,7 +560,7 @@
 			i.XMin = -b; i.XMax = b;
 			i.YMin = -b; i.YMax = b;
 
-			Vector3D cen = HoneycombPaper.CellCenBall;
+			Vector3D cen = HoneycombPaper.InteriorPointBall;
 			cen = H3Models.BallToUHS( cen );
 			Sphere[] simplex = Simplex( ref cen );
 
