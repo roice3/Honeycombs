@@ -245,8 +245,6 @@
 		/// </summary>
 		public static Sphere TransformInBall( Sphere s, Mobius m )
 		{
-			Vector3D center;
-			double rad;
 			if( s.IsPlane )
 			{
 				// All planes in the ball go through the origin.
@@ -277,12 +275,6 @@
 				Vector3D b3 = H3Models.TransformHelper( s3, m );
 				return H3Models.Ball.OrthogonalSphere( b1, b2, b3 );
 			}
-			
-			return new Sphere()
-			{
-				Center = center,
-				Radius = rad
-			};
 		}
 
 		/// <summary>
@@ -508,9 +500,6 @@
 			/// </summary>
 			public static Circle3D OrthogonalCircle( Circle3D c, Vector3D v1, Vector3D v2 )
 			{
-				// Needs testing.
-				throw new System.NotImplementedException();
-
 				// Move/Scale c to unit circle.
 				Vector3D offset = c.Center;
 				double scale = c.Radius;
@@ -526,11 +515,14 @@
 				rad *= scale;
 				center += offset;
 
-				return new Circle3D()
+				// Needs testing.
+				throw new System.NotImplementedException();
+
+				/*return new Circle3D()
 				{
 					Center = center,
 					Radius = rad
-				};
+				};*/
 			}
 
 			/// <summary>

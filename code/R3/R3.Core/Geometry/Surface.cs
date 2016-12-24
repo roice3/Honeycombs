@@ -46,10 +46,11 @@
 
 		public static Vector3D Dini( Vector3D uv )
 		{
-			double a = 1;
-			double b = 0.0;
 			return Dini2( uv );
-			return Dini( uv, a, b );
+
+			/*double a = 1;
+			double b = 0.0;
+			return Dini( uv, a, b );*/
 		}
 
 		private static double Sech( double val )

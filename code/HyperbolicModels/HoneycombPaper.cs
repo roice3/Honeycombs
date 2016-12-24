@@ -195,7 +195,7 @@
 		{
 			double colorScaling = AnimColorScaling( imageData );
 
-			int fps = 30;
+			//int fps = 30;
 			//int frames = 60 * fps;
 			int frames = 5;
 			for( int i = 0; i < frames; i++ )
@@ -216,24 +216,6 @@
 		private static double AnimColorScaling( HoneycombDef imageData )
 		{
 			return 10;
-
-			int p = imageData.P, q = imageData.Q, r = imageData.R;
-			Sphere[] mirrors = SimplexCalcs.Mirrors( p, q, r );
-
-			int size = 200;
-			CoxeterImages.Settings settings = new CoxeterImages.Settings()
-			{
-				Honeycomb = imageData,
-				Width = size*2,
-				Height = size,
-				Bounds = 1.0,
-				Mirrors = mirrors,
-				FileName = string.Empty,
-			};
-
-			CoxeterImages imageCalculator = new CoxeterImages();
-			imageCalculator.AutoCalcScale( settings );
-			return settings.ColorScaling;
 		}
 
 		private static void OneAnimationFrame( HoneycombDef imageData, string filename, double colorScaling, double t = 0.0 )
@@ -395,7 +377,7 @@
 			//H3.Cell[] simplices = new H3.Cell[] { startingCell };
 
 			// Layers.
-			int layer = 0;
+			//int layer = 0;
 			//return simplices.Where( s => s.Depths[0] <= layer /*&& s.Depths[0] == 3 && s.Depths[1] == 3*/ ).ToArray();
 			return simplices.ToArray();
 		}
@@ -561,7 +543,8 @@
 			File.Delete( "simplex.pov" );
 			PovRay.AppendSimplex( simplex, cen, include, "simplex.pov" );
 
-			if( false )
+			bool includeEdges = false;
+			if( includeEdges )
 			{
 				H3.Cell.Edge[] edges = SimplexCalcs.SimplexEdgesUHS( p, q, r );
 				PovRay.WriteEdges( new PovRay.Parameters { Halfspace = true, AngularThickness = 0.03 },
@@ -578,29 +561,11 @@
 			// then reorient so that one triangle is oriented along z axis,
 			// then scale so that the triangle is flat.
 
-			// Rotation - not what we want.
-			if( false )
-			{
-				Vector3D direction = cell.Facets[0].Sphere.Center;
-				Vector3D southPole = new Vector3D( 0, 0, -1 );
-				Vector3D axis = direction.Cross( southPole );
-				double mag = direction.AngleTo( southPole );
-
-				foreach( Sphere s in cell.Facets.Select( f => f.Sphere ) )
-					Sphere.RotateSphere( s, axis, mag );
-				Vector3D newCen = cell.Center;
-				newCen.RotateAboutAxis( axis, mag );
-				cell.Center = newCen;
-			}
-
-			if( true )
-			{
-				// Calculate how much we need to offset to make the cell facet flat.
-				Mobius m = FCOrientMobius( cell.Facets[0].Sphere );
-				foreach( H3.Cell.Facet f in cell.Facets )
-					H3Models.TransformInBall2( f.Sphere, m );
-				cell.Center = H3Models.TransformHelper( cell.Center, m );
-			}
+			// Calculate how much we need to offset to make the cell facet flat.
+			Mobius m = FCOrientMobius( cell.Facets[0].Sphere );
+			foreach( H3.Cell.Facet f in cell.Facets )
+				H3Models.TransformInBall2( f.Sphere, m );
+			cell.Center = H3Models.TransformHelper( cell.Center, m );
 		}
 
 		/// <summary>

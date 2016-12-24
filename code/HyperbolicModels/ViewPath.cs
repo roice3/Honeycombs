@@ -41,7 +41,7 @@
 		}
 
 		CubicSpline locX, locY, locZ;
-		CubicSpline lookX, lookY, lookZ;
+		//CubicSpline lookX, lookY, lookZ;
 
 		/// <summary>
 		/// Initialize our path with a sequence of locations and lookAt directions.

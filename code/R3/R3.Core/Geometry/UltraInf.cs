@@ -484,21 +484,6 @@
 					//Color c = Color.FromArgb( 255, r, b, g );
 					c = Color.White;
 
-					if( false )
-					//if( !m_neighborCircle.IsPointInsideNE( tet.A.Center ) )
-					{
-						// Here is the point in the standard disk
-						Vector3D p = m_animMobius.Inverse().Apply( cell.Tiles.First().Boundary.Center );
-						p = m_originalNeighborCircle.ReflectPoint( p );
-						p *= this.RBall / m_originalNeighborCircle.Radius;
-						p.RotateXY( - Math.PI / 3 );
-
-						if( this.ColorMap == null || !this.ColorMap.TryGetValue( p, out c ) )
-							c = Color.Silver;
-
-						//c = Color.Red;
-					}
-
 					foreach( Tile t in cell.Tiles )
 						yield return new ColoredTile( t, c );
 				}

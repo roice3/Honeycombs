@@ -340,21 +340,6 @@
 				//if( completed.Contains( facet.Sphere ) )
 				//	continue;
 
-				// XXX - Hard coding for 535 skew
-				string matString = "sphereMat";
-				/*if( facet.Verts.Length == 6 )
-					matString = "sphereMat";
-				else if( facet.Verts.Length == 5 )
-				{
-					continue;
-					//matString = "sphereMat2";
-				}
-				else
-				{
-					throw new System.ArgumentException();
-					continue;
-				}*/
-
 				bool invert1 = !facet.Sphere.IsPointInside( cell.Center );
 				if( facet.Sphere.Invert ) invert1 = !invert1;
 				//bool invert1 = CheckForInvert( facet.Sphere, cell.Center );

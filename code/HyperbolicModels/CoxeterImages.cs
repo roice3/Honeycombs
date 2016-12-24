@@ -122,18 +122,6 @@
 						{
 							Color avg = AvgColor( colors );
 							image.SetPixel( i, j, avg );
-
-							// Experimental culling.
-							if( false && avg.A != 0 && NearBoundary( settings, i, j ) && Small( settings, vectors, i, j, cellFlips ) )
-							{
-								//avg = Color.Red;
-								int border = settings.Width / BorderDiv;
-								double dist = DistToBorder( settings, i, j );
-								dist /= border;
-								dist = Sigmoid( dist );
-								avg = Color.FromArgb( (int)(dist*255), avg.R, avg.G, avg.B );
-								image.SetPixel( i, j, avg );
-							}
 						}
 					}
 					else
@@ -278,24 +266,6 @@
 			int w = settings.Width, h = settings.Height;
 			int[] vals = new[] { i, j, w - i };
 			return vals.Min();
-		}
-
-		private bool Small( Settings settings, List<Vector3D> points, int i, int j, int cellFlips )
-		{
-			return cellFlips > 4;
-
-			// Measure of the spread of the points.
-			Vector3D total = new Vector3D();
-			points.ForEach( v => total += v );
-			total /= points.Count;
-			double spread = (total - points.First()).Abs();
-
-			/*double thresh = settings.Width/15 - DistToBorder( settings, i, j );
-			thresh /= settings.Width;
-			thresh = thresh * thresh;*/
-			//double thresh = 0.4;
-			double thresh = 0.05;
-			return spread > thresh;
 		}
 
 		/// <summary>
@@ -651,7 +621,7 @@
 
 			Sphere[] fundamentalRegion = settings.Mirrors;
 
-			double offset = 0.008;	// XXX - put in settings. // XXX - should be hyperbolic distance (doesn't scale the same for ball/UHS)
+			//double offset = 0.008;	// XXX - put in settings. // XXX - should be hyperbolic distance (doesn't scale the same for ball/UHS)
 			//double offset = 0.02;	// i3i pictures
 
 			List<Sphere> result = new List<Sphere>();
