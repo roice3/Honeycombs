@@ -31,14 +31,46 @@
 		public Graph()
 		{
 			Nodes = new List<GraphNode>();
-			Edges = new List<Edge>();
+			Edges = new List<GraphEdge>();
 			m_connections = new Dictionary<int,List<int>>();
 		}
 
 		public List<GraphNode> Nodes { get; set; }
-		public List<Edge> Edges { get; set; }
+		public List<GraphEdge> Edges { get; set; }
 		
-		public void AddEdge( Edge e )
+		/// <summary>
+		/// Setup a complete graph with n nodes.
+		/// Positions are randomly distributed.
+		/// </summary>
+		public void SetupCompleteGraph( int n )
+		{
+			Nodes.Clear();
+			Edges.Clear();
+
+			GraphNode southPole = new GraphNode( new VectorND( new double[] { 0, 0, 0, -1 } ), new VectorND( 4 ) );
+			southPole.Lock = true;
+			Nodes.Add( southPole );
+
+			System.Random rand = new System.Random( 0 );
+			for( int i = 1; i < n; i++ )
+			{ 
+				VectorND randPosition = new VectorND( new double[] {
+					rand.NextDouble() - 0.5,
+					rand.NextDouble() - 0.5,
+					rand.NextDouble() - 0.5,
+					rand.NextDouble() - 0.5 } );
+				randPosition.Normalize();
+				Nodes.Add( new GraphNode( randPosition, new VectorND( 4 ) ) );
+			}
+
+			for( int i = 0; i < n; i++ )
+			for( int j = i + 1; j < n; j++ )
+			{ 
+				AddEdge( new GraphEdge( i, j ) );
+			}
+		}
+
+		public void AddEdge( GraphEdge e )
 		{
 			List<int> vals;
 
@@ -120,7 +152,7 @@
 			}
 		}
 
-		private int m_dim = 3;
+		private int m_dim = 4;
 
 		private VectorND[] CalcAccelerations()
 		{
@@ -130,6 +162,7 @@
 				accelerations[i] = new VectorND( m_dim );
 
 			bool nodeRepulse = !Tolerance.Zero( NodeRepulsion );
+			bool edgeRepulse = !Tolerance.Zero( EdgeRepulsion );
 
 			for( int i = 0; i < count; i++ )
 			for( int j = i + 1; j < count; j++ )
@@ -149,29 +182,29 @@
 				}
 			}
 
-			if( Tolerance.Zero( EdgeRepulsion ) )
-				return accelerations;
+			if( edgeRepulse )
+			{ 
+				count = Graph.Edges.Count;
+				for( int i = 0; i < count; i++ )
+				for( int j = i + 1; j < count; j++ )
+				{
+					// Rather than mess with torques and doing this "right" (like it was two charged rod segments),
+					// We'll calculate the effect on the two COMs, and give half the force to each node.
 
-			count = Graph.Edges.Count;
-			for( int i = 0; i < count; i++ )
-			for( int j = i + 1; j < count; j++ )
-			{
-				// Rather than mess with torques and doing this "right" (like it was two charged rod segments),
-				// We'll calculate the effect on the two COMs, and give half the force to each node.
+					int n1 = Graph.Edges[i].V1;
+					int n2 = Graph.Edges[i].V2;
+					int n3 = Graph.Edges[j].V1;
+					int n4 = Graph.Edges[j].V2;
+					GraphNode center1 = new GraphNode( ( Graph.Nodes[n1].Position + Graph.Nodes[n2].Position ) / 2, new VectorND( m_dim ) );
+					GraphNode center2 = new GraphNode( ( Graph.Nodes[n3].Position + Graph.Nodes[n4].Position ) / 2, new VectorND( m_dim ) );
 
-				int n1 = Graph.Edges[i].V1;
-				int n2 = Graph.Edges[i].V2;
-				int n3 = Graph.Edges[j].V1;
-				int n4 = Graph.Edges[j].V2;
-				GraphNode center1 = new GraphNode( ( Graph.Nodes[n1].Position + Graph.Nodes[n2].Position ) / 2, new VectorND( m_dim ) );
-				GraphNode center2 = new GraphNode( ( Graph.Nodes[n3].Position + Graph.Nodes[n4].Position ) / 2, new VectorND( m_dim ) );
+					VectorND force = CalculateForce( center1, center2, EdgeRepulsion, square: true ) / 2;
 
-				VectorND force = CalculateForce( center1, center2, EdgeRepulsion, square: true ) / 2;
-
-				accelerations[n1] -= force;
-				accelerations[n2] -= force;
-				accelerations[n3] += force;
-				accelerations[n3] += force;
+					accelerations[n1] -= force;
+					accelerations[n2] -= force;
+					accelerations[n3] += force;
+					accelerations[n3] += force;
+				}
 			}
 
 			return accelerations;
@@ -237,6 +270,8 @@
 			//	position.Normalize();
 			//	velocity = new VectorND( 3 );
 			//}
+
+			position.Normalize();
 
 			node.Position = position;
 			node.Velocity = velocity;

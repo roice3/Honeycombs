@@ -104,7 +104,7 @@
 
 			Shapeways mesh = new Shapeways();
 			//int count = 0;
-			foreach( Edge edge in loader.Edges )
+			foreach( GraphEdge edge in loader.Edges )
 			{
 				Segment seg = Segment.Line(
 					loader.Vertices[edge.V1].ConvertToReal(),
@@ -125,7 +125,7 @@
 		{
 			Shapeways mesh = new Shapeways();
 			
-			int divisions = 10;
+			int divisions = 100;
 			foreach( H3.Cell.Edge edge in edges )
 			{
 				Segment seg = Segment.Line( 
@@ -149,7 +149,7 @@
 
 		private static void ProjectAndAddS3Points( Shapeways mesh, Vector3D[] pointsS3 )
 		{
-			double r = 0.02;
+			double r = 0.03;
 
 			List<Vector3D> projected = new List<Vector3D>();
 			List<double> radii = new List<double>();

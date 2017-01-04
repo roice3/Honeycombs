@@ -202,18 +202,18 @@
 
 		private static Polygon[] LookForPolys( Vector3D[] coords, double edgeLength, int p )
 		{
-			Dictionary<int, List<Edge>> lookup = new Dictionary<int, List<Edge>>();
+			Dictionary<int, List<GraphEdge>> lookup = new Dictionary<int, List<GraphEdge>>();
 			for( int i=0; i<coords.Length; i++ )
-				lookup[i] = new List<Edge>();
+				lookup[i] = new List<GraphEdge>();
 
 			// First find all the edges.
-			List<Edge> allEdges = new List<Edge>();
+			List<GraphEdge> allEdges = new List<GraphEdge>();
 			for( int i=0; i<coords.Length; i++ )
 			for( int j=i+1; j<coords.Length; j++ )
 			{
 				if( Tolerance.Equal( coords[i].Dist( coords[j] ), edgeLength ) )
 				{
-					Edge e = new Edge( i, j );
+					GraphEdge e = new GraphEdge( i, j );
 					allEdges.Add( e );
 					lookup[i].Add( e );
 					lookup[j].Add( e );
@@ -304,7 +304,7 @@
 		/// This might end up being useful if we need to optimize.
 		/// http://mathoverflow.net/questions/67960/cycle-of-length-4-in-an-undirected-graph
 		/// </summary>
-		private static List<List<int>> FindCyclesRecursive( List<List<int>> cycles, int cycleLength, Dictionary<int, List<Edge>> lookup )
+		private static List<List<int>> FindCyclesRecursive( List<List<int>> cycles, int cycleLength, Dictionary<int, List<GraphEdge>> lookup )
 		{
 			if( cycles[0].Count-1 == cycleLength )
 			{
@@ -317,7 +317,7 @@
 			foreach( List<int> cycle in cycles )
 			{
 				int last = cycle.Last();
-				foreach( Edge newEdge in lookup[last] )
+				foreach( GraphEdge newEdge in lookup[last] )
 				{
 					int next = newEdge.Opposite( last );
 					if( cycle.Count != cycleLength && cycle.Contains( next ) )

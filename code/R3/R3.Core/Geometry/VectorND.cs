@@ -17,6 +17,11 @@
 			X = components;
 		}
 
+		public Vector3D ToVec3D()
+		{
+			return new Vector3D( X[0], X[1], X[2], X[3] );
+		}
+
 		public VectorND Clone()
 		{
 			return new VectorND( (double[])this.X.Clone() );

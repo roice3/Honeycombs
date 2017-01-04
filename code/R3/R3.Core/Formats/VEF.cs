@@ -15,7 +15,7 @@
 		/// <summary>
 		/// The edges.
 		/// </summary>
-		public Edge[] Edges { get; private set; }
+		public GraphEdge[] Edges { get; private set; }
 
 		/// <summary>
 		/// Load from a VEF file.
@@ -39,11 +39,11 @@
 
 			lines.MoveNext();
 			int numEdges = int.Parse( lines.Current );
-			List<Edge> edges = new List<Edge>();
+			List<GraphEdge> edges = new List<GraphEdge>();
 			for( int i = 0; i < numEdges; i++ )
 			{
 				lines.MoveNext();
-				Edge e = new Edge();
+				GraphEdge e = new GraphEdge();
 				e.ReadEdge( lines.Current );
 				edges.Add( e );
 			}

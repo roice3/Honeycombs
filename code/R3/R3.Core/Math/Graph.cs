@@ -1,9 +1,9 @@
 ﻿namespace R3.Math
 {
 	// XXX - rename this GraphEdge?
-	public struct Edge
+	public struct GraphEdge
 	{
-		public Edge( int v1, int v2 )
+		public GraphEdge( int v1, int v2 )
 			: this()
 		{
 			// Keep it ordered

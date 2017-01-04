@@ -6,6 +6,7 @@
 	using System.IO;
 	using System.Linq;
 	using System.Text.RegularExpressions;
+	using R3.Algorithm;
 	using R3.Core;
 	using R3.Geometry;
 	using R3.Math;
@@ -14,6 +15,49 @@
 	
 	internal static class Sandbox
 	{
+		public static void ElevenCell()
+		{
+			Graph g = new Graph();
+			g.SetupCompleteGraph( 11 );
+			
+			GraphRelaxation relaxer = new GraphRelaxation();
+			relaxer.Graph = g;
+			relaxer.NodeRepulsion = 0.01;
+			relaxer.EdgeAttraction = 0.0;
+			relaxer.EdgeRepulsion = 0.0;
+			relaxer.Relax( 20000 );
+
+			Vector3D northPole = new Vector3D( 0, 0, 0, 1 );
+			H3.Cell.Edge[] edges = g.Edges.Select( e =>
+			{
+				Vector3D v1 = g.Nodes[e.V1].Position.ToVec3D();
+				Vector3D v2 = g.Nodes[e.V2].Position.ToVec3D();
+				//if( v1.Compare( northPole, .5 ) || v2.Compare( northPole, 0.5 ) )	// Cull edges near north pole.
+				//	return null;
+				v1 = Sterographic.S3toR3( v1 );
+				v2 = Sterographic.S3toR3( v2 );
+				return new H3.Cell.Edge( v1, v2 );
+			} ).ToArray();
+
+			edges = edges.Where( e => e != null ).ToArray();
+
+			bool povray = false;
+			if( povray )
+			{
+
+				string filename = "test.pov";
+				System.IO.File.Delete( filename );
+				using( StreamWriter sw = new StreamWriter( filename ) )
+					sw.WriteLine( "#include \"C:\\Users\\hrn\\Documents\\roice\\povray\\H3\\horosphere\\633.pov\"" );
+
+				PovRay.WriteEdges( new PovRay.Parameters { AngularThickness = 0.03 }, Geometry.Spherical, edges, filename, append: true );
+			}
+			else
+			{
+				S3.EdgesToStl( edges );
+			}
+		}
+
 		public static void Test()
 		{
 			S3.HopfOrbit();
@@ -324,7 +368,7 @@
 		// k-regular graph on n vertices.
 		public static void Graph()
 		{
-			HashSet<Edge> edges = new HashSet<Edge>();
+			HashSet<GraphEdge> edges = new HashSet<GraphEdge>();
 
 			int k = 24, n = 350;
 			//int k = 7, n = 24;
@@ -340,8 +384,8 @@
 					int t1 = Clamp( i + j*increment, n );
 					int t2 = Clamp( i - j*increment, n );
 
-					Edge e1 = new Edge( i, t1 );
-					Edge e2 = new Edge( i, t2 );
+					GraphEdge e1 = new GraphEdge( i, t1 );
+					GraphEdge e2 = new GraphEdge( i, t2 );
 					edges.Add( e1 );
 					edges.Add( e2 );
 				}
@@ -356,20 +400,20 @@
 						int t1 = Clamp( i + j, n );
 						int t2 = Clamp( i - j, n );
 
-						Edge e1 = new Edge( i, t1 );
-						Edge e2 = new Edge( i, t2 );
+						GraphEdge e1 = new GraphEdge( i, t1 );
+						GraphEdge e2 = new GraphEdge( i, t2 );
 						edges.Add( e1 );
 						edges.Add( e2 );
 					}
 
 					int t3 = Clamp( i + n/2, n );
-					edges.Add( new Edge( i, t3 ) );
+					edges.Add( new GraphEdge( i, t3 ) );
 				}
 			}
 
 			using( StreamWriter sw = File.CreateText( "733.csv" ) )
 			{
-				foreach( Edge e in edges )
+				foreach( GraphEdge e in edges )
 				{
 					sw.WriteLine( string.Format( "master{0};master{1}", e.V1, e.V2 ) );
 				}
