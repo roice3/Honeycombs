@@ -25,8 +25,11 @@
 		public static Vector3D KleinToPoincare( Vector3D k )
 		{
 			double dot = k.Dot( k );
-			if( dot > 1 )	// This avoids some NaN problems I saw.
+			if( dot > 1 )   // This avoids some NaN problems I saw.
+			{
+				k.Normalize();
 				dot = 1;
+			}
 			double mag = (1 - Math.Sqrt( 1 - dot )) / dot;
 			return k * mag;
 		}

@@ -208,7 +208,7 @@
 				Sphere.RotateSphere( clone, p.Cross( z ), a );
 
 			Mobius m = new Mobius();
-			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, p.Z < 0 ? p.Abs() : -p.Abs() ) );
+			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, -p.Abs() ) );
 			clone = TransformInBall( clone, m );
 
 			if( !isZ )
@@ -219,6 +219,7 @@
 
 		/// <summary>
 		/// Transform a vector in the ball, such that p goes to the origin.
+		/// ZZZ - Not tested well yet.
 		/// </summary>
 		public static Vector3D Transform_PointToOrigin( Vector3D v, Vector3D p )
 		{
@@ -229,7 +230,7 @@
 				v.RotateAboutAxis( p.Cross( z ), a );
 
 			Mobius m = new Mobius();
-			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, p.Z < 0 ? p.Abs() : -p.Abs() ) );
+			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, -p.Abs() ) );
 			v = TransformHelper( v, m );
 
 			if( !isZ )
@@ -242,6 +243,8 @@
 		/// This applies the same Mobius transform to all vertical planes through the z axis.
 		/// NOTE: m must therefore be a mobius transform that keeps the imaginary axis constant!
 		/// NOTE: s must be geodesic! (orthogonal to boundary).
+		/// ZZZ - it would be better to use m to control the plane at infinity, e.g. 
+		///		  go to UHS, transform, go back (like ApplyMobius below)
 		/// </summary>
 		public static Sphere TransformInBall( Sphere s, Mobius m )
 		{
@@ -768,6 +771,7 @@
 			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2, double quality = 1.0 )
 			{
 				int div = 40; // Wiki
+				div = 45;
 				//LODThin( v1, v2, out div );
 
 				// Account for quality.

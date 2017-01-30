@@ -64,13 +64,33 @@
 			PovRay.CreateSimplex( mirrors, "simplex.pov" );
 		}
 
+		public static Vector3D VertexPointKlein( int p, int q, int r )
+		{
+			Geometry vertexGeometry = Geometry2D.GetGeometry( q, r );
+			if( vertexGeometry != Geometry.Hyperbolic )
+			{
+				throw new System.NotImplementedException();
+			}
+
+			Sphere[] mirrors = Mirrors( p, q, r );
+			Sphere klein = H3Models.BallToKlein( mirrors[0] );
+			Vector3D off = klein.Offset;
+			double h = off.Abs() / Math.Cos( off.AngleTo( new Vector3D( 0, 0, -1 ) ) );
+			return new Vector3D( 0, 0, -h );
+		}
+
 		/// <summary>
 		/// Calculates the point of our simplex that is at a vertex.
 		/// </summary>
 		public static Vector3D VertexPointBall( int p, int q, int r )
 		{
-			//double circum = DonHatch.h2eNorm( Honeycomb.CircumRadius( p, q, r ) );
-			//Vector3D result = new Vector3D( 0, 0, -circum );
+			Geometry vertexGeometry = Geometry2D.GetGeometry( q, r );
+			if( vertexGeometry == Geometry.Hyperbolic )
+			{
+				// Outside the ball, and not in a good way.  Use the Klein version.
+				//throw new System.NotImplementedException();
+				return new Vector3D(0,0,-1);
+			}
 
 			// Get in UHS first.
 			Sphere cellFacet = Mirrors( p, q, r, moveToBall: false ).First();
@@ -98,6 +118,8 @@
 			// We need the mid-radius, but we have to do the calculation
 			// with our Euclidean simplex mirrors (to avoid infinities that happen in the formulas).
 			Circle3D edge = HoneycombEdgeUHS( p, q, r );
+			if( edge.Radius == 0 )
+				return edge.Center;
 
 			Geometry cellGeometry = Geometry2D.GetGeometry( p, q );
 			switch( cellGeometry )
@@ -123,7 +145,7 @@
 		}
 
 		/// <summary>
-		/// Calculates the point of our simplex that is at the middle of an edge.
+		/// Calculates the point of our simplex that is at the middle of a face.
 		/// </summary>
 		private static Vector3D FaceCenterBall( int p, int q, int r )
 		{
@@ -153,7 +175,7 @@
 		}
 
 		/// <summary>
-		/// Calculates the point of our simplex that is at the middle of an edge.
+		/// Calculates the point of our simplex that is at the center of a cell.
 		/// </summary>
 		private static Vector3D CellCenterBall( int p, int q, int r )
 		{
@@ -170,7 +192,8 @@
 				}
 			case Geometry.Hyperbolic:
 				{
-					throw new System.NotImplementedException();
+					//throw new System.NotImplementedException();
+					return new Vector3D( 0, 0, 1 );
 				}
 			}
 

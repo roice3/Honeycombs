@@ -615,11 +615,13 @@
 			{
 			case 2:
 				thickness = 0.025;
+				thickness = 0.04;
 				break;
 			case 3:
 			case 4:
-				//thickness = 0.02;
 				thickness = 0.01;
+				thickness = 0.02;
+				//thickness = 0.04;
 				break;
 			}
 			H3.m_settings.AngularThickness = thickness;
@@ -670,7 +672,7 @@
 			active = active.Select( i => mapMirror( i ) ).OrderBy( i => i ).ToArray();
 			polyMirrors = polyMirrors.Select( i => mapMirror( i ) ).OrderBy( i => i ).ToArray();
 
-			Vector3D startingPoint = IterateToStartingPoint( active, simplex );
+			Vector3D startingPoint = IterateToStartingPoint( null, active, simplex );
 			List<H3.Cell.Edge> startingEdges = new List<H3.Cell.Edge>();
 			foreach( int a in active )
 			{
@@ -738,6 +740,8 @@
 
 		private static void SetupBaseHue( string fileName, string mirrorsString, int baseHue )
 		{
+			return;
+
 			// Setup Pov-ray stuff.
 			// We have 16 possible mirror states.  We'll calculate the hue by converting the binary state to decimal, and doubling.
 			// So for a given family, the hue will range over 32 numbers.
@@ -772,8 +776,9 @@
 
 			if( File.Exists( fileName + ".pov" ) )
 			{
-				Console.WriteLine( string.Format( "Skipping {0}", fileName ) );
-				return;
+				File.Delete( fileName + ".pov" );
+				//Console.WriteLine( string.Format( "Skipping {0}", fileName ) );
+				//return;
 			}
 
 			Console.WriteLine( string.Format( "Building {0}", fileName ) );
@@ -787,37 +792,52 @@
 			simplex.Facets = SimplexCalcs.Mirrors( def.P, def.Q, def.R );
 			simplex.Verts = SimplexCalcs.VertsBall( def.P, def.Q, def.R );
 
-			Vector3D startingPoint = IterateToStartingPoint( active, simplex );
+			Vector3D startingPoint = IterateToStartingPoint( def, active, simplex );
 			if( startingPoint.DNE )
 				return;
 			List<H3.Cell.Edge> startingEdges = new List<H3.Cell.Edge>();
 			foreach( int a in active )
 			{
 				Vector3D reflected = simplex.ReflectInFacet( startingPoint, a );
-				startingEdges.Add( new H3.Cell.Edge( startingPoint, reflected ) );
+				//startingEdges.Add( new H3.Cell.Edge( startingPoint, reflected ) );
+				startingEdges.Add( new H3.Cell.Edge( simplex.Verts[0], simplex.Verts[3] ) );
 			}
 
 			// If we are doing a view path, transform our geometry.
-			/*if( ViewPath != null )
+			if( ViewPath != null )
 			{
-				Vector3D p = ViewPath.Location;
-				simplex.Facets = simplex.Facets.Select( f => H3Models.TransformInBall( f, p ) ).ToArray();
-				simplex.Verts = simplex.Verts.Select( v => H3Models.TransformInBall( v, p ) ).ToArray();
+				//Vector3D p = new Vector3D( 0, 0, .5 );
+				Vector3D p = new Vector3D( 0.08, 0.12, 0.07 );
+				simplex.Facets = simplex.Facets.Select( f => H3Models.Transform_PointToOrigin( f, p ) ).ToArray();
+				simplex.Verts = simplex.Verts.Select( v => H3Models.Transform_PointToOrigin( v, p ) ).ToArray();
 				startingEdges = startingEdges.Select( e => new H3.Cell.Edge(
-					H3Models.TransformInBall( e.Start, p ),
-					H3Models.TransformInBall( e.End, p ) ) ).ToList();
-			}*/
+					H3Models.Transform_PointToOrigin( e.Start, p ),
+					H3Models.Transform_PointToOrigin( e.End, p ) ) ).ToList();
+			}
 
 			SetupBaseHue( fileName, mirrorsString, baseHue );
 			Recurse.m_background =  baseHue == -1 ? new Vector3D() : new Vector3D( baseHue, 1, .1 );
 
 			H3.Cell.Edge[] edges = Recurse.CalcEdgesSmart2( simplex.Facets, startingEdges.ToArray() );
+			//edges = edges.Where( e => e.Depths[0] % 2 == 1 ).ToArray();
 			H3.SaveToFile( fileName, edges, finite: true, append: true );
+
+			bool doCells = false;
+			H3.Cell[] cellsToHighlight = null;
+			if( doCells )
+			{
+				int[] polyMirrors = new int[] { 1, 2, 3 };
+				active = active.Select( i => mapMirror( i ) ).OrderBy( i => i ).ToArray();
+
+				H3.Cell startingCell = PolyhedronToHighlight( Geometry.Hyperbolic, polyMirrors, simplex, startingPoint );
+				cellsToHighlight = Recurse.CalcCells( simplex.Facets, new H3.Cell[] { startingCell } );
+				H3.AppendFacets( fileName, cellsToHighlight );
+			}
 		}
 
 		// CHEAT! (would be better to do a geometrical construction)
 		// We are going to iterate to the starting point that will make all edge lengths the same.
-		private static Vector3D IterateToStartingPoint( int[] activeMirrors, Simplex simplex )
+		public static Vector3D IterateToStartingPoint( HoneycombDef? def, int[] activeMirrors, Simplex simplex )
 		{
 			if( activeMirrors.Length == 1 )
 				return simplex.Verts[activeMirrors[0]];
@@ -838,12 +858,19 @@
 				double average = lengths.Average();
 				foreach( double length in lengths )
 					result += Math.Abs( length - average );
+				if( Infinity.IsInfinite( result ) )
+					result = double.PositiveInfinity;
 				return result;
 			};
 
 			// So that we can leverage Euclidean barycentric coordinates, we will first convert our simplex to the Klein model.
 			// We will need to take care to properly convert back to the Ball as needed.
 			Vector3D[] kleinVerts = simplex.Verts.Select( v => HyperbolicModels.PoincareToKlein( v ) ).ToArray();
+			if( def != null )
+			{
+				HoneycombDef d = def.Value;
+				kleinVerts[3] = SimplexCalcs.VertexPointKlein( d.P, d.Q, d.R );
+			}
 
 			// Normalizing barycentric coords amounts to making sure the 4 coords add to 1.
 			Func<Vector3D, Vector3D> baryNormalize = b =>
@@ -870,7 +897,7 @@
 			// but it seems to be working pretty well (even when varying these parameters).
 			//double searchOffset = 1.0 - bary[activeMirrors[0]];
 			//double searchOffset = bary[activeMirrors[0]];
-			double factor = 1.7;	// Adjusting this helps get some to converge, e.g. 4353-1111 
+			double factor = 1.5;	// Adjusting this helps get some to converge, e.g. 4353-1111 
 			double searchOffset = bary[activeMirrors[0]] / factor;		
 
 			double min = double.MaxValue;
@@ -922,7 +949,8 @@
 				}
 			}
 
-			return HyperbolicModels.KleinToPoincare( baryToEuclidean( kleinVerts, bary ) );
+			Vector3D euclidean = baryToEuclidean( kleinVerts, bary );
+			return HyperbolicModels.KleinToPoincare( euclidean );
 		}
 
 		private static H3.Cell PolyhedronToHighlight( Geometry g, int[] mirrors, Simplex simplex, Vector3D startingPoint )

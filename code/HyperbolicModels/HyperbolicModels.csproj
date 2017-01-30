@@ -56,8 +56,9 @@
     <Compile Include="Coloring.cs" />
     <Compile Include="CoxeterImages.cs" />
     <Compile Include="Experiments\Acrohedron.cs" />
-    <Compile Include="Experiments\H3Ruled.cs" />
-    <Compile Include="Experiments\Hopf.cs" />
+    <Compile Include="Experiments\H3_Ruled.cs" />
+    <Compile Include="Experiments\H3_Hopf.cs" />
+    <Compile Include="Experiments\S3_Hopf.cs" />
     <Compile Include="Experiments\SphericalTrig.cs" />
     <Compile Include="Experiments\ThreeFifty.cs" />
     <Compile Include="HoneycombGen.cs" />

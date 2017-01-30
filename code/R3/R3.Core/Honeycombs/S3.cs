@@ -61,7 +61,7 @@
 			}
 		}
 
-		private static Vector3D[] OneHopfCircle( Vector3D s2Point )
+		public static Vector3D[] OneHopfCircle( Vector3D s2Point, bool anti = false )
 		{
 			int circleDivisions = 125;
 
@@ -83,8 +83,8 @@
 				double cosTheta = Math.Cos( angle );
 				Vector3D point = new Vector3D(
 					( 1 + c ) * cosTheta,
-					a * sinTheta - b * cosTheta,
-					a * cosTheta + b * sinTheta,
+					anti ? - a * sinTheta - b * cosTheta : a * sinTheta - b * cosTheta,
+					anti ?   a * cosTheta - b * sinTheta : a * cosTheta + b * sinTheta,
 					( 1 + c ) * sinTheta );
 				point.Normalize();
 				circlePoints.Add( point );

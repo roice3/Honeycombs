@@ -194,9 +194,14 @@
 					{
 						// Only track converged flips?
 						// Worry that throwing out unconverged could bias.
-						int cellFlips = 0, totalFlips = 0;
-						if( ReflectToFundamental( settings, ref v, ref cellFlips, ref totalFlips ) )
+						int cellFlips = 0;
+						int[] flips = new int[4];
+						int dummy = -1;
+						if( ReflectToFundamental( settings, ref v, ref flips, ref dummy ) )
+						{
+							cellFlips = flips[0];
 							flipsPerPixel.Add( cellFlips );
+						}
 						
 						cellFlips = Math.Min( 255, cellFlips );
 						image.SetPixel( i, j, Color.FromArgb( 255, cellFlips, cellFlips, cellFlips ) );
@@ -502,10 +507,16 @@
 
 		private Color CalcColor( Settings settings, ref Vector3D v, out int cellFlips )
 		{
-			cellFlips = 0;
-			int totalFlips = 0;
-			if( !ReflectToFundamental( settings, ref v, ref cellFlips, ref totalFlips ) )
+			int first = -1;
+			int[] flips = new int[4];
+			if( !ReflectToFundamental( settings, ref v, ref flips, ref first ) )
+			{
+				cellFlips = 0;
 				return Color.White;
+			}
+
+			cellFlips = flips[0];
+			int totalFlips = flips.Sum();
 
 			//return Color.Black;
 			return ColorFunc( m_whiteBoundary, v, cellFlips, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
@@ -514,53 +525,34 @@
 		/// <summary>
 		/// Somewhat based on http://commons.wikimedia.org/wiki/User:Tamfang/programs
 		/// </summary>
-		private bool ReflectToFundamental( Settings settings, ref Vector3D v, ref int cellFlips, ref int totalFlips )
+		private bool ReflectToFundamental( Settings settings, ref Vector3D v, ref int[] flips, ref int first )
 		{
 			Vector3D original = v;
 
 			int iterationCount = 0;
-			cellFlips = 0;
-			totalFlips = 0;
-			int[] flips = new int[4];
 			while( true && iterationCount < m_maxIterations )
 			{
-				/* Original way I did it (a la Anton), which ended up with potential for flips to get incremented within a cell when it shouldn't.
-				for( int i=0; i<settings.Mirrors.Length; i++ )
-				{
-					Sphere mirror = settings.Mirrors[i];
-					bool outsideFacet = mirror.IsPointInside( v );	// XXX - confusing, clean this up, especially for planes.
-					if( outsideFacet )
-					{
-						v = mirror.ReflectPoint( v );
-						//if( i == 0 ) 
-							flips += 1;
-						clean = 0;
-					}
-					else
-					{
-						clean++;
-						if( clean >= settings.Mirrors.Length )
-							return ColorFunc( m_whiteBoundary, v, flips );
-					}
-				}*/
+				// First get things on the right side of the mirror that reflects within an edge,
+				// only then get things on the right side of the 2 mirrors that reflect within a face,
+				// only then get things on the right side of the 3 mirrors which reflect within a cell,
+				// and finally reflect across the cell mirror.
+				// We have to do it this way so the flips end up being minimal.
+				int[] indices = null;
 
-				// First get things on the right side of the 3 mirrors which reflect within a cell.
-				// We have to do it this way so the flips across cells are calculated appropriately.
-				// (Otherwise, the cell boundary mirror can also reflect within a cell, and this avoids that).
-				// Update 1-22-16: doing all at once in reverse order seems to give the same results as this two-step
-				// algorithm, but I've left it as we did for the paper for now.
-				int[] indices = new int[] { 1, 2, 3 };
-				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref iterationCount ) )
+				indices = new int[] { 3 };
+				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref first, ref iterationCount ) )
 					continue;
 
-				if( ReflectAcrossMirror( settings.Mirrors, ref v, 0, ref flips ) )
-				{
-					cellFlips = flips[0];
-					totalFlips = flips.Sum();
-					return true;
-				}
+				indices = new int[] { 3, 2 };	// I'm guessing order is important (?)
+				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref first, ref iterationCount ) )
+					continue;
 
-				//iterationCount++;
+				indices = new int[] { 3, 2, 1 };
+				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref first, ref iterationCount ) )
+					continue;
+
+				if( ReflectAcrossMirror( settings.Mirrors, ref v, 0, ref flips, ref first ) )
+					return true;
 			}
 
 			//System.Console.WriteLine( string.Format( "Did not converge at point {0}", original.ToString() ) );
@@ -569,7 +561,7 @@
 
 		private int m_maxIterations = 4000;
 
-		private bool ReflectAcrossMirror( Sphere[] mirrors, ref Vector3D v, int idx, ref int[] flips )
+		private bool ReflectAcrossMirror( Sphere[] mirrors, ref Vector3D v, int idx, ref int[] flips, ref int first )
 		{
 			Sphere mirror = mirrors[idx];
 			bool outsideFacet = mirror.IsPointInside( v );
@@ -577,27 +569,29 @@
 			{
 				v = mirror.ReflectPoint( v );
 				flips[idx]++;
+				if( first == -1 )
+					first = idx;
 				return false;
 			}
 
 			return true;
 		}
 
-		private bool ReflectAcrossMirrors( Sphere[] mirrors, ref Vector3D v, int[] indices, ref int[] flips, ref int iterationCount )
+		private bool ReflectAcrossMirrors( Sphere[] mirrors, ref Vector3D v, int[] indices, ref int[] flips, ref int first, ref int iterationCount )
 		{
 			int clean = 0;
 			while( true && iterationCount < m_maxIterations )
 			{
 				foreach( int idx in indices )
 				{
-					if( !ReflectAcrossMirror( mirrors, ref v, idx, ref flips ) )
+					if( !ReflectAcrossMirror( mirrors, ref v, idx, ref flips, ref first ) )
 					{
 						clean = 0;
 					}
 					else
 					{
 						clean++;
-						if( clean >= mirrors.Length )
+						if( clean >= indices.Length )
 							return true;
 					}
 				}

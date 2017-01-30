@@ -6,6 +6,7 @@
 	using System.Linq;
 	using System.Text;
 	using R3.Geometry;
+	using R3.Math;
 
 	public class PovRay
 	{
@@ -22,16 +23,16 @@
 			if( append )
 			{
 				using( StreamWriter sw = File.AppendText( fileName ) )
-					WriteMesh( sw, mesh, fileName, append );
+					WriteMesh( sw, mesh, append );
 			}
 			else
 			{
 				using( StreamWriter sw = File.CreateText( fileName ) )
-					WriteMesh( sw, mesh, fileName, append );
+					WriteMesh( sw, mesh, append );
 			}
 		}
 
-		private static void WriteMesh( StreamWriter sw, Mesh mesh, string fileName, bool append = false )
+		public static void WriteMesh( StreamWriter sw, Mesh mesh, bool append = false )
 		{
 			Vector3D[] verts, normals;
 			List<int[]> faces;
@@ -134,8 +135,8 @@
 			Vector3D[] points = null;
 			Func<Vector3D, Sphere> sizeFunc = v => new Sphere() { Center = v, Radius = H3Models.SizeFuncConst( v, parameters.Scale ) };
 
-			double minRad = 0.0005;
-			//double minRad = 0.0000;
+			//double minRad = 0.0005;
+			double minRad = 0.0004;
 			//double minRad = 0.0017;
 
 			if( parameters.Halfspace )
@@ -154,7 +155,7 @@
 			else
 			{
 				if( g == Geometry.Hyperbolic )
-					points = H3Models.Ball.GeodesicPoints( v1, v2, 1 - edge.Color.Z );
+					points = H3Models.Ball.GeodesicPoints( v1, v2, edge.Color.Z );
 				else if( g == Geometry.Spherical )
 				{
 					points = S3.GeodesicPoints( v1, v2 );
@@ -230,13 +231,15 @@
 			// options: b_spline, linear_spline, cubic_spline
 
 			string formattedPoints = string.Join( ",", appended.Select( formatVecAndSize ).ToArray() );
-			return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
 			//return string.Format( "sphere_sweep {{ linear_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
-			
+
 			// With color included.
-			//color = CHSL2RGB( color );	// May or may not want to do this.
-			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2}}} }}",
-			//	points.Length + 2, formattedPoints, FormatVecLowRes( color ) );
+			color.X = 220;
+			color.Z = 0.4 + (1 - color.Z)*.6;
+			color = CHSL2RGB( color );	// May or may not want to do this.
+			return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2}}} }}",
+				points.Length + 2, formattedPoints, FormatVecLowRes( color ) );
 			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color CHSL2RGB({2})}} }}", 
 			//	points.Length + 2, formattedPoints, FormatVec( color ) );
 		}
@@ -245,50 +248,14 @@
 		// Copied from POV-Ray
 		private static Vector3D CH2RGB( double H )
 		{
-			double R = 0, G = 0, B = 0;
-			if( H >= 0 && H < 120 )
-			{
-				R = (120 - H) / 60;
-				G = (H - 0) / 60;
-				B = 0;
-			}
-			else if( H >= 120 && H < 240 )
-			{
-				R = 0;
-				G = (240 - H) / 60;
-				B = (H - 120) / 60;
-			}
-			else if( H >= 240 && H <= 360 )
-			{
-				R = (H - 240) / 60;
-				G = 0;
-				B = (360 - H) / 60;
-			}
-
-			return new Vector3D(
-				Math.Min( R, 1 ),
-				Math.Min( G, 1 ),
-				Math.Min( B, 1 ) );
+			return ColorUtil.CH2RGB( H );
 		}
 
 		// Copied from POV-Ray
 		// Putting this here for speed. It was too expensive to do this at render time in POV-Ray.
 		private static Vector3D CHSL2RGB( Vector3D hsl )
 		{
-			Vector3D ones = new Vector3D( 1, 1, 1 );
-
-			double H = hsl.X;
-			double S = hsl.Y;
-			double L = hsl.Z;
-			Vector3D SatRGB = CH2RGB( H );
-			Vector3D Col = 2 * S * SatRGB + (1 - S) * ones;
-			Vector3D rgb;
-			if( L < 0.5 )
-				rgb = L * Col;
-			else
-				rgb = (1 - L) * Col + (2 * L - 1) * ones;
-
-			return rgb;
+			return ColorUtil.CHSL2RGB( hsl );
 		}
 
 		/// <summary>
@@ -366,20 +333,20 @@
 		/// <summary>
 		/// A version for the fundamental simplex.
 		/// </summary>
-		public static void CreateSimplex( Sphere[] facets, string fileName )
+		public static void CreateSimplex( Sphere[] facets, string fileName, Vector3D color = new Vector3D() )
 		{
 			using( StreamWriter sw = File.CreateText( fileName ) )
 			{
 				Vector3D dummy = new Vector3D();
-				sw.WriteLine( SimplexFacets( facets, dummy, new int[] { 0, 1, 2, 3 } ) );
+				sw.WriteLine( SimplexFacets( facets, dummy, new int[] { 0, 1, 2, 3 }, color ) );
 			}
 		}
 
-		public static void AppendSimplex( Sphere[] facets, Vector3D interiorPoint, int[] include, string fileName )
+		public static void AppendSimplex( Sphere[] facets, Vector3D interiorPoint, int[] include, string fileName, Vector3D color = new Vector3D() )
 		{
 			using( StreamWriter sw = File.AppendText( fileName ) )
 			{
-				sw.WriteLine( SimplexFacets( facets, interiorPoint, include ) );
+				sw.WriteLine( SimplexFacets( facets, interiorPoint, include, color ) );
 			}
 		}
 
@@ -402,7 +369,99 @@
 			}
 		}
 
-		private static string SimplexFacets( Sphere[] facets, Vector3D interiorPoint, int[] include )
+		public static void AppendDomains( Sphere[] facets, Vector3D[] verts, Vector3D interiorPoint, 
+			string fileName, Vector3D color = new Vector3D() )
+		{
+			using( StreamWriter sw = File.AppendText( fileName ) )
+			{
+				sw.WriteLine( Domain( facets, verts, interiorPoint, color ) );
+			}
+		}
+
+		private static Sphere ConstructSphere( Vector3D p, double hDist )
+		{
+			double eDist = DonHatch.h2eNorm( hDist );
+
+			Vector3D cen;
+			double rad;
+			H3Models.Ball.DupinCyclideSphere( p, eDist, out cen, out rad );
+			Sphere s = new Sphere() { Center = cen, Radius = rad };
+			return s;
+		}
+
+		private static Sphere ConstructSphere( Sphere[] facets, Vector3D p, int[] indices )
+		{
+			Vector3D reflected1 = facets[indices[0]].ReflectPoint( p );
+			Vector3D reflected2 = facets[indices[1]].ReflectPoint( p );
+			Vector3D reflected3 = facets[indices[2]].ReflectPoint( p );
+			return R3.Geometry.Sphere.From4Points( p, reflected1, reflected2, reflected3 );
+		}
+
+		private static Sphere[] GetSpheres( Sphere[] facets, Vector3D[] verts, Vector3D interiorPoint, double inSphereHRad )
+		{
+			// Get relevant points (near) inSphere.
+			Vector3D[] transformed = verts.Select( v =>
+			{
+				v = H3Models.Transform_PointToOrigin( v, interiorPoint );
+				v.Normalize();
+				v *= DonHatch.h2eNorm( inSphereHRad * .5 );
+				v = H3Models.Transform_PointToOrigin( v, -interiorPoint );
+				return v;
+			} ).ToArray();
+
+			List<Sphere> result = new List<R3.Geometry.Sphere>();
+			result.Add( ConstructSphere( facets, transformed[0], new int[] { 1, 2, 3 } ) );
+			result.Add( ConstructSphere( facets, transformed[1], new int[] { 0, 2, 3 } ) );
+			result.Add( ConstructSphere( facets, transformed[2], new int[] { 0, 1, 3 } ) );
+			result.Add( ConstructSphere( facets, transformed[3], new int[] { 0, 1, 2 } ) );
+			return result.ToArray();
+
+			/*Vector3D[] verts = SimplexCalcs.VertsBall( p, q, r );
+			for( int i = 0; i < 4; i++ )
+			{
+				double hDist = H3Models.Ball.HDist( cen, verts[i] ) - .05;
+				System.Diagnostics.Trace.WriteLine( hDist + " " + DonHatch.h2eNorm( hDist ) );
+			}*/
+		}
+
+		private static string Domain( Sphere[] facets, Vector3D[] verts, Vector3D interiorPoint, Vector3D color )
+		{
+			StringBuilder sb = new StringBuilder();
+
+			// Omnitruncated, so we can reflect in any face.
+			Vector3D secondPoint = facets[0].ReflectPoint( interiorPoint );
+			double hDist = H3Models.Ball.HDist( interiorPoint, secondPoint );
+
+			Sphere inSphere = ConstructSphere( interiorPoint, hDist*2 );
+			Sphere[] subtractSpheres = GetSpheres( facets, verts, interiorPoint, hDist / 2 );
+
+			bool invert = true;	// so we actuall get a difference rather than an intersection.
+			string toSubtract = string.Format( "{0} {1} {2} {3}",
+				FormatSphereNoMaterial( subtractSpheres[0], invert ),
+				FormatSphereNoMaterial( subtractSpheres[1], invert ),
+				FormatSphereNoMaterial( subtractSpheres[2], invert ),
+				FormatSphereNoMaterial( subtractSpheres[3], invert ) );
+			//toSubtract = "";
+
+			color = CHSL2RGB( color );
+			//sb.Append( string.Format( "intersection {{ {0} {1} half finish {{fin}} pigment {{color rgb {2}}} clipped_by {{ball}}",
+			sb.Append( string.Format( "intersection {{ {0} {1} half finish {{fin}} pigment {{color rgb {2}}}",
+				FormatSphereNoMaterial( inSphere, invert: false ), 
+				toSubtract,
+				FormatVecLowRes( color ) ) );
+
+			foreach( Sphere facet in facets )
+			{
+				invert = CheckForInvert( facet, interiorPoint );
+				sb.Append( string.Format( " clipped_by {{ {0} }}", FormatSphereNoMaterial( facet, invert ) ) );
+			}
+
+			sb.Append( " }" );
+
+			return sb.ToString();
+		}
+
+		private static string SimplexFacets( Sphere[] facets, Vector3D interiorPoint, int[] include, Vector3D color )
 		{
 			StringBuilder sb = new StringBuilder();
 
@@ -411,8 +470,12 @@
 				Sphere facet = facets[idx];
 
 				bool invert = CheckForInvert( facet, interiorPoint );
-				sb.Append( string.Format( "{0} material {{ sphereMat2 }} clipped_by {{ ball }}",
-					FormatSphereNoMaterial( facet, invert, false ) ) );
+				//sb.Append( string.Format( "{0} material {{ sphereMat2 }} clipped_by {{ ball }}",
+					//FormatSphereNoMaterial( facet, invert, false ) ) );
+				
+
+				sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1}}} clipped_by {{ ball }}",
+					FormatSphereNoMaterial( facet, invert, false ), FormatVecLowRes( color ) ) );
 
 				Sphere[] others = facets.Except( new Sphere[] { facet } ).ToArray();
 				foreach( Sphere otherFacet in others )

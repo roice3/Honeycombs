@@ -75,8 +75,8 @@
 			double slope = ( Math.Log( count2 ) - Math.Log( count1 ) ) / ( Math.Log( 80 ) - Math.Log( 60 ) );
 
 			// Why 1.3M?  We'll get 650k after we half this.
-			double desiredCount = 2e6;
-			//double desiredCount = 3e4;	// For testing
+			double desiredCount = 5e5;
+			//double desiredCount = 5e4;	// For testing
 			double logDesiredCount = Math.Log( desiredCount );
 			double temp = Math.Log( 80 ) + ( logDesiredCount - Math.Log( count2 ) ) / slope;
 
@@ -183,16 +183,18 @@
 				//	return;
 
 				//if( completedCellIds.Count > settings.MaxEdges/5 )
-				if( completedCellIds.Count > settings.MaxEdges / 20 )
+				if( completedCellIds.Count > settings.MaxEdges / 5 )
 					throw new System.Exception( "Maxing out cells - will result in uneven filling." );
 
 				H3.Cell newCell = cell.Clone();	
 				newCell.Reflect( mirror );
-				if( !CellOk( newCell, settings ) )
-					continue;
-
+				
 				// This tracks reflections across the cell facets.
 				newCell.Depths[m]++;
+				newCell.LastReflection = m;
+
+				if( !CellOk( newCell, settings ) )
+					continue;
 
 				if( completedCellIds.Add( newCell.ID ) )
 				{
@@ -334,6 +336,8 @@
 			double thresh = s.Threshold;
 			if( !cell.HasVerts )
 			{
+				//return cell.Depths.Sum() <= 20;
+
 				foreach( H3.Cell.Facet f in cell.Facets )
 				{
 					//bool ball = s.Ball;
@@ -348,10 +352,11 @@
 						//	return false;
 
 						//if( f.Sphere.Radius < 0.001 )
-						//if( f.Sphere.Radius < 0.01 )
+						if( f.Sphere.Radius < 0.005 )
+						//if( f.Sphere.Radius < 0.015 )
 						//if( f.Sphere.Radius < 0.02 )
 						//if( f.Sphere.Radius < 0.05 )
-						if( f.Sphere.Radius < 0.1 )
+						//if( f.Sphere.Radius < 0.1 )
 						//if( f.Sphere.Radius < 0.25 )
 							return false;
 					}

@@ -41,6 +41,8 @@
 			/// </summary>
 			public int[] Depths;
 
+			public int LastReflection = -1;
+
 			public bool IdealVerts
 			{
 				get
@@ -239,7 +241,7 @@
 
 				// The reason we use a vector here is so the components 
 				// can be interpreted in different color schemes (HLS, RGB, etc.)
-				public Vector3D Color = new Vector3D();//new Vector3D( 1, 1, 1 );
+				public Vector3D Color = new Vector3D( 1, 1, 1 );
 
 				/// <summary>
 				/// Used to track recursing depth of reflections across various mirrors.
@@ -316,6 +318,11 @@
 				}
 			}
 
+			/// <summary>
+			/// Additional points (could be whatever) that we want reflected around with this cell.
+			/// </summary>
+			public Vector3D[] AuxPoints { get; set; }
+
 			public Vector3D ID
 			{
 				get 
@@ -347,6 +354,10 @@
 				Cell clone = new Cell( P, newFacets.ToArray() );
 				clone.Center = Center;
 				clone.Depths = (int[])Depths.Clone();
+				clone.LastReflection = LastReflection;
+
+				if( AuxPoints != null )
+					clone.AuxPoints = (Vector3D[])AuxPoints.Clone();
 
 				if( Mesh != null )
 					clone.Mesh = Mesh.Clone();
@@ -396,6 +407,12 @@
 					facet.Reflect( sphere );
 				Center = sphere.ReflectPoint( Center );
 
+				if( AuxPoints != null )
+				{
+					for( int i = 0; i < AuxPoints.Length; i++ )
+						AuxPoints[i] = sphere.ReflectPoint( AuxPoints[i] );
+				}
+				
 				if( this.Mesh != null )
 				{
 					for( int i=0; i<Mesh.Triangles.Count; i++ )

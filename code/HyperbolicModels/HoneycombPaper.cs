@@ -1,4 +1,4 @@
-﻿namespace HyperbolicModels
+﻿namespace R3.Geometry
 {
 	using System;
 	using System.Collections.Generic;
@@ -41,7 +41,7 @@
 			//CreateSimplex( imageData );
 			//HoneycombGen.OneHoneycombNew( new HoneycombDef() { P = imageData.P, Q = imageData.Q, R = imageData.R } );
 			//SphericalAnimate( imageData );
-			Program.OneImage( imageData );
+			OneImage( imageData );
 
 			HoneycombDef[] scaleLarger = GetImageSet().Where( h =>
 				Geometry2D.GetGeometry( h.P, h.Q ) == Geometry.Euclidean ||
@@ -61,6 +61,52 @@
 			return int.Parse( arg );
 		}
 
+		public static void OneImage( HoneycombDef imageData, double t = 0.0 )
+		{
+			string filename = imageData.FormatFilename();
+			//if( File.Exists( filename ) )
+			//	return;
+
+			int p = imageData.P, q = imageData.Q, r = imageData.R;
+			Geometry gCell = Geometry2D.GetGeometry( p, q );
+			Geometry gVertex = Geometry2D.GetGeometry( q, r );
+			//if( !( gCell == Geometry.Hyperbolic || gVertex == Geometry.Hyperbolic ) )
+			//if( !( gVertex == Geometry.Hyperbolic ) )
+			//	return;
+
+			Sphere[] mirrors = SimplexCalcs.Mirrors( p, q, r );
+
+			double bounds = 1.1;
+			bounds = 1;
+			bounds = 3.5;
+
+			int size = 200;
+			CoxeterImages.Settings settings = new CoxeterImages.Settings()
+			{
+				Honeycomb = imageData,
+				Width = size,
+				Height = size,
+				Bounds = bounds,
+				Mirrors = mirrors,
+				FileName = imageData.FormatFilename(),
+			};
+
+			CoxeterImages imageCalculator = new CoxeterImages();
+			imageCalculator.AutoCalcScale( settings );
+			if( settings.ColorScaling < 1 )
+				settings.ColorScaling = 15;
+
+			//size = 4320;
+			size = 1000;
+			//settings.Width = size * 4 / 3;
+			settings.Width = size * 2;
+			settings.Width = size;
+			settings.Height = size;
+			settings.FileName = filename;
+
+			imageCalculator.GenImage( settings, t );
+		}
+
 		private static void BatchRun()
 		{
 			HoneycombDef imageData;
@@ -69,7 +115,7 @@
 			{
 				HoneycombDef[] fullSet = GetFullImageSet().ToArray();
 				foreach( HoneycombDef iData in fullSet )
-					Program.OneImage( iData );
+					OneImage( iData );
 
 				int[] rs = new int[] { 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30 };
 				foreach( int r in rs )
@@ -269,11 +315,11 @@
 			}
 		}
 
-		private static void CreateCellPovRay( HoneycombDef imageData, string filename, double t = 0 )
+		private static void CreateCellPovRay( HoneycombDef def, string filename, double t = 0 )
 		{
-			int p = imageData.P;
-			int q = imageData.Q;
-			int r = imageData.R;
+			int p = def.P;
+			int q = def.Q;
+			int r = def.R;
 
 			Vector3D trans = new Vector3D( 1.0/3, 0 ) * (2 + 2 * Math.Sin( Math.PI / 6 )) * t;
 			double scale = 1.8;

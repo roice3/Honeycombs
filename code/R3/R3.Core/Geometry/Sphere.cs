@@ -615,6 +615,17 @@
 
 			Vector3D diff = this.Center - s.Center;
 			double d = diff.Abs();
+
+			if( Tolerance.Equal( d, r + R ) )
+			{
+				diff.Normalize();
+				return new Circle3D()
+				{
+					Center = s.Center + diff * s.Radius,
+					Radius = 0
+				};
+			}
+
 			if( Tolerance.Zero( d ) || d > r + R )
 				return null;
 
