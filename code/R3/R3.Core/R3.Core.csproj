@@ -100,7 +100,6 @@
     <Compile Include="Honeycombs\S3.cs" />
     <Compile Include="Shapeways\Shapeways.cs" />
     <Compile Include="Shapeways\ShapewaysSandbox.cs" />
-    <Compile Include="ToDo.cs" />
     <Compile Include="Math\Utils.cs" />
     <Compile Include="Geometry\Vector3D.cs" />
     <Compile Include="UI\Attributes.cs" />
