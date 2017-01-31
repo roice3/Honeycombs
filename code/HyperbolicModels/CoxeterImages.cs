@@ -1,13 +1,13 @@
-﻿namespace R3.Geometry
+﻿namespace HyperbolicModels
 {
 	using System.Collections.Generic;
 	using System.Drawing;
 	using System.Drawing.Imaging;
-	using System.IO;
 	using System.Linq;
 	using System.Numerics;
 	using System.Threading.Tasks;
 	using R3.Drawing;
+	using R3.Geometry;
 	using R3.Math;
 	using Math = System.Math;
 
@@ -160,7 +160,7 @@
 
 		public RecursionStat[] AutoCalcScale( Settings settings )
 		{
-			System.Console.WriteLine( string.Format( "Auto-calculating the color scale, yo." ) );
+			Program.Log( "\nAuto-calculating the color scale with a 200px image..." );
 
 			int width = settings.Width;
 			int height = settings.Height;

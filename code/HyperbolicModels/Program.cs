@@ -40,26 +40,59 @@
 						path.Step++;
 					}
 
-					// Other settings to make configurable...
-					// width
-					// resolution
-					// 
-
 					HoneycombGen.ViewPath = null;
 					HoneycombDef def = new HoneycombDef() { P = 3, Q = 4, R = 4 };
 					int[] active = new int[] { 1 };
 					int baseHue = 220;
 					HoneycombGen.Paracompact( def, active, baseHue );
 				}
-				else
-				{ 
-					HoneycombPaper.DoStuff( args );
+
+				Settings settings = LoadSettings();
+				if( settings.UhsBoundary != null )
+				{
+					Log( "Generating UHS boundary image for the following honeycomb: " + settings.HoneycombString );
+					Log( "Settings...\n" + settings.UhsBoundary.DisplayString );
+					HoneycombPaper.OneImage( settings );
 				}
 			}
 			catch( System.Exception ex )
 			{
-				System.Diagnostics.Trace.WriteLine( ex.Message + "\n" + ex.StackTrace );
-				System.Console.WriteLine( ex.Message + "\n" + ex.StackTrace );
+				Log( ex.Message + "\n" + ex.StackTrace );
+			}
+		}
+
+		public static Settings LoadSettings()
+		{
+			string filename = "settings.xml";
+			//DataContractHelper.SaveToXml( Defaults, filename );
+			if( !File.Exists( filename ) )
+				return Defaults;
+
+			try
+			{
+				return (Settings)DataContractHelper.LoadFromXml( typeof( Settings ), filename );
+			}
+			catch( System.Exception e )
+			{
+				Log( string.Format( "Failed to load settings. Running with defaults.\n{0}", e.Message ) );
+				return Defaults;
+			}
+		}
+
+		public static void Log( string message )
+		{
+			System.Diagnostics.Trace.WriteLine( message );
+			System.Console.WriteLine( message );
+		}
+
+		public static Settings Defaults
+		{
+			get
+			{
+				Settings settings = new Settings();
+				settings.Angles = new int[] { 3, 3, 7 };
+				settings.UhsBoundary = new UhsBoundarySettings() { Bounds = 1.0, ImageHeight = 1200, ImageWidth = 1200 };
+				return settings;
 			}
 		}
 	}

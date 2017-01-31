@@ -1,4 +1,4 @@
-﻿namespace R3.Geometry
+﻿namespace HyperbolicModels
 {
 	using System;
 	using System.Collections.Generic;
@@ -10,23 +10,9 @@
 
 	public static class HoneycombPaper
 	{
-		public static void DoStuff( string[] args )
+		public static void DoStuff( Settings settings )
 		{
-			int p, q, r;
-			if( args.Length == 3 )
-			{
-				p = ReadArg( args[0] );
-				q = ReadArg( args[1] );
-				r = ReadArg( args[2] );
-			}
-			else
-			{
-				p = 3;
-				q = 3;
-				r = 7;
-			}
-
-			HoneycombDef imageData = new HoneycombDef( p, q, r );
+			HoneycombDef imageData = new HoneycombDef( settings.P, settings.Q, settings.R );
 
 			////////////////////////////////////////////////////////////// Various things we've run over time.
 			//Sandbox.CalcSelfSimilarityScale();
@@ -41,7 +27,7 @@
 			//CreateSimplex( imageData );
 			//HoneycombGen.OneHoneycombNew( new HoneycombDef() { P = imageData.P, Q = imageData.Q, R = imageData.R } );
 			//SphericalAnimate( imageData );
-			OneImage( imageData );
+			OneImage( settings );
 
 			HoneycombDef[] scaleLarger = GetImageSet().Where( h =>
 				Geometry2D.GetGeometry( h.P, h.Q ) == Geometry.Euclidean ||
@@ -50,7 +36,7 @@
 			//foreach( HoneycombAndView h in scaleLarger )
 			//	Trace.WriteLine( h.FormatFilename() );
 
-			BatchRun();
+			BatchRun( settings );
 		}
 
 		private static int ReadArg( string arg )
@@ -61,25 +47,25 @@
 			return int.Parse( arg );
 		}
 
-		public static void OneImage( HoneycombDef imageData, double t = 0.0 )
+		public static void OneImage( Settings config, double t = 0.0 )
 		{
+			HoneycombDef imageData = new HoneycombDef( config.P, config.Q, config.R );
 			string filename = imageData.FormatFilename();
 			//if( File.Exists( filename ) )
 			//	return;
 
+			// These boundary images don't work if the geometry of cells and vertex figures are both spherical.
+
 			int p = imageData.P, q = imageData.Q, r = imageData.R;
 			Geometry gCell = Geometry2D.GetGeometry( p, q );
 			Geometry gVertex = Geometry2D.GetGeometry( q, r );
-			//if( !( gCell == Geometry.Hyperbolic || gVertex == Geometry.Hyperbolic ) )
-			//if( !( gVertex == Geometry.Hyperbolic ) )
-			//	return;
+			if( gCell == Geometry.Spherical && gVertex == Geometry.Spherical )
+				return;
 
 			Sphere[] mirrors = SimplexCalcs.Mirrors( p, q, r );
+			double bounds = config.UhsBoundary.Bounds;
 
-			double bounds = 1.1;
-			bounds = 1;
-			bounds = 3.5;
-
+			// Calculate the color scale.
 			int size = 200;
 			CoxeterImages.Settings settings = new CoxeterImages.Settings()
 			{
@@ -96,33 +82,31 @@
 			if( settings.ColorScaling < 1 )
 				settings.ColorScaling = 15;
 
-			//size = 4320;
-			size = 1000;
-			//settings.Width = size * 4 / 3;
-			settings.Width = size * 2;
-			settings.Width = size;
-			settings.Height = size;
+			Program.Log( "\nGenerating full image..." );
+			settings.Width = config.UhsBoundary.ImageWidth;
+			settings.Height = config.UhsBoundary.ImageHeight;
 			settings.FileName = filename;
-
 			imageCalculator.GenImage( settings, t );
 		}
 
-		private static void BatchRun()
+		private static void BatchRun( Settings config )
 		{
-			HoneycombDef imageData;
 			bool batchRun = false;
-			if( batchRun )
-			{
-				HoneycombDef[] fullSet = GetFullImageSet().ToArray();
-				foreach( HoneycombDef iData in fullSet )
-					OneImage( iData );
+			if( !batchRun )
+				return;
 
-				int[] rs = new int[] { 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30 };
-				foreach( int r in rs )
-				{
-					imageData.R = r;
-					//OneImage( imageData );
-				}
+			HoneycombDef[] fullSet = GetFullImageSet().ToArray();
+			foreach( HoneycombDef iData in fullSet )
+			{
+				config.Angles = new int[] { iData.P, iData.Q, iData.R };
+				OneImage( config );
+			}
+
+			int[] rs = new int[] { 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30 };
+			foreach( int r in rs )
+			{
+				config.Angles = new int[] { config.P, config.Q, r };
+				OneImage( config );
 			}
 		}
 

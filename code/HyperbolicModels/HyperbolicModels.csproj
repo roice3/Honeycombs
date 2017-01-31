@@ -45,6 +45,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -70,8 +71,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Recurse.cs" />
     <Compile Include="Experiments\Sandbox.cs" />
+    <Compile Include="Settings.cs" />
     <Compile Include="Simplex.cs" />
-    <Compile Include="Util.cs" />
+    <Compile Include="Utils\DataContractHelper.cs" />
+    <Compile Include="Utils\Util.cs" />
     <Compile Include="ViewPath.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -5,7 +5,6 @@
 	using System.IO;
 	using System.Linq;
 	using R3.Core;
-	using R3.Geometry;
 
 	public enum PQR
 	{
