@@ -15,6 +15,11 @@ Coming soon...
 ## How to generate STL models for Shapeways
 I'm not planning to make this friendly, so for now folks will be stuck digging into the code.
 
+## A quick pointer to some of the important functions for working with H^3
+I wrote up the following doc for someone who had questions on the code base. Hope it can be helpful for others.
+
+https://docs.google.com/document/d/1vUQPHvO4zOy5S1fyQIWMcy7vyzTvu5OYrUI6jmjpG90/edit?usp=sharing
+
 ## Dependencies
 MathNet.Numerics (though this dependency could be easily removed).
 
