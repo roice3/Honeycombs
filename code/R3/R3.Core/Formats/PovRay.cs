@@ -231,7 +231,7 @@
 			// options: b_spline, linear_spline, cubic_spline
 
 			string formattedPoints = string.Join( ",", appended.Select( formatVecAndSize ).ToArray() );
-			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
 			//return string.Format( "sphere_sweep {{ linear_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
 
 			// With color included.

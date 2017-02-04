@@ -2,57 +2,58 @@
 {
 	using System.Collections.Generic;
 	using System.IO;
-	using R3.Core;
-	using R3.Geometry;
+	using System.Linq;
 
 	class Program
 	{
+		/*
+		Known problems:
+		* Orthoscheme code may not be working out of the box for:
+			- spherical honeycombs
+			- honeycomb with hyperideal cells
+		*/
+
 		static void Main( string[] args )
 		{
 			try
 			{
-				bool wiki = false;
-				if( wiki )
+				List<string> filenames = new List<string>();
+				if( args.Length > 0 &&
+					File.Exists( args[0] ) )
 				{
-					//HoneycombGen.GoursatSet();
-					//HoneycombGen.ParacompactSet();
-
-					ViewPath path = new ViewPath();
-					Vector3D[] locations = new Vector3D[]
-					{
-						new Vector3D(0,.1,-.5),
-						new Vector3D(-.4,0,-.1),
-						new Vector3D(0,-.2,-.5),
-						new Vector3D(.1,0,-.8),
-						new Vector3D(0,.1,-.5),
-						new Vector3D(-.4,0,-.1),
-						new Vector3D(0,-.2,-.5),
-						new Vector3D(.1,0,-.8),
-						new Vector3D(0,.1,-.5),
-					};
-					List<Vector3D> lookAts = new List<Vector3D>();
-					path.Initialize( locations, lookAts );
-					HoneycombGen.ViewPath = path;
-
-					for( double t = 0; t < 1; t += .0016 )
-					{
-						//HoneycombGen.ParacompactAnimationFrame( t );
-						path.Step++;
-					}
-
-					HoneycombGen.ViewPath = null;
-					HoneycombDef def = new HoneycombDef() { P = 3, Q = 4, R = 4 };
-					int[] active = new int[] { 1 };
-					int baseHue = 220;
-					HoneycombGen.Paracompact( def, active, baseHue );
+					filenames.Add( args[0] );
+				}
+				else
+				{
+					filenames = Directory.EnumerateFiles( ".", "*.xml", SearchOption.TopDirectoryOnly ).ToList();
 				}
 
-				Settings settings = LoadSettings();
-				if( settings.UhsBoundary != null )
+				// Go through any settings files.
+				foreach( string filename in filenames )
 				{
-					Log( "Generating UHS boundary image for the following honeycomb: " + settings.HoneycombString );
-					Log( "Settings...\n" + settings.UhsBoundary.DisplayString );
-					HoneycombPaper.OneImage( settings );
+					Settings settings = LoadSettings( filename );
+					if( settings == null )
+						continue;
+
+					// Boundary images.
+					if( settings.UhsBoundary != null )
+					{
+						Log( "\nGenerating UHS boundary image for the following honeycomb:\n" + settings.HoneycombString );
+						Log( "\nSettings...\n" + settings.UhsBoundary.DisplayString );
+						HoneycombPaper.OneImage( settings );
+					}
+
+					// POV-Ray definition files.
+					if( settings.PovRay != null )
+					{
+						Log( "\nGenerating POV-Ray definition file for the following honeycomb:\n" + settings.HoneycombString );
+						Log( "\nSettings...\n" + settings.PovRay.DisplayString );
+
+						if( settings.Angles.Length == 3 )
+							HoneycombGen.OneHoneycombOrthoscheme( settings );
+						else if( settings.Angles.Length == 6 )
+							HoneycombGen.OneHoneycombGoursat( settings );
+					}
 				}
 			}
 			catch( System.Exception ex )
@@ -61,9 +62,8 @@
 			}
 		}
 
-		public static Settings LoadSettings()
+		public static Settings LoadSettings( string filename )
 		{
-			string filename = "settings.xml";
 			//DataContractHelper.SaveToXml( Defaults, filename );
 			if( !File.Exists( filename ) )
 				return Defaults;
@@ -74,8 +74,8 @@
 			}
 			catch( System.Exception e )
 			{
-				Log( string.Format( "Failed to load settings. Running with defaults.\n{0}", e.Message ) );
-				return Defaults;
+				Log( string.Format( "Failed to load settings from file '{0}', so skipping.\n{1}", e.Message ) );
+				return null;
 			}
 		}
 
@@ -92,6 +92,7 @@
 				Settings settings = new Settings();
 				settings.Angles = new int[] { 3, 3, 7 };
 				settings.UhsBoundary = new UhsBoundarySettings() { Bounds = 1.0, ImageHeight = 1200, ImageWidth = 1200 };
+				settings.PovRay = new PovRaySettings() { Active = new int[] { 1, 0, 0, 0 }, NumEdges = (int)5e5, EdgeWidth = 0.02 };
 				return settings;
 			}
 		}

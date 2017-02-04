@@ -10,11 +10,18 @@
 
 	public static class Recurse
 	{
+		public enum EdgeThreshType
+		{
+			Radial,
+			Length,
+		}
+
 		public class Settings
 		{
 			public Geometry G = Geometry.Hyperbolic;
 			public int MaxEdges = 2500000;
 			public double Threshold = DefaultThresh();
+			public EdgeThreshType ThreshType = EdgeThreshType.Length;
 			public bool Ball = true;
 		}
 
@@ -22,9 +29,10 @@
 		/// Attempts to calculate approx 1.3M edges when the threshold is a distance from origin in the ball model.
 		/// This works for honeycombs with finite cells.
 		/// </summary>
-		public static Edge[] CalcEdgesSmart( Sphere[] simplex, Edge[] edges )
+		public static Edge[] CalcEdgesSmart( Sphere[] simplex, Edge[] edges, int desiredCount )
 		{
 			Settings s = new Settings();
+			s.ThreshType = EdgeThreshType.Radial;
 
 			// The number of cells increase exponentially with hyperbolic distance,
 			// so linear on a log scale.
@@ -40,11 +48,6 @@
 			int count2 = result.Length;
 
 			double slope = ( Math.Log( count2 ) - Math.Log( count1 ) ) / 0.5;
-
-			// Why 1.3M?  We'll get 650k after we half this.
-			double desiredCount = 1.0e4;		// for testing
-			//double desiredCount = 1.3e6;
-			//double desiredCount = 0.4e6;	// Mid-range
 			double logDesiredCount = Math.Log( desiredCount );
 			hDist = 5.5 + ( logDesiredCount - Math.Log( count2 ) ) / slope;
 
@@ -56,7 +59,7 @@
 		/// Attempts to calculate approx 1.3M edges when the threshold is a minimum edge length.
 		/// This is required for honeycombs with ideal or ultra-ideal cells
 		/// </summary>
-		public static Edge[] CalcEdgesSmart2( Sphere[] simplex, Edge[] edges )
+		public static Edge[] CalcEdgesSmart2( Sphere[] simplex, Edge[] edges, int desiredCount )
 		{
 			Settings s = new Settings();
 
@@ -73,11 +76,7 @@
 			int count2 = result.Length;
 
 			double slope = ( Math.Log( count2 ) - Math.Log( count1 ) ) / ( Math.Log( 80 ) - Math.Log( 60 ) );
-
-			// Why 1.3M?  We'll get 650k after we half this.
-			double desiredCount = 5e5;
-			//double desiredCount = 5e4;	// For testing
-			double logDesiredCount = Math.Log( desiredCount );
+			double logDesiredCount = Math.Log( (double)desiredCount );
 			double temp = Math.Log( 80 ) + ( logDesiredCount - Math.Log( count2 ) ) / slope;
 
 			s.Threshold = 1 / Math.Exp( temp );
@@ -126,8 +125,19 @@
 				newEdge.Depths[m]++;
 
 				// Edge color.
-				// Make the threshold length black, or the background color.
-				double percentWhite = ( r1.Dist( r2 ) - settings.Threshold ) / 0.015;
+				// This also controls resolution of the edges, and can have a big effect on file size.
+				// Make the threshold cutoff black, or the background color.
+				double percentWhite = 1;
+				if( settings.ThreshType == EdgeThreshType.Length )
+					percentWhite = (r1.Dist( r2 ) - settings.Threshold) / 0.015;
+				else
+				{
+					double closestToOrigin = Math.Min( r1.Abs(), r2.Abs() );	// Mainly ranges from 0 to 1
+					if( closestToOrigin < 0.9 )
+						percentWhite = 1.0;
+					else
+						percentWhite = 1.0 - Math.Pow( closestToOrigin - 0.9, 1.3 ) / 0.1;
+				}
 				if( percentWhite < 0 )
 					percentWhite = 0;
 				if( percentWhite > 1 )
@@ -313,8 +323,7 @@
 				return true;
 
 			double thresh = s.Threshold;
-
-			bool useEdgeLength = s.G == Geometry.Hyperbolic;
+			bool useEdgeLength = s.ThreshType == EdgeThreshType.Length;
 			if( useEdgeLength )
 			{
 				// This will also work for ideal edges.

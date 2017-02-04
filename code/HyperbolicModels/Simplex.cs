@@ -23,6 +23,12 @@
 			return new H3.Cell.Edge( Verts[a], Verts[b] );
 		}
 
+		public void InitializeGoursat( int[] dihedrals )
+		{
+			Verts = SimplexCalcs.GoursatTetrahedron( dihedrals[0], dihedrals[1], dihedrals[2], dihedrals[3], dihedrals[4], dihedrals[5] );
+			Facets = SimplexCalcs.Mirrors( Verts );
+		}
+
 		public void InitializeGoursat()
 		{
 			//Vector3D[] test = SimplexCalcs.GoursatTetrahedron( 3.5, 3.8, 3.1, 2.2, 2.01, 2.1 );	// Example values from paper.
@@ -44,7 +50,7 @@
 			//Verts = SimplexCalcs.GoursatTetrahedron( 2, 5, 2, 2, 5, 3 );						// 5,3,5 (Alt)
 			//Verts = SimplexCalcs.GoursatTetrahedron( 2, 3, 5, 2, 3, 2 );						// 3,5,3
 
-			// Spherical/Paracompact doesn't work :(
+			// Spherical doesn't work :(
 			//Verts = SimplexCalcs.GoursatTetrahedron( 2, 5, 3, 2, 3, 2 );						// 5,3,3
 
 			Facets = SimplexCalcs.Mirrors( Verts );

@@ -771,7 +771,7 @@
 			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2, double quality = 1.0 )
 			{
 				int div = 40; // Wiki
-				div = 45;
+				div = 37;
 				//LODThin( v1, v2, out div );
 
 				// Account for quality.
