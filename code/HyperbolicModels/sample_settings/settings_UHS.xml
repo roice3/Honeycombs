@@ -1,0 +1,9 @@
+<Settings xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+   <Dihedrals>3,3,7</Dihedrals>
+   <PovRay i:nil="true"/>
+   <UhsBoundary>
+      <Bounds>1</Bounds>
+      <ImageHeight>1200</ImageHeight>
+      <ImageWidth>1200</ImageWidth>
+   </UhsBoundary>
+</Settings>
