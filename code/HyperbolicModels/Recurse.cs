@@ -13,7 +13,7 @@
 		public enum EdgeThreshType
 		{
 			Radial,
-			Length,
+			Length
 		}
 
 		public class Settings
@@ -323,18 +323,22 @@
 				return true;
 
 			double thresh = s.Threshold;
-			bool useEdgeLength = s.ThreshType == EdgeThreshType.Length;
-			if( useEdgeLength )
+
+			switch( s.ThreshType )
 			{
+			case EdgeThreshType.Length:
+
 				// This will also work for ideal edges.
 				return edge.Start.Dist( edge.End ) > thresh;
-			}
-			else
-			{
+
+			case EdgeThreshType.Radial:
+
 				return
 					edge.Start.Abs() < thresh &&
 					edge.End.Abs() < thresh;
 			}
+
+			return false;
 		}
 
 		internal static bool CellOk( H3.Cell cell, Settings s )
