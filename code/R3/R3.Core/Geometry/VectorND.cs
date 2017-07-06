@@ -17,6 +17,13 @@
 			X = components;
 		}
 
+		public VectorND( Vector3D v )
+		{
+			X = new double[4];
+			for( int i = 0; i < 4; i++ )
+				X[i] = v[i];
+		}
+
 		public Vector3D ToVec3D()
 		{
 			return new Vector3D( X[0], X[1], X[2], X[3] );
