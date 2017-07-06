@@ -35,6 +35,11 @@
 
 		public List<Triangle> Triangles { get; set; }
 
+		public void Append( Mesh m )
+		{
+			Triangles.AddRange( m.Triangles );
+		}
+
 		public void BuildIndexes( out Vector3D[] verts, out Vector3D[] normals, out List<int[]> faces )
 		{
 			Dictionary<Vector3D,int> vertMap = new Dictionary<Vector3D,int>();
@@ -118,6 +123,38 @@
 				c.RotateXY( angle );
 
 				Triangles[i] = new Mesh.Triangle( a, b, c );
+			}
+		}
+
+        /// <summary>
+        /// Transform our mesh by some arbitrary function.
+        /// </summary>
+        public void Transform( System.Func<Vector3D,Vector3D> transform )
+        {
+            for( int i = 0; i < Triangles.Count; i++ )
+            {
+                Triangles[i] = new Mesh.Triangle(
+                    transform( Triangles[i].a ),
+                    transform( Triangles[i].b ),
+                    transform( Triangles[i].c ) );
+            }
+        }
+
+		/// <summary>
+		/// Function to add one band
+		/// d1 and d2 are two pre-calc'd edges (often disks) of points.
+		/// </summary>
+		public void AddBand( Vector3D[] d1, Vector3D[] d2 )
+		{
+			if( d1.Length != d2.Length )
+				throw new System.ArgumentException( "Edges must have the same length." );
+
+			for( int i = 0; i < d1.Length; i++ )
+			{
+				int idx1 = i;
+				int idx2 = i == d1.Length - 1 ? 0 : i + 1;
+				Triangles.Add( new Mesh.Triangle( d1[idx1], d2[idx1], d1[idx2] ) );
+				Triangles.Add( new Mesh.Triangle( d1[idx2], d2[idx1], d2[idx2] ) );
 			}
 		}
 
