@@ -232,7 +232,9 @@
 			double maxAngle = seg.Angle;
 			Vector3D v1 = seg.P1 - seg.Center;
 			Vector3D v2 = p - seg.Center;
-			Debug.Assert( Tolerance.Equal( v1.Abs(), v2.Abs() ) );
+			if( !Tolerance.Equal( v1.Abs(), v2.Abs() ) )
+				return false;
+
 			double angle = seg.Clockwise ?
 				Euclidean2D.AngleToClock( v1, v2 ) :
 				Euclidean2D.AngleToCounterClock( v1, v2 );
