@@ -27,7 +27,7 @@
 		{
 			// Implemented as a curved cylinder with capped ends.
 			// Geodesic dome would be better.
-			int n1 = 24; //Div;
+			int n1 = Div;
 			int n2 = n1/2;
 			Div = n1;
 
@@ -68,6 +68,7 @@
 
 		/// <summary>
 		/// Adds a curve to a mesh.
+		/// XXX - Deprecated: sizeFunc return a position and a radius.
 		/// </summary>
 		public void AddCurve( Vector3D[] points, System.Func<Vector3D, double> sizeFunc )
 		{
@@ -78,6 +79,10 @@
 			AddCurve( disks, points, points.First(), points.Last() );
 		}
 
+		/// <summary>
+		/// Adds a curve to a mesh.
+		/// XXX - Deprecated: sizeFunc return a position and a radius.
+		/// </summary>
 		public void AddCurve( Vector3D[] points, System.Func<Vector3D, double> sizeFunc, Vector3D start, Vector3D end )
 		{
 			if( points.Length < 2 )
@@ -334,16 +339,7 @@
 		/// </summary>
 		public void AddSegment( Vector3D[] d1, Vector3D[] d2 )
 		{
-			if( d1.Length != d2.Length )
-				throw new System.ArgumentException( "Disks must have the same length." );
-
-			for( int i=0; i<d1.Length; i++ )
-			{
-				int idx1 = i;
-				int idx2 = i == d1.Length - 1 ? 0 : i + 1;
-				Mesh.Triangles.Add( new Mesh.Triangle( d1[idx1], d2[idx1], d1[idx2] ) );
-				Mesh.Triangles.Add( new Mesh.Triangle( d1[idx2], d2[idx1], d2[idx2] ) );
-			}
+			Mesh.AddBand( d1, d2 );
 		}
 
 		/// <summary>
@@ -381,7 +377,7 @@
 		/// <summary>
 		/// Create a circle of points, centered at p.
 		/// </summary>
-		private static Vector3D[] Disk( Vector3D p, Vector3D axis, Vector3D perpendicular, int divisions, bool reverse = false )
+		public static Vector3D[] Disk( Vector3D p, Vector3D axis, Vector3D perpendicular, int divisions, bool reverse = false )
 		{
 			List<Vector3D> points = new List<Vector3D>();
 			double angleInc = 2 * Math.PI / divisions;
