@@ -4,14 +4,17 @@
 	using R3.Math;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 	using Math = System.Math;
 
 	public class TextureHelper
 	{
 		public TextureHelper()
 		{
-			int levels = 3;
+			SetLevels( 3 );
+		}
+
+		public static void SetLevels( int levels )
+		{
 			m_maxSubdivisions = (int)Math.Pow( 2, levels );
 		}
 
@@ -50,31 +53,6 @@
 
 			points.Add( seg1.P2 );
 			return points.ToArray();
-		}
-
-		private static Vector3D[] CalcPointsUsingRecursion( int level, Vector3D p1, Vector3D p2, Vector3D p3, Geometry g )
-		{
-			List<Vector3D> result = new List<Vector3D>();
-			result.Add( p1 );
-			result.Add( p2 );
-			result.Add( p3 );
-
-			if( level >= 3 )
-				return result.ToArray();
-
-			level++;
-
-			int divisions = 2;
-			Vector3D[] list1 = SubdivideSegmentInGeometry( p1, p2, divisions, g );
-			Vector3D[] list2 = SubdivideSegmentInGeometry( p2, p3, divisions, g );
-			Vector3D[] list3 = SubdivideSegmentInGeometry( p3, p1, divisions, g );
-
-			result.AddRange( CalcPointsUsingRecursion( level, list1[0], list1[1], list3[1], g ) );
-			result.AddRange( CalcPointsUsingRecursion( level, list1[1], list1[2], list2[1], g ) );
-			result.AddRange( CalcPointsUsingRecursion( level, list1[1], list2[1], list3[1], g ) );
-			result.AddRange( CalcPointsUsingRecursion( level, list2[1], list2[2], list3[1], g ) );
-
-			return result.Distinct().ToArray();
 		}
 
 		private static Vector3D[] CalcViaProjections( Vector3D p1, Vector3D p2, Vector3D p3, int divisions, Geometry g )
@@ -146,9 +124,10 @@
 
 		/////////////////////////////////////////////////////////////////
 
+		
+
 		/// <summary>
 		/// Helper to generate a set of texture coordinates.
-		/// ZZZ - make this a non-euclidean calc?
 		/// </summary>
 		public static Vector3D[] TextureCoords( Polygon poly, Geometry g, bool doGeodesicDome = false )
 		{
@@ -163,24 +142,7 @@
 			bool doGeodesicSaddles = doGeodesicDome;
 			if( 3 == poly.Segments.Count && doGeodesicSaddles )
 			{
-				Vector3D[] t1 = CalcPointsUsingTwoSegments( poly.Segments[0], poly.Segments[1], divisions, g );
-				Vector3D[] t2 = CalcPointsUsingTwoSegments( poly.Segments[1], poly.Segments[2], divisions, g );
-				Vector3D[] t3 = CalcPointsUsingTwoSegments( poly.Segments[2], poly.Segments[0], divisions, g );
-
-				Vector3D[] r = CalcPointsUsingRecursion( 0, poly.Segments[0].P1, poly.Segments[1].P1, poly.Segments[2].P1, g );
-				Vector3D[] proj = CalcViaProjections( poly.Segments[0].P1, poly.Segments[1].P1, poly.Segments[2].P1, divisions, g );
-
-				foreach( Vector3D v1 in t1 )
-				{
-					Vector3D v2 = FindClosestPoint( v1, t2 );
-					Vector3D v3 = FindClosestPoint( v1, t3 );
-					Vector3D add = ( v1 + v2 + v3 ) / 3;
-					//Vector3D add = FindClosestPoint( v1, r );
-					//Vector3D add = v1;
-					points.Add( add );
-				}
-
-				return proj;
+				return CalcViaProjections( poly.Segments[0].P1, poly.Segments[1].P1, poly.Segments[2].P1, divisions, g );
 			}
 			else
 			{
