@@ -1,6 +1,5 @@
 ﻿namespace R3.Math
 {
-	// XXX - rename this GraphEdge?
 	public struct GraphEdge
 	{
 		public GraphEdge( int v1, int v2 )

@@ -14,16 +14,23 @@
 		{
 			Position = pos;
 			Velocity = vel;
-			Lock = false;
+			Lock = new VectorND( pos.Dimension );	// No locking.
 		}
 
 		public VectorND Position { get; set; }
 		public VectorND Velocity { get; set; }
 
 		/// <summary>
-		/// If true, this node will not move during relaxation.
+		/// Used to control how the node will move during relaxation.
+		/// To lock a coordinate, set that coordinate to a positive number.
 		/// </summary>
-		public bool Lock { get; set; }
+		public VectorND Lock { get; set; }
+
+		public void FullLock()
+		{
+			for( int i = 0; i < Lock.Dimension; i++ )
+				Lock.X[i] = 1;
+		}
 	}
 
 	public class Graph
@@ -38,6 +45,16 @@
 		public List<GraphNode> Nodes { get; set; }
 		public List<GraphEdge> Edges { get; set; }
 		
+		public static Graph FromMesh( Mesh mesh )
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public Mesh ToMesh()
+		{
+			throw new System.NotImplementedException();
+		}
+
 		/// <summary>
 		/// Setup a complete graph with n nodes.
 		/// Positions are randomly distributed.
@@ -48,7 +65,7 @@
 			Edges.Clear();
 
 			GraphNode southPole = new GraphNode( new VectorND( new double[] { 0, 0, 0, -1 } ), new VectorND( 4 ) );
-			southPole.Lock = true;
+			southPole.FullLock();
 			Nodes.Add( southPole );
 
 			System.Random rand = new System.Random( 0 );
@@ -75,19 +92,25 @@
 			List<int> vals;
 
 			if( m_connections.TryGetValue( e.V1, out vals ) )
-				vals.Add( e.V2 );
+			{
+				if( !vals.Contains( e.V2 ) )
+					vals.Add( e.V2 );
+			}
 			else
 				m_connections[e.V1] = new List<int>( new int[] { e.V2 } );
 
-			if( m_connections.TryGetValue( e.V2, out vals ) )
-				vals.Add( e.V1 );
+			/*if( m_connections.TryGetValue( e.V2, out vals ) )
+			{
+				if( !vals.Contains( e.V1 ) )
+					vals.Add( e.V1 );
+			}
 			else
-				m_connections[e.V2] = new List<int>( new int[] { e.V1 } );
+				m_connections[e.V2] = new List<int>( new int[] { e.V1 } );*/
 			
 			Edges.Add( e );
 		}
 
-		private Dictionary<int,List<int>> m_connections;
+		public Dictionary<int,List<int>> m_connections;
 
 		/// <summary>
 		/// ZZZ - slow impl.  Should calc this once and cache.
@@ -144,8 +167,12 @@
 		public void Relax( int steps )
 		{
 			// ZZZ - add convergence criterion, rather than hard coded number of steps.
+			System.Console.WriteLine( "Relaxing" );
 			for( int i=0; i<steps; i++ )
 			{
+				if( i%20 == 0 )
+					System.Console.WriteLine( i );
+
 				VectorND[] accelerations = CalcAccelerations();
 				for( int j = 0; j < Graph.Nodes.Count; j++ )
 					UpdatePositionAndVelocity( Graph.Nodes[j], accelerations[j] );
@@ -164,6 +191,7 @@
 			bool nodeRepulse = !Tolerance.Zero( NodeRepulsion );
 			bool edgeRepulse = !Tolerance.Zero( EdgeRepulsion );
 
+			/*
 			for( int i = 0; i < count; i++ )
 			for( int j = i + 1; j < count; j++ )
 			{
@@ -178,6 +206,17 @@
 				{
 					VectorND edgeForce = CalculateForce( Graph.Nodes[i], Graph.Nodes[j], EdgeAttraction, square: false );
 					accelerations[i] += edgeForce;	// Attractive.
+					accelerations[j] -= edgeForce;
+				}
+			}*/
+
+			foreach( var kvp in Graph.m_connections )
+			{
+				int i = kvp.Key;
+				foreach( int j in kvp.Value )
+				{
+					VectorND edgeForce = CalculateForce( Graph.Nodes[i], Graph.Nodes[j], EdgeAttraction, square: false );
+					accelerations[i] += edgeForce;  // Attractive.
 					accelerations[j] -= edgeForce;
 				}
 			}
@@ -228,13 +267,13 @@
 				mag = strength / Math.Pow( distance, 2 );
 			else
 			{
-				//mag = strength * distance;	// http://en.wikipedia.org/wiki/Hooke's_law
+				mag = strength * distance;	// http://en.wikipedia.org/wiki/Hooke's_law
 				
 				// Try to make all edges a specific length.
 				
-				double length = 0.1;
+				/*double length = 0.1;
 				double diff = distance - length;
-				mag = strength * diff;
+				mag = strength * diff;*/
 
 				//if( diff < 0 )
 					//mag = -strength / Math.Pow( diff, 2 );
@@ -250,8 +289,8 @@
 
 		private void UpdatePositionAndVelocity( GraphNode node, VectorND acceleration )
 		{
-			if( node.Lock )
-				return;
+			//if( allLocked )
+			//	return;
 
 			VectorND position = node.Position;
 			VectorND velocity = node.Velocity;
@@ -261,7 +300,8 @@
 			// Leapfrog method.
 			double timeStep = 1;
 			velocity += acceleration * timeStep;
-			velocity *= .5;	// Damping.
+			velocity *= .5; // Damping.
+			ZeroComponents( node.Lock, ref velocity );
 			position += velocity * timeStep;
 			//position.Normalize(); position *= 5;
 
@@ -276,6 +316,13 @@
 			node.Position = position;
 			node.Velocity = velocity;
 			//node.Acceleration = acceleration;  Any reason to store this?
+		}
+
+		private void ZeroComponents( VectorND components, ref VectorND input )
+		{
+			for( int i = 0; i < 4; i++ )
+				if( components.X[i] > 0 )
+					input.X[i] = 0;
 		}
 	}
 }
