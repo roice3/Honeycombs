@@ -2,6 +2,7 @@
 {
 	using R3.Geometry;
 	using System.Drawing;
+	using System.Linq;
 
 	public class DrawUtils
 	{
@@ -37,6 +38,16 @@
 			if( rect == null )
 				return;
 			g.FillEllipse( b, rect.Value );
+		}
+
+		static public void DrawPoly( Vector3D[] verts, Graphics g, ImageSpace i, Brush b )
+		{
+			Point[] points = verts.Select( v => 
+			{
+				Vector3D t = i.Pixel( v );
+				return new Point( (int)t.X, (int)t.Y );
+			} ).ToArray();
+			g.FillPolygon( b, points );
 		}
 
 		static public void DrawLine( Vector3D p1, Vector3D p2, Graphics g, ImageSpace i, Pen p )

@@ -3,11 +3,13 @@
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Drawing;
+	using System.Drawing.Imaging;
 	using System.IO;
 	using System.Linq;
 	using System.Text.RegularExpressions;
 	using R3.Algorithm;
 	using R3.Core;
+	using R3.Drawing;
 	using R3.Geometry;
 	using R3.Math;
 
@@ -15,6 +17,75 @@
 	
 	internal static class Sandbox
 	{
+		public static void mc3d()
+		{
+			double sScale = 0.8;
+			double fScale = 0.8;
+
+			double sw = 1.0 / 3;
+			double w = sw * sScale;
+			Vector3D[] standardSticker = new Vector3D[] {
+				new Vector3D( w, -w ),
+				new Vector3D( w, w ),
+				new Vector3D( -w, w ),
+				new Vector3D( -w, -w ) };
+
+			List<Polygon> sStickers = new List<Polygon>();
+			for( int i=-1; i<=1; i++ )
+			for( int j=-1; j<=1; j++ )
+			{
+				double ox = sw * 2 * i;
+				double oy = sw * 2 * j;
+				Vector3D[] coords = standardSticker.Select( v =>
+				{
+					v += new Vector3D( ox, oy );
+					v *= fScale;
+					return v;
+				} ).ToArray();
+				sStickers.Add( Polygon.FromPoints( coords ) );
+			}
+
+			int size = 2500;
+			ImageSpace iSpace = new ImageSpace( size, size );
+			double b = 1.8;
+			iSpace.XMin = -b; iSpace.XMax = b;
+			iSpace.YMin = -b; iSpace.YMax = b;
+			
+			Bitmap image = new Bitmap( size, size );
+			using( Graphics g = Graphics.FromImage( image ) )
+			{
+				g.Clear( Color.White );
+				DrawFace( g, sStickers, iSpace, new Vector3D( 0, 1 ), new Vector3D( 1, 0 ), ColorTranslator.FromHtml( "#ff0000" ) );
+				DrawFace( g, sStickers, iSpace, new Vector3D( 0, 1 ), new Vector3D( -1, 0 ), ColorTranslator.FromHtml( "#0000ff" ) );
+				DrawFace( g, sStickers, iSpace, new Vector3D( 1, 0 ), new Vector3D( 0, 1 ), ColorTranslator.FromHtml( "#008000" ) );
+				DrawFace( g, sStickers, iSpace, new Vector3D( 1, 0 ), new Vector3D( 0, -1 ), Color.Gold );
+				DrawFace( g, sStickers, iSpace, null, null, ColorTranslator.FromHtml( "#ff8000" ) );
+			}
+
+			image.Save( "mc3d.png", ImageFormat.Png );
+		}
+
+		private static void DrawFace( Graphics g, List<Polygon> sStickers, ImageSpace iSpace, Vector3D? axis, Vector3D? offset, Color c )
+		{
+			foreach( Polygon poly in sStickers )
+			{
+				Vector3D[] verts = poly.Vertices.Select( v =>
+				{
+					if( axis.HasValue )
+						v.RotateAboutAxis( axis.Value, Math.PI / 2 );
+					if( offset.HasValue )
+						v += offset.Value;
+					else
+						v += new Vector3D( 0, 0, -1 );
+					v = v.CentralProject( 2.0 );
+					return v;
+				} ).ToArray();
+
+				using( Brush brush = new SolidBrush( c ) )
+					DrawUtils.DrawPoly( verts, g, iSpace, brush );
+			}
+		}
+
 		public static void ElevenCell()
 		{
 			Graph g = new Graph();
