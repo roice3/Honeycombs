@@ -1,0 +1,24 @@
+﻿<Properties StartupItem="HyperbolicModels.csproj">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|Mixed Platforms" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="../R3/R3.Core/Geometry/Sterographic.cs">
+    <Files>
+      <File FileName="HoneycombPaper.cs" Line="53" Column="44" />
+      <File FileName="../R3/R3.Core/Honeycombs/Honeycomb.cs" Line="10" Column="1" />
+      <File FileName="../R3/R3.Core/Honeycombs/H3.cs" Line="425" Column="21" />
+      <File FileName="../R3/R3.Core/Honeycombs/H3Utils.cs" Line="205" Column="30" />
+      <File FileName="../R3/R3.Core/Geometry/Mesh.cs" Line="36" Column="48" />
+      <File FileName="../R3/R3.Core/Formats/PovRay.cs" Line="19" Column="4" />
+      <File FileName="../R3/R3.Core/Geometry/Polygon.cs" Line="1118" Column="3" />
+      <File FileName="../R3/R3.Core/Geometry/Tiling.cs" Line="110" Column="1" />
+      <File FileName="../R3/R3.Core/Geometry/Spherical2D.cs" Line="1" Column="1" />
+      <File FileName="../R3/R3.Core/Math/Mobius.cs" Line="199" Column="4" />
+      <File FileName="Simplex.cs" Line="312" Column="4" />
+      <File FileName="../R3/R3.Core/Geometry/Tile.cs" Line="46" Column="41" />
+      <File FileName="../R3/R3.Core/Geometry/Sterographic.cs" Line="55" Column="4" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>
