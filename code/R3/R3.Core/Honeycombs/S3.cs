@@ -125,7 +125,7 @@
 		{
 			Shapeways mesh = new Shapeways();
 			
-			int divisions = 100;
+			int divisions = 25;
 			foreach( H3.Cell.Edge edge in edges )
 			{
 				Segment seg = Segment.Line( 
@@ -139,9 +139,9 @@
 			for( int i = 0; i < mesh.Mesh.Triangles.Count; i++ )
 			{
 				mesh.Mesh.Triangles[i] = new Mesh.Triangle(
-					SphericalModels.GnomonicToStereo( mesh.Mesh.Triangles[i].a ),
-					SphericalModels.GnomonicToStereo( mesh.Mesh.Triangles[i].b ),
-					SphericalModels.GnomonicToStereo( mesh.Mesh.Triangles[i].c ) );
+					SphericalModels.StereoToEqualVolume( mesh.Mesh.Triangles[i].a ),
+					SphericalModels.StereoToEqualVolume( mesh.Mesh.Triangles[i].b ),
+					SphericalModels.StereoToEqualVolume( mesh.Mesh.Triangles[i].c ) );
 			}
 
 			STL.SaveMeshToSTL( mesh.Mesh, @"output.stl" );
@@ -149,7 +149,7 @@
 
 		private static void ProjectAndAddS3Points( Shapeways mesh, Vector3D[] pointsS3 )
 		{
-			double r = 0.03;
+			double r = 0.02;
 
 			List<Vector3D> projected = new List<Vector3D>();
 			List<double> radii = new List<double>();
