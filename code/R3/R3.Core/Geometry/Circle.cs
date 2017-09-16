@@ -293,62 +293,6 @@
 			
 			this.From3Points( p1, p2, p3 );
 		}
-
-		// Get the intersection points with a segment.
-		// Returns null if the segment is an arc coincident with the circle (infinite number of intersection points).
-		public Vector3D[] GetIntersectionPoints( Segment segment )
-		{
-			Vector3D p1, p2;
-			int result;
-
-			// Are we a line?
-			if( this.IsLine )
-			{
-				if( SegmentType.Arc == segment.Type )
-				{
-					Circle tempCircle = segment.Circle;
-					result = Euclidean2D.IntersectionLineCircle( this.P1, this.P2, tempCircle, out p1, out p2 );
-				}
-				else
-				{
-					result = Euclidean2D.IntersectionLineLine( this.P1, this.P2, segment.P1, segment.P2, out p1 );
-					p2 = Vector3D.DneVector();
-				}
-			}
-			else
-			{
-				if( SegmentType.Arc == segment.Type )
-				{
-					Circle tempCircle = segment.Circle;
-					result = Euclidean2D.IntersectionCircleCircle( tempCircle, this, out p1, out p2 );
-				}
-				else
-					result = Euclidean2D.IntersectionLineCircle( segment.P1, segment.P2, this, out p1, out p2 );
-			}
-
-			if( -1 == result )
-				return null;
-
-			List<Vector3D> ret = new List<Vector3D>();
-			if( result >= 1 && segment.IsPointOn( p1 ) )
-				ret.Add( p1 );
-			if( result >= 2 && segment.IsPointOn( p2 ) )
-				ret.Add( p2 );
-
-			return ret.ToArray();
-		}
-
-		public bool Intersects( Polygon poly )
-		{
-			foreach( Segment seg in poly.Segments )
-			{
-				Vector3D[] iPoints = GetIntersectionPoints( seg );
-				if( iPoints != null && iPoints.Length > 0 )
-					return true;
-			}
-
-			return false;
-		}
 	}
 
 	/// <summary>

@@ -236,16 +236,6 @@
 			}
 		}
 
-		public bool Valid()
-		{
-			// ZZZ - This is what I did in MagicTile, but what about infinities?.
-			// ZZZ - Make a property
-			return ( !double.IsNaN( X ) &&
-					 !double.IsNaN( Y ) &&
-					 !double.IsNaN( Z ) &&
-					 !double.IsNaN( W ) );
-		}
-
 		public bool DNE
 		{
 			get
@@ -437,47 +427,6 @@
 				throw new System.Exception( "Failed to find perpendicular." );
 
 			return perp;
-		}
-
-		/// <summary>
-		/// 4D -> 3D projection.
-		/// The "safe" part is that we won't make any points invalid (only large).
-		/// </summary>
-		public Vector3D ProjectTo3DSafe( double cameraDist )
-		{
-			const double minDenom = 0.0001;	// The safe part.
-
-			double denominator = cameraDist - W;
-			if( Tolerance.Zero( denominator ) )
-				denominator = minDenom;
-			if( denominator < 0 )
-				denominator = minDenom;
-
-			Vector3D result = new Vector3D(
-				X * cameraDist / denominator,
-				Y * cameraDist / denominator,
-				Z * cameraDist / denominator, 0 );
-			return result;
-		}
-
-		/// <summary>
-		/// 3D -> 2D projection.
-		/// </summary>
-		public Vector3D CentralProject( double cameraDist )
-		{
-			double denominator = cameraDist - Z;
-			if( Tolerance.Zero( denominator ) )
-				denominator = 0;
-
-			// Make points with a negative denominator invalid.
-			if( denominator < 0 )
-				denominator = 0;
-
-			Vector3D result = new Vector3D(
-				X * cameraDist / denominator,
-				Y * cameraDist / denominator,
-				0 );
-			return result;
 		}
 
 		public Complex ToComplex()

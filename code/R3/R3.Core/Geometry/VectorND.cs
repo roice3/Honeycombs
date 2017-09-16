@@ -17,13 +17,6 @@
 			X = components;
 		}
 
-		public VectorND( Vector3D v )
-		{
-			X = new double[4];
-			for( int i = 0; i < 4; i++ )
-				X[i] = v[i];
-		}
-
 		public Vector3D ToVec3D()
 		{
 			return new Vector3D( X[0], X[1], X[2], X[3] );
@@ -105,90 +98,6 @@
 			for( int i = 0; i < this.Dimension; i++ )
 				dot += this.X[i] * v.X[i];
 			return dot;
-		}
-
-		public bool Normalize()
-		{
-			double magnitude = Abs;
-			if( Tolerance.Zero( magnitude ) )
-				return false;
-			Divide( magnitude );
-			return true;
-		}
-
-		public double MagSquared
-		{
-			get
-			{
-				double result = 0;
-				foreach( double x in this.X )
-					result += x * x;
-				return result;
-			}
-		}
-
-		public double Abs
-		{
-			get
-			{
-				return Math.Sqrt( MagSquared );
-			}
-		}
-
-		public double Dist( VectorND v )
-		{
-			return ( this - v ).Abs;
-		}
-
-		public bool IsOrigin
-		{
-			get
-			{
-				foreach( double x in this.X )
-					if( !Tolerance.Zero( x ) )
-						return false;
-				return true;
-			}
-		}
-
-		/// <summary>
-		/// 4D -> 3D projection.
-		/// </summary>
-		public VectorND ProjectTo3D( double cameraDist )
-		{
-			double denominator = cameraDist - X[3];
-			if( Tolerance.Zero( denominator ) )
-				denominator = 0;
-
-			// Make points with a negative denominator invalid.
-			if( denominator < 0 )
-				denominator = 0;
-
-			VectorND result = new VectorND( new double[] {
-				X[0] * cameraDist / denominator,
-				X[1] * cameraDist / denominator,
-				X[2] * cameraDist / denominator, 0  });
-			return result;
-		}
-
-		/// <summary>
-		/// 3D -> 2D projection.
-		/// </summary>
-		public VectorND ProjectTo2D( double cameraDist )
-		{
-			double denominator = cameraDist - X[2];
-			if( Tolerance.Zero( denominator ) )
-				denominator = 0;
-
-			// Make points with a negative denominator invalid.
-			if( denominator < 0 )
-				denominator = 0;
-
-			VectorND result = new VectorND( new double[] {
-				X[0] * cameraDist / denominator,
-				X[1] * cameraDist / denominator,
-				0, 0 } );
-			return result;
 		}
 	}
 }

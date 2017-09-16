@@ -206,13 +206,6 @@
 			throw new System.ArgumentException();
 		}
 
-		public static H3.Cell.Edge HoneycombEdgeBall( int p, int q, int r )
-		{
-			Sphere[] facets = Mirrors( p, q, r, moveToBall: true );
-			Vector3D[] verts = VertsBall( p, q, r );
-			return HoneycombEdgeBall( facets, verts[2] );
-		}
-
 		public static H3.Cell.Edge HoneycombEdgeBall( Sphere[] facets, Vector3D vertex )
 		{
 			Vector3D v1 = vertex;
@@ -284,12 +277,6 @@
 			return surfaces;
 		}
 
-		public static Vector3D VertexSpherical( int p, int q, int r )
-		{
-			double circumRadius = Spherical2D.s2eNorm( Honeycomb.CircumRadius( p, q, r ) );
-			return new Vector3D( 0, 0, -circumRadius );
-		}
-
 		public static Sphere[] MirrorsEuclidean()
 		{
 			int p = 4;
@@ -324,44 +311,6 @@
 			return surfaces;
 		}
 
-		public static Vector3D[] VertsEuclidean()
-		{
-			int p = 4;
-			int q = 3;
-			//int r = 4;
-
-			// Get a {q,p} tiling on the z=0 plane.
-			Segment[] baseTileSegments = BaseTileSegments( q, p );
-
-			// These will be unit length.
-			Vector3D pFaceDirection = H3Models.UHSToBall( baseTileSegments.First().P1 );
-			Vector3D pMidEdgeDirection = H3Models.UHSToBall( baseTileSegments.First().Midpoint );
-			Vector3D pVertexDirection  = new Vector3D( 0, 0, -1 );
-
-			// Order is same as facets (these are the points opposite facets).
-			List<Vector3D> verts = new List<Vector3D>();
-			verts.Add( new Vector3D() );
-			verts.Add( pFaceDirection * m_eScale );
-			verts.Add( pVertexDirection * Math.Sqrt( 3 ) * m_eScale );
-			verts.Add( pMidEdgeDirection * Math.Sqrt( 2 ) * m_eScale );
-
-			// Apply rotations.
-			double rotation = Math.PI / 2;
-			Vector3D zAxis = new Vector3D( 0, 0, 1 );
-			for( int i=0; i<4; i++ )
-				verts[i].RotateAboutAxis( zAxis, rotation );
-
-			return verts.ToArray();
-		}
-
-		public static void CalcEScale()
-		{
-			// Euclidean scale is arbitrary, but put it in the middle of the projections of 433 and 435.
-			double r3 = Spherical2D.s2eNorm( Honeycomb.CircumRadius( 4, 3, 3 ) );
-			double r5 = DonHatch.h2eNorm( Honeycomb.CircumRadius( 4, 3, 5 ) );
-			m_eScale = ( r3 + r5 ) / ( 2 * Math.Sqrt(3) );
-		}
-
 		// Euclidean scale is arbitrary.
 		static double m_eScale = 0.5;
 
@@ -377,74 +326,6 @@
 			Vector3D vertexPoint = VertexPointBall( p, q, r );
 
 			return new Vector3D[] { cellCenter, faceCenter, edgeCenter, vertexPoint };
-		}
-
-		/// <summary>
-		/// Returns the 6 simplex edges in the Ball model.
-		/// </summary>
-		public static H3.Cell.Edge[] SimplexEdgesBall( int p, int q, int r )
-		{
-			H3.Cell.Edge[] edges = SimplexEdgesUHS( p, q, r );
-			foreach( H3.Cell.Edge e in edges )
-			{
-				e.Start = H3Models.UHSToBall( e.Start );
-				e.End = H3Models.UHSToBall( e.End );
-			}
-			return edges;
-		}
-
-		/// <summary>
-		/// Returns the 6 simplex edges in the UHS model.
-		/// </summary>
-		public static H3.Cell.Edge[] SimplexEdgesUHS( int p, int q, int r )
-		{
-			// Only implemented for honeycombs with both hyperideal edges/vertices right now.
-			if( !( Geometry2D.GetGeometry( p, q ) == Geometry.Hyperbolic &&
-					Geometry2D.GetGeometry( q, r ) == Geometry.Hyperbolic ) )
-				throw new System.NotImplementedException();
-
-			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, moveToBall: false );
-
-			Circle[] circles = simplex.Select( s => H3Models.UHS.IdealCircle( s ) ).ToArray();
-
-			Vector3D[] defPoints = new Vector3D[6];
-			Vector3D dummy;
-			Euclidean2D.IntersectionLineCircle( circles[1].P1, circles[1].P2, circles[0], out defPoints[0], out dummy );
-			Euclidean2D.IntersectionLineCircle( circles[2].P1, circles[2].P2, circles[0], out defPoints[1], out dummy );
-			Euclidean2D.IntersectionLineCircle( circles[1].P1, circles[1].P2, circles[3], out defPoints[2], out dummy );
-			Euclidean2D.IntersectionLineCircle( circles[2].P1, circles[2].P2, circles[3], out defPoints[3], out dummy );
-
-			Circle3D c = simplex[0].Intersection( simplex[3] );
-
-			Vector3D normal = c.Normal;
-			normal.RotateXY( Math.PI / 2 );
-			Vector3D intersection;
-			double height, off;
-
-			Euclidean2D.IntersectionLineLine( c.Center, c.Center + normal, circles[1].P1, circles[1].P2, out intersection );
-			off = ( intersection - c.Center ).Abs();
-			height = Math.Sqrt( c.Radius * c.Radius - off * off );
-			intersection.Z = height;
-			defPoints[4] = intersection;
-
-			Euclidean2D.IntersectionLineLine( c.Center, c.Center + normal, circles[2].P1, circles[2].P2, out intersection );
-			off = ( intersection - c.Center ).Abs();
-			height = Math.Sqrt( c.Radius * c.Radius - off * off );
-			intersection.Z = height;
-			defPoints[5] = intersection;
-
-			bool order = false;
-			H3.Cell.Edge[] edges = new H3.Cell.Edge[]
-			{
-				new H3.Cell.Edge( new Vector3D(), new Vector3D( 0, 0, 10 ) ),
-				new H3.Cell.Edge( defPoints[4], defPoints[5], order ),
-				new H3.Cell.Edge( defPoints[0], defPoints[4], order ),
-				new H3.Cell.Edge( defPoints[1], defPoints[5], order ),
-				new H3.Cell.Edge( defPoints[2], defPoints[4], order ),
-				new H3.Cell.Edge( defPoints[3], defPoints[5], order ),
-			};
-
-			return edges;
 		}
 
 		/// <summary>

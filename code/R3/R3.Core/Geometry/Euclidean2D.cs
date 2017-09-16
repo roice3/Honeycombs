@@ -157,60 +157,6 @@
 			p2 += c1.Center;
 			return 2;
 		}
-
-		public static int IntersectionLineCircle( Vector3D lineP1, Vector3D lineP2, Circle circle,
-			out Vector3D p1, out Vector3D p2 )
-		{
-			p1 = new Vector3D();
-			p2 = new Vector3D();
-
-			// Distance from the circle center to the closest point on the line.
-			double d = DistancePointLine( circle.Center, lineP1, lineP2 );
-
-			// No intersection points.
-			double r = circle.Radius;
-			if( d > r )
-				return 0;
-
-			// One intersection point.
-			p1 = ProjectOntoLine( circle.Center, lineP1, lineP2 );
-			if( Tolerance.Equal( d, r ) )
-				return 1;
-
-			// Two intersection points.
-			// Special case when the line goes through the circle center,
-			// because we can see numerical issues otherwise.
-			//
-			// I had further issues where my default tolerance was too strict for this check.
-			// The line was close to going through the center and the second block was used,
-			// so I had to loosen the tolerance used by my comparison macros.
-			if( Tolerance.Zero( d ) )
-			{
-				Vector3D line = lineP2 - lineP1;
-				line.Normalize();
-				line *= r;
-				p1 = circle.Center + line;
-				p2 = circle.Center - line;
-			}
-			else
-			{
-				// To origin.
-				p1 -= circle.Center;
-
-				p1.Normalize();
-				p1 *= r;
-				p2 = p1;
-				double angle = Math.Acos( d / r );
-				p1.RotateXY( angle );
-				p2.RotateXY( -angle );
-
-				// Back out.
-				p1 += circle.Center;
-				p2 += circle.Center;
-			}
-			return 2;
-		}
-
 		/// <summary>
 		/// Reflects a point in a line defined by two points.
 		/// </summary>

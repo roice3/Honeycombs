@@ -73,22 +73,6 @@
 			D *= k;
 		}
 
-		public Complex Trace
-		{
-			get
-			{
-				return ( A + D );
-			}
-		}
-
-		public Complex TraceSquared
-		{
-			get
-			{
-				return Trace * Trace;
-			}
-		}
-
 		/// <summary>
 		/// This will calculate the Mobius transform that represents an isometry in the given geometry.
 		/// The isometry will rotate CCW by angle A about the origin, then translate the origin to P (and -P to the origin).
@@ -144,39 +128,6 @@
 			D = Complex.One;
 		}
 
-		/// <summary>
-		/// The pure translation (i.e. moves the origin straight in some direction) that takes p1 to p2.
-		/// I borrowed this from Don's hyperbolic applet.
-		/// </summary>
-		public void PureTranslation( Geometry g, Complex p1, Complex p2 )
-		{
-			Complex A = p2 - p1;
-			Complex B = p2 * p1;
-			double denom = 1 - (B.Real*B.Real + B.Imaginary*B.Imaginary);
-			Complex P = new Complex(
-					( A.Real * ( 1 + B.Real ) + A.Imaginary * B.Imaginary ) / denom,
-					( A.Imaginary * ( 1 - B.Real ) + A.Real * B.Imaginary ) / denom );
-			Isometry( g, 0, P );
-			Normalize();
-		}
-
-		/// <summary>
-		/// Move from a point p1 -> p2 along a geodesic.
-		/// Also somewhat from Don.
-		/// </summary>
-		public void Geodesic( Geometry g, Complex p1, Complex p2 )
-		{
-			Mobius t = new Mobius();
-			t.Isometry( g, 0, p1 * -1 );
-			Complex p2t = t.Apply( p2 );
-
-			Mobius m1 = new Mobius(), m2 = new Mobius();
-			m1.Isometry( g, 0, p1 * -1 );
-			m2.Isometry( g, 0, p2t );
-			Mobius m3 = m1.Inverse();
-			this = m3 * m2 * m1;
-		}
-
 		public void Hyperbolic( Geometry g, Complex fixedPlus, double scale )
 		{
 			// To the origin.
@@ -196,52 +147,6 @@
 
 			// Compose them (multiply in reverse order).
 			this = m3 * m2 * m1;
-		}
-
-		/// <summary>
-		/// Allow a hyperbolic transformation using an absolute offset.
-		/// offset is specified in the respective geometry.
-		/// </summary>
-		public void Hyperbolic2( Geometry g, Complex fixedPlus, Complex point, double offset )
-		{
-			// To the origin.
-			Mobius m = new Mobius();
-			m.Isometry( g, 0, fixedPlus * -1 );
-			double eRadius = m.Apply( point ).Magnitude;
-
-			double scale = 1;
-			switch( g )
-			{
-				case Geometry.Spherical:
-					double sRadius = Spherical2D.e2sNorm( eRadius );
-					sRadius += offset;
-					scale = Spherical2D.s2eNorm( sRadius ) / eRadius;
-					break;
-				case Geometry.Euclidean:
-					scale = (eRadius + offset) / eRadius;
-					break;
-				case Geometry.Hyperbolic:
-					double hRadius = DonHatch.e2hNorm( eRadius );
-					hRadius += offset;
-					scale = DonHatch.h2eNorm( hRadius ) / eRadius;
-					break;
-			}
-
-			Hyperbolic( g, fixedPlus, scale );
-		}
-
-		public void Elliptic( Geometry g, Complex fixedPlus, double angle )
-		{
-			// To the origin.
-			Mobius origin = new Mobius();
-			origin.Isometry( g, 0, fixedPlus * -1 );
-
-			// Rotate.
-			Mobius rotate = new Mobius();
-			rotate.Isometry( g, angle, new Complex() );
-
-			// Conjugate.
-			this = origin.Inverse() * rotate * origin;
 		}
 
 		/// <summary>
@@ -397,19 +302,6 @@
 		public static Mobius Scale( double scale )
 		{
 			return new Mobius( scale, Complex.Zero, Complex.Zero, Complex.One );
-		}
-
-		/// <summary>
-		/// This is only here for a numerical accuracy hack.
-		/// Please don't make a habit of using!
-		/// </summary>
-		public void Round( int digits )
-		{
-			int d = digits;
-			A = new Complex( Math.Round( A.Real, d ), Math.Round( A.Imaginary, d ) );
-			B = new Complex( Math.Round( B.Real, d ), Math.Round( B.Imaginary, d ) );
-			C = new Complex( Math.Round( C.Real, d ), Math.Round( C.Imaginary, d ) );
-			D = new Complex( Math.Round( D.Real, d ), Math.Round( D.Imaginary, d ) );
 		}
 	}
 }

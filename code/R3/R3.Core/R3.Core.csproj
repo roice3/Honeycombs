@@ -47,15 +47,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Algorithm\GraphRelaxation.cs" />
-    <Compile Include="Control\RotationHandler4D.cs" />
-    <Compile Include="Control\Mouse.cs" />
     <Compile Include="Drawing\ColorUtil.cs" />
-    <Compile Include="Drawing\TextureHelper.cs" />
     <Compile Include="Formats\PovRay.cs" />
-    <Compile Include="Formats\STL.cs" />
-    <Compile Include="Formats\VEF.cs" />
-    <Compile Include="Formats\VRML.cs" />
     <Compile Include="Geometry\Circle.cs" />
     <Compile Include="Drawing\Coordinates.cs" />
     <Compile Include="Geometry\Euclidean3D.cs" />
@@ -63,23 +56,17 @@
     <Compile Include="Geometry\Hyperbolic2D.cs" />
     <Compile Include="Geometry\HyperbolicModels.cs" />
     <Compile Include="Geometry\Mesh.cs" />
-    <Compile Include="Geometry\NearTree.cs" />
     <Compile Include="Geometry\Polytope.cs" />
     <Compile Include="Geometry\Sphere.cs" />
     <Compile Include="Geometry\Spherical2D.cs" />
-    <Compile Include="Geometry\SphericalModels.cs" />
     <Compile Include="Geometry\Sterographic.cs" />
-    <Compile Include="Geometry\Surface.cs" />
     <Compile Include="Geometry\Tile.cs" />
-    <Compile Include="Geometry\Torus.cs" />
     <Compile Include="Geometry\Transformable.cs" />
-    <Compile Include="Geometry\UltraInf.cs" />
     <Compile Include="Geometry\VectorND.cs" />
     <Compile Include="Math\DonHatch.cs" />
     <Compile Include="Drawing\GraphicsUtils.cs" />
     <Compile Include="Geometry\Euclidean2D.cs" />
     <Compile Include="Math\Golden.cs" />
-    <Compile Include="Math\Graph.cs" />
     <Compile Include="Math\Infinity.cs" />
     <Compile Include="Math\Isometry.cs" />
     <Compile Include="Math\Matrix4D.cs" />
@@ -87,23 +74,14 @@
     <Compile Include="Geometry\Polygon.cs" />
     <Compile Include="Math\Statistics.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Geometry\Slicer.cs" />
-    <Compile Include="Formats\SVG.cs" />
     <Compile Include="Geometry\Tiling.cs" />
     <Compile Include="Honeycombs\H3.cs" />
-    <Compile Include="Honeycombs\H3Fundamental.cs" />
-    <Compile Include="Honeycombs\H3Supp.cs" />
     <Compile Include="Honeycombs\H3Utils.cs" />
     <Compile Include="Honeycombs\Honeycomb.cs" />
-    <Compile Include="Honeycombs\Lamp.cs" />
-    <Compile Include="Honeycombs\R3.cs" />
     <Compile Include="Honeycombs\S3.cs" />
     <Compile Include="Shapeways\Shapeways.cs" />
-    <Compile Include="Shapeways\ShapewaysSandbox.cs" />
     <Compile Include="Math\Utils.cs" />
     <Compile Include="Geometry\Vector3D.cs" />
-    <Compile Include="UI\Attributes.cs" />
-    <Compile Include="UI\TrackBarValueEditor.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

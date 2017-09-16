@@ -53,26 +53,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Catacombs.cs" />
     <Compile Include="Coloring.cs" />
     <Compile Include="CoxeterImages.cs" />
-    <Compile Include="Experiments\Acrohedron.cs" />
-    <Compile Include="Experiments\H3_Ruled.cs" />
-    <Compile Include="Experiments\H3_Hopf.cs" />
-    <Compile Include="Experiments\S3_Hopf.cs" />
-    <Compile Include="Experiments\S3_Minimal.cs" />
-    <Compile Include="Experiments\SphericalTrig.cs" />
-    <Compile Include="Experiments\ThreeFifty.cs" />
     <Compile Include="HoneycombGen.cs" />
-    <Compile Include="Experiments\ImageGrid.cs" />
-    <Compile Include="Experiments\Lawson.cs" />
-    <Compile Include="HoneycombGen_old.cs" />
     <Compile Include="HoneycombPaper.cs" />
-    <Compile Include="Nonuniform.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Recurse.cs" />
-    <Compile Include="Experiments\Sandbox.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Simplex.cs" />
     <Compile Include="Utils\DataContractHelper.cs" />

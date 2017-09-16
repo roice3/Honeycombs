@@ -27,7 +27,7 @@
 		{
 			// Implemented as a curved cylinder with capped ends.
 			// Geodesic dome would be better.
-			int n1 = Div;
+			int n1 = 24; //Div;
 			int n2 = n1/2;
 			Div = n1;
 
@@ -55,107 +55,6 @@
 			for( int i=1; i<disks.Count - 2; i++ )
 				AddSegment( disks[i], disks[i + 1] );
 			AddCap( axisPoints[axisPoints.Count - 1], disks[axisPoints.Count - 2], reverse: true );
-		}
-
-		/// <summary>
-		/// Add a curve with a constant radius size.
-		/// </summary>
-		public void AddCurve( Vector3D[] points, double size )
-		{
-			System.Func<Vector3D, double> sizeFunc = vector => size;
-			AddCurve( points, sizeFunc, points.First(), points.Last() );
-		}
-
-		/// <summary>
-		/// Adds a curve to a mesh.
-		/// XXX - Deprecated: sizeFunc return a position and a radius.
-		/// </summary>
-		public void AddCurve( Vector3D[] points, System.Func<Vector3D, double> sizeFunc )
-		{
-			if( points.Length < 2 )
-				throw new System.ArgumentException( "AddCurve requires at least two input points." );
-
-			List<Vector3D[]> disks = CalcDisks( points, sizeFunc );
-			AddCurve( disks, points, points.First(), points.Last() );
-		}
-
-		/// <summary>
-		/// Adds a curve to a mesh.
-		/// XXX - Deprecated: sizeFunc return a position and a radius.
-		/// </summary>
-		public void AddCurve( Vector3D[] points, System.Func<Vector3D, double> sizeFunc, Vector3D start, Vector3D end )
-		{
-			if( points.Length < 2 )
-				throw new System.ArgumentException( "AddCurve requires at least two input points." );
-
-			List<Vector3D[]> disks = CalcDisks( points, sizeFunc );
-			AddCurve( disks, points, start, end );
-		}
-
-		public void AddCurve( Vector3D[] points, double[] radii )
-		{
-			if( points.Length < 2 )
-				throw new System.ArgumentException( "AddCurve requires at least two input points." );
-
-			List<Vector3D[]> disks = CalcDisks( points, radii );
-			AddCurve( disks, points, points.First(), points.Last() );
-		}
-
-		private void AddCurve( List<Vector3D[]> disks, Vector3D[] points, Vector3D start, Vector3D end )
-		{
-			// Cap1
-			AddCap( start, disks.First() );
-
-			// Interior points.
-			for( int i = 0; i < disks.Count - 1; i++ )
-				AddSegment( disks[i], disks[i + 1] );
-
-			// Cap2
-			AddCap( end, disks.Last(), reverse: true );
-		}
-
-		public void AddArc( Vector3D center, double arcRadius, Vector3D v1, Vector3D normal, double angleTot, int numPoints, System.Func<Vector3D, double> sizeFunc )
-		{
-			if( numPoints < 2 )
-				numPoints = 2;
-
-			Vector3D[] points = CalcArcPoints( center, arcRadius, v1, normal, angleTot, numPoints );
-
-			// Calculate all the disks.
-			// XXX - duplicated code with CalcDisks, but we need to calc our own perpendicular here.
-			List<Vector3D[]> disks = new List<Vector3D[]>();
-			for( int i=0; i<points.Length; i++ )
-			{
-				Vector3D p1 = i == 0 ? points[0] : points[i - 1];
-				Vector3D p2 = points[i];
-				Vector3D p3 = i == points.Length - 1 ? points[points.Length - 1] : points[i + 1];
-				double radius = sizeFunc( points[i] );
-
-				// We can calculate these directly.
-				Vector3D perp = p2 - center;
-				perp.Normalize();
-				Vector3D axis = perp;
-				axis.RotateAboutAxis( normal, -Math.PI / 2 );
-				perp *= radius;
-
-				disks.Add( Disk( p2, axis, perp, this.Div, reverse: false ) );
-			}
-
-///////////////////////////////////////// Hack to avoid having to put spheres at verts.
-			double thickness = 0.0055;	// relates to SizeFuncConst
-			double thetaOffset = thickness / arcRadius;
-			Vector3D start = points[0], end = points[points.Length-1];
-			start -= center;
-			end -= center;
-			start.RotateAboutAxis( normal, -thetaOffset );
-			end.RotateAboutAxis( normal, thetaOffset );
-			start += center;
-			end += center;
-			points[0] = start;
-			points[points.Length - 1] = end;
-/////////////////////////////////////////
-
-			AddCurve( disks, points, points.First(), points.Last() );
 		}
 
 		/// <summary>
@@ -339,7 +238,16 @@
 		/// </summary>
 		public void AddSegment( Vector3D[] d1, Vector3D[] d2 )
 		{
-			Mesh.AddBand( d1, d2 );
+			if( d1.Length != d2.Length )
+				throw new System.ArgumentException( "Disks must have the same length." );
+
+			for( int i=0; i<d1.Length; i++ )
+			{
+				int idx1 = i;
+				int idx2 = i == d1.Length - 1 ? 0 : i + 1;
+				Mesh.Triangles.Add( new Mesh.Triangle( d1[idx1], d2[idx1], d1[idx2] ) );
+				Mesh.Triangles.Add( new Mesh.Triangle( d1[idx2], d2[idx1], d2[idx2] ) );
+			}
 		}
 
 		/// <summary>
@@ -377,7 +285,7 @@
 		/// <summary>
 		/// Create a circle of points, centered at p.
 		/// </summary>
-		public static Vector3D[] Disk( Vector3D p, Vector3D axis, Vector3D perpendicular, int divisions, bool reverse = false )
+		private static Vector3D[] Disk( Vector3D p, Vector3D axis, Vector3D perpendicular, int divisions, bool reverse = false )
 		{
 			List<Vector3D> points = new List<Vector3D>();
 			double angleInc = 2 * Math.PI / divisions;

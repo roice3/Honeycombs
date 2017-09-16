@@ -13,7 +13,7 @@
 		public enum EdgeThreshType
 		{
 			Radial,
-			Length
+			Length,
 		}
 
 		public class Settings
@@ -219,62 +219,6 @@
 		}
 
 /////////////////////////////////////////////////////////
-// Hacking around.  I should remove this or make CalcCells() configurable enough to deal with more cases.
-		public static H3.Cell[] CalcCells2( Sphere[] mirrors, H3.Cell[] cells )
-		{
-			Settings settings = new Settings();
-			return CalcCells2( mirrors, cells, settings );
-		}
-
-		public static H3.Cell[] CalcCells2( Sphere[] mirrors, H3.Cell[] cells, Settings settings )
-		{
-			HashSet<Vector3D> completedCellIds = new HashSet<Vector3D>( cells.Select( c => c.ID ).ToArray() );
-			List<H3.Cell> completedCells = new List<H3.Cell>( cells );
-			ReflectCellsRecursive2( mirrors, cells, settings, completedCells, completedCellIds );
-			return completedCells.ToArray();
-		}
-
-		private static void ReflectCellsRecursive2( Sphere[] simplex, H3.Cell[] cells, Settings settings,
-			List<H3.Cell> completedCells, HashSet<Vector3D> completedCellIds )
-		{
-			if( 0 == cells.Length )
-				return;
-
-			List<H3.Cell> newCells = new List<H3.Cell>();
-
-			foreach( H3.Cell cell in cells )
-			//foreach( Sphere mirror in simplex )
-			for( int m = 0; m < simplex.Length; m++ )
-			{
-				Sphere mirror = simplex[m];
-				if( completedCellIds.Count > 250000 )
-					return;
-
-				H3.Cell newCell = cell.Clone();
-				newCell.Reflect( mirror );
-				//if( !CellOk( newCell, settings ) )
-				bool cellOk = true;
-				foreach( H3.Cell.Facet f in cell.Facets )
-					if( f.Sphere.Radius < 0.002 )
-						cellOk = false;
-				if( !cellOk )
-					continue;
-
-				// This tracks reflections across the cell facets.
-				newCell.Depths[m]++;
-
-				if( completedCellIds.Add( newCell.ID ) )
-				{
-					// Haven't seen this cell yet, so 
-					// we'll need to recurse on it.
-					newCells.Add( newCell );
-					completedCells.Add( newCell );
-				}
-			}
-
-			ReflectCellsRecursive2( simplex, newCells.ToArray(), settings, completedCells, completedCellIds );
-		}
-/////////////////////////////////////////////////////////
 
 		private static double DefaultThresh()
 		{
@@ -323,22 +267,18 @@
 				return true;
 
 			double thresh = s.Threshold;
-
-			switch( s.ThreshType )
+			bool useEdgeLength = s.ThreshType == EdgeThreshType.Length;
+			if( useEdgeLength )
 			{
-			case EdgeThreshType.Length:
-
 				// This will also work for ideal edges.
 				return edge.Start.Dist( edge.End ) > thresh;
-
-			case EdgeThreshType.Radial:
-
+			}
+			else
+			{
 				return
 					edge.Start.Abs() < thresh &&
 					edge.End.Abs() < thresh;
 			}
-
-			return false;
 		}
 
 		internal static bool CellOk( H3.Cell cell, Settings s )
@@ -398,56 +338,6 @@
 					return true;	
 
 			return false;
-		}
-
-		/// <summary>
-		/// This generates a polyhedron using recursion.  It needs to be finite 
-		/// (There are not any other breakouts of the recursion, other than all facets having been generated.)
-		/// </summary>
-		public static void GenPolyhedron( Sphere[] mirrors, H3.Cell.Facet[] facets,
-			List<H3.Cell.Facet> completedFacets, HashSet<Vector3D> completedFacetIds )
-		{
-			if( 0 == facets.Length )
-				return;
-
-			List<H3.Cell.Facet> newFacets = new List<H3.Cell.Facet>();
-
-			foreach( H3.Cell.Facet facet in facets )
-				foreach( Sphere mirror in mirrors )
-			{
-				H3.Cell.Facet newFacet = facet.Clone();
-				newFacet.Reflect( mirror );
-				if( completedFacetIds.Add( newFacet.ID ) )
-				{
-					// Haven't seen this facet yet, so 
-					// we'll need to recurse on it.
-					newFacets.Add( newFacet );
-					completedFacets.Add( newFacet );
-				}
-			}
-
-			GenPolyhedron( mirrors, newFacets.ToArray(), completedFacets, completedFacetIds );
-		}
-
-		public static void BranchAlongVerts( Vector3D[] starting, Dictionary<Vector3D, List<H3.Cell.Edge>> vertsToEdges,
-			HashSet<Vector3D> foundVertices )
-		{
-			if( 0 == starting.Length )
-				return;
-
-			List<Vector3D> newVerts = new List<Vector3D>();
-			foreach( Vector3D v in starting )
-			{
-				List<H3.Cell.Edge> connectedEdges = vertsToEdges[v];
-				foreach( H3.Cell.Edge e in connectedEdges )
-				{
-					Vector3D opp = e.Start == v ? e.End : e.Start;
-					if( foundVertices.Add( opp ) )
-						newVerts.Add( opp );
-				}
-			}
-
-			BranchAlongVerts( newVerts.ToArray(), vertsToEdges, foundVertices );
 		}
 	}
 }

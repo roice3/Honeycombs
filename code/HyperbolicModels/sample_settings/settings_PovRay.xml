@@ -1,8 +1,0 @@
-<Settings xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-   <Dihedrals>2,4,3,2,3,3</Dihedrals>
-   <PovRay>
-      <ActiveMirrors>0001</ActiveMirrors>
-      <EdgeWidth>0.02</EdgeWidth>
-      <NumEdges>250000</NumEdges>
-   </PovRay>
-</Settings>

@@ -195,92 +195,6 @@
 		}
 
 		/// <summary>
-		/// Transform a sphere in the ball, such that p goes to the origin.
-		/// ZZZ - Not tested well yet.
-		/// </summary>
-		public static Sphere Transform_PointToOrigin( Sphere s, Vector3D p )
-		{
-			Sphere clone = s.Clone();
-			Vector3D z = new Vector3D( 0, 0, 1 );
-			double a = p.AngleTo( z );
-			bool isZ = p.IsZAxis;
-			if( !isZ )
-				Sphere.RotateSphere( clone, p.Cross( z ), a );
-
-			Mobius m = new Mobius();
-			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, -p.Abs() ) );
-			clone = TransformInBall( clone, m );
-
-			if( !isZ )
-				Sphere.RotateSphere( clone, p.Cross( z ), -a );
-
-			return clone;
-		}
-
-		/// <summary>
-		/// Transform a vector in the ball, such that p goes to the origin.
-		/// ZZZ - Not tested well yet.
-		/// </summary>
-		public static Vector3D Transform_PointToOrigin( Vector3D v, Vector3D p )
-		{
-			Vector3D z = new Vector3D( 0, 0, 1 );
-			double a = p.AngleTo( z );
-			bool isZ = p.IsZAxis;
-			if( !isZ )
-				v.RotateAboutAxis( p.Cross( z ), a );
-
-			Mobius m = new Mobius();
-			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, -p.Abs() ) );
-			v = TransformHelper( v, m );
-
-			if( !isZ )
-				v.RotateAboutAxis( p.Cross( z ), -a );
-
-			return v;
-		}
-
-		/// <summary>
-		/// This applies the same Mobius transform to all vertical planes through the z axis.
-		/// NOTE: m must therefore be a mobius transform that keeps the imaginary axis constant!
-		/// NOTE: s must be geodesic! (orthogonal to boundary).
-		/// ZZZ - it would be better to use m to control the plane at infinity, e.g. 
-		///		  go to UHS, transform, go back (like ApplyMobius below)
-		/// </summary>
-		public static Sphere TransformInBall( Sphere s, Mobius m )
-		{
-			if( s.IsPlane )
-			{
-				// All planes in the ball go through the origin.
-				if( !s.Offset.IsOrigin )
-					throw new System.ArgumentException();
-
-				// Vertical planes remain unchanged.
-				if( Tolerance.Equal( s.Normal.Z, 0 ) )
-					return s.Clone();
-
-				// Other planes will become spheres.
-				Vector3D pointOnSphere = s.Normal.Perpendicular();
-				pointOnSphere.Normalize();
-				Vector3D b1 = H3Models.TransformHelper( pointOnSphere, m );
-				Vector3D b2 = H3Models.TransformHelper( -pointOnSphere, m );
-				pointOnSphere.RotateAboutAxis( s.Normal, Math.PI / 2 );
-				Vector3D b3 = H3Models.TransformHelper( pointOnSphere, m );
-				return H3Models.Ball.OrthogonalSphere( b1, b2, b3 );
-			}
-			else
-			{
-				Vector3D s1, s2, s3;
-				H3Models.Ball.IdealPoints( s, out s1, out s2, out s3 );
-
-				// Transform the points.
-				Vector3D b1 = H3Models.TransformHelper( s1, m );
-				Vector3D b2 = H3Models.TransformHelper( s2, m );
-				Vector3D b3 = H3Models.TransformHelper( s3, m );
-				return H3Models.Ball.OrthogonalSphere( b1, b2, b3 );
-			}
-		}
-
-		/// <summary>
 		/// This applies the the Mobius transform to the plane at infinity.
 		/// Any Mobius is acceptable.
 		/// NOTE: s must be geodesic! (orthogonal to boundary).
@@ -330,14 +244,6 @@
 				Radius = boundaryCircle.Radius,
 				Offset = off
 			};
-		}
-
-		public static void TransformInBall2( Sphere s, Mobius m )
-		{
-			Sphere newSphere = TransformInBall( s, m );
-			s.Center = newSphere.Center;
-			s.Radius = newSphere.Radius;
-			s.Offset = newSphere.Offset;
 		}
 
 		public static void TransformInUHS2( Sphere s, Mobius m )
@@ -420,11 +326,6 @@
 				radius = Math.Max( radius, 0.0001 );
 				//radius = Math.Max( radius, 0.0005 );
 				//radius = Math.Max( radius, 0.00001 );
-			}
-
-			private static void ApplyMinRadiusForPrinting( ref double radius )
-			{
-				radius = Math.Max( radius, (1.05 /*mm*/ / 2) / H3.m_settings.Scale );
 			}
 
 			/// <summary>
@@ -584,16 +485,6 @@
 					sphere.Radius = radius;
 				}
 				return sphere;
-			}
-
-			/// <summary>
-			/// Given a geodesic sphere, returns it's intersection with the boundary plane.
-			/// </summary>
-			public static Circle3D IdealCircle( Sphere s )
-			{
-				Vector3D s1, s2, s3;
-				IdealPoints( s, out s1, out s2, out s3 );
-				return new Circle3D( s1, s2, s3 );
 			}
 
 			/// <summary>
@@ -814,26 +705,6 @@
 				div = 20 - hit;
 			}
 
-			/// <summary>
-			/// LOD
-			/// </summary>
-			public static void LOD_Finite( Vector3D e1, Vector3D e2, out int div1, out int div2, H3.Settings settings )
-			{
-				//if( settings.Halfspace )
-				//	throw new System.NotImplementedException();
-
-				int maxHit = 15;
-				int hit = (int)( Math.Max( e1.Abs(), e2.Abs() ) * maxHit );
-				div1 = 11;
-				div2 = 30 - hit;
-
-				/* lasercrystal
-				int maxHit = 8;
-				int hit = (int)( Math.Max( e1.Abs(), e2.Abs() ) * maxHit );
-				div1 = 6;
-				div2 = 20 - hit;*/
-			}
-
 			public static void LOD_Ideal( Vector3D e1, Vector3D e2, out int div1, out int div2, H3.Settings settings )
 			{
 				if( settings.Halfspace )
@@ -857,36 +728,6 @@
 
 		public static class UHS
 		{
-			/// <summary>
-			/// Hyperbolic to Euclidean norm
-			/// The output is a vertical distance from 0,0,0
-			/// </summary>
-			public static double ToE( double hNorm )
-			{
-				double eNorm = DonHatch.h2eNorm( hNorm );
-				Vector3D uhs = H3Models.BallToUHS( new Vector3D( 0, 0, eNorm ) );
-				return uhs.Z;
-			}
-
-			/// <summary>
-			/// Euclidean to UHS norm
-			/// </summary>
-			public static double FromE( double eNorm )
-			{
-				throw new System.NotImplementedException();
-			}
-
-			/// <summary>
-			/// Hyperbolic to Euclidean norml
-			/// The output is a horizontal distance from 0,0,z
-			/// </summary>
-			public static double ToEHorizontal( double hNorm, double z )
-			{
-				// https://en.wikipedia.org/wiki/Poincar%C3%A9_half-plane_model
-				double offset = Math.Sqrt( ( DonHatch.cosh( hNorm ) - 1 ) * 2 * z * z );
-				return offset;
-			}
-
 			/// <summary>
 			/// A size function for the UHS model.
 			/// Returns a radius.
@@ -969,22 +810,6 @@
 					if( swapped )
 						Utils.SwapPoints( ref z1, ref z2 );
 				}
-			}
-
-			/// <summary>
-			/// Takes a set of finite edges, and returns a new set of ideal edges which touch the boundary.
-			/// Duplicate ideal edges are removed (since multiple finite edges can result in the same ideal edge).
-			/// </summary>
-			public static IEnumerable<H3.Cell.Edge> ExtendEdges( IEnumerable<H3.Cell.Edge> edges )
-			{
-				HashSet<H3.Cell.Edge> infiniteEdges = new HashSet<H3.Cell.Edge>();
-				foreach( H3.Cell.Edge edge in edges )
-				{
-					Vector3D start_i, end_i;
-					H3Models.Ball.GeodesicIdealEndpoints( edge.Start, edge.End, out start_i, out end_i );
-					infiniteEdges.Add( new H3.Cell.Edge( start_i, end_i ) );
-				}
-				return infiniteEdges;
 			}
 
 			public static void Geodesic( Vector3D v1, Vector3D v2, out Vector3D center, out double radius )
@@ -1073,47 +898,6 @@
 		}
 	}
 
-	public static class H3Sphere
-	{
-		/// <summary>
-		/// A helper for adding a sphere.  center should be passed in the ball model.
-		/// The approach is similar to how we do the bananas below.
-		/// </summary>
-		public static void AddSphere( Shapeways mesh, Vector3D center, H3.Settings settings )
-		{
-			Vector3D centerUHS = H3Models.BallToUHS( center );
-
-			// Find the Mobius we need.
-			// We'll do this in two steps.  
-			// (1) Find a mobius taking center to (0,0,h).
-			// (2) Deal with scaling to a height of 1.
-			Vector3D flattened = centerUHS;
-			flattened.Z = 0;
-			Mobius m1 = new Mobius( flattened, Complex.One, Infinity.InfinityVector );
-			Vector3D centerUHS_transformed = m1.ApplyToQuaternion( centerUHS );
-			double scale = 1.0 / centerUHS_transformed.Z;
-			Mobius m2 = new Mobius( scale, Complex.Zero, Complex.Zero, Complex.One );
-			Mobius m = m2 * m1;	// Compose them (multiply in reverse order).
-
-			// Add the sphere at the Ball origin.
-			// It will *always* be generated with the same radius.
-			Shapeways tempMesh = new Shapeways();
-			tempMesh.AddSphere( new Vector3D(), H3Models.Ball.SizeFunc( new Vector3D(), settings.AngularThickness ) );
-
-			// Unwind the transforms.
-			for( int i=0; i<tempMesh.Mesh.Triangles.Count; i++ )
-			{
-				tempMesh.Mesh.Triangles[i] = new Mesh.Triangle(
-					H3Models.BallToUHS( tempMesh.Mesh.Triangles[i].a ),
-					H3Models.BallToUHS( tempMesh.Mesh.Triangles[i].b ),
-					H3Models.BallToUHS( tempMesh.Mesh.Triangles[i].c ) );
-			}
-
-			Banana.TakePointsBack( tempMesh.Mesh, m.Inverse(), settings );
-			mesh.Mesh.Triangles.AddRange( tempMesh.Mesh.Triangles );
-		}
-	}
-
 	/// <summary>
 	/// A helper class for doing proper calculations of H3 "bananas"
 	/// 
@@ -1128,100 +912,6 @@
 	/// </summary>
 	public static class Banana
 	{
-		/// <summary>
-		/// Add an ideal banana to our mesh.  Passed in edge should be in Ball model.
-		/// </summary>
-		public static void AddIdealBanana( Shapeways mesh, Vector3D e1, Vector3D e2, H3.Settings settings )
-		{
-			Vector3D z1 = H3Models.BallToUHS( e1 );
-			Vector3D z2 = H3Models.BallToUHS( e2 );
-
-			// Mobius taking z1,z2 to origin,inf
-			Complex dummy = new Complex( Math.E, Math.PI );
-			Mobius m = new Mobius( z1, dummy, z2 );
-
-			// Make our truncated cone.  We need to deal with the two ideal endpoints specially.
-			List<Vector3D> points = new List<Vector3D>();
-			double logHeight = 2;	// XXX - magic number, and going to cause problems for infinity checks if too big.
-			int div1, div2;
-			H3Models.Ball.LOD_Ideal( e1, e2, out div1, out div2, settings );
-			double increment = logHeight / div1;
-			for( int i=-div1; i<=div1; i+=2 )
-				points.Add( new Vector3D( 0, 0, Math.Exp( increment * i ) ) );
-
-			Shapeways tempMesh = new Shapeways();
-			tempMesh.Div = div2;
-			System.Func<Vector3D, double> sizeFunc = v => H3Models.UHS.SizeFunc( v, settings.AngularThickness );
-			//Mesh.OpenCylinder...  pass in two ideal endpoints?
-			tempMesh.AddCurve( points.ToArray(), sizeFunc, new Vector3D(), Infinity.InfinityVector );
-
-			// Unwind the transforms.
-			TakePointsBack( tempMesh.Mesh, m.Inverse(), settings );
-			mesh.Mesh.Triangles.AddRange( tempMesh.Mesh.Triangles );
-		}
-
-		/// <summary>
-		/// Add a finite (truncated) banana to our mesh.  Passed in edge should be in Ball model.
-		/// </summary>
-		public static void AddBanana( Shapeways mesh, Vector3D e1, Vector3D e2, H3.Settings settings )
-		{
-			Vector3D e1UHS = H3Models.BallToUHS( e1 );
-			Vector3D e2UHS = H3Models.BallToUHS( e2 );
-
-			// Endpoints of the goedesic on the z=0 plane.
-			Vector3D z1, z2;
-			H3Models.UHS.GeodesicIdealEndpoints( e1UHS, e2UHS, out z1, out z2 );
-			
-			// XXX - Do we want to do a better job worrying about rotation here? 
-			// (multiply by complex number with certain imaginary part as well)
-			//Vector3D z3 = ( z1 + z2 ) / 2;
-			//if( Infinity.IsInfinite( z3 ) )
-			//	z3 = new Vector3D( 1, 0 );
-			Vector3D z3 = new Vector3D( Math.E, Math.PI );	// This should vary the rotations a bunch.
-
-			// Find the Mobius we need.
-			// We'll do this in two steps.  
-			// (1) Find a mobius taking z1,z2 to origin,inf 
-			// (2) Deal with scaling e1 to a height of 1.  
-			Mobius m1 = new Mobius( z1, z3, z2 );
-			Vector3D e1UHS_transformed = m1.ApplyToQuaternion( e1UHS );
-			double scale = 1.0 / e1UHS_transformed.Z;
-			Mobius m2 = Mobius.Scale( scale );
-			Mobius m = m2 * m1;	// Compose them (multiply in reverse order).
-			Vector3D e2UHS_transformed = m.ApplyToQuaternion( e2UHS );
-
-			// Make our truncated cone.
-			// For regular tilings, we really would only need to do this once for a given LOD.
-			List<Vector3D> points = new List<Vector3D>();
-			double logHeight = Math.Log( e2UHS_transformed.Z );
-			if( logHeight < 0 )
-				throw new System.Exception( "impl issue" );
-			int div1, div2;
-			H3Models.Ball.LOD_Finite( e1, e2, out div1, out div2, settings );
-			double increment = logHeight / div1;
-			for( int i=0; i<=div1; i++ )
-			{
-				double h = increment * i;
-
-				// This is to keep different bananas from sharing exactly coincident vertices.
-				double tinyOffset = 0.001;
-				if( i == 0 )
-					h -= tinyOffset;
-				if( i == div1 )
-					h += tinyOffset;
-
-				Vector3D point = new Vector3D( 0, 0, Math.Exp( h ) );
-				points.Add( point );
-			}
-			Shapeways tempMesh = new Shapeways();
-			tempMesh.Div = div2;
-			tempMesh.AddCurve( points.ToArray(), v => H3Models.UHS.SizeFunc( v, settings.AngularThickness ) );
-
-			// Unwind the transforms.
-			TakePointsBack( tempMesh.Mesh, m.Inverse(), settings );
-			mesh.Mesh.Triangles.AddRange( tempMesh.Mesh.Triangles );
-		}
-
 		internal static void TakePointsBack( Mesh mesh, Mobius m, H3.Settings settings )
 		{
 			for( int i=0; i<mesh.Triangles.Count; i++ )
