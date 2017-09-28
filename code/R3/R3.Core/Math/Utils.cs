@@ -39,7 +39,7 @@
 
 		public static bool Equal( double d1, double d2, double threshold )
 		{
-			return Zero( d1 - d2, threshold );
+			return ((d1 >= d2 - threshold) && (d1 <= d2 + threshold)) ? true: false;
 		}
 
 		public static bool Zero( double d, double threshold )

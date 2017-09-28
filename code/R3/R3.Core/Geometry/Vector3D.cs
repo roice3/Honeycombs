@@ -133,10 +133,6 @@
 
 		public bool Compare( Vector3D other, double threshold )
 		{
-			// NOTE: This is here because when the vector is infinite, it fails the tolerance checks below.
-			if( ( X == other.X ) && ( Y == other.Y ) && ( Z == other.Z ) && W == other.W )
-				return true;
-
 			if( this.DNE && other.DNE )
 				return true;
 

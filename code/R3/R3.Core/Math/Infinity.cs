@@ -13,15 +13,18 @@
 		public const double FiniteScale = 10000;
 		public const double InfiniteScale = 500000;
 
+		public static bool IsFinite( double input )
+		{
+			return ( -InfiniteScale <= input ) && ( input <= InfiniteScale );
+		}
+
 		public static bool IsInfinite( Vector3D input )
 		{
-			// XXX - ugly hack I'd like to improve.
-			return 
-				IsInfinite( input.X ) ||
-				IsInfinite( input.Y ) ||
-				IsInfinite( input.Z ) ||
-				IsInfinite( input.W ) ||
-				input.Abs() > InfiniteScale;
+			return
+				!(IsFinite (input.X) &&
+				  IsFinite (input.Y) &&
+			      IsFinite (input.Z) &&
+			      IsFinite (input.W));
 		}
 
 		public static bool IsInfinite( Complex input )
@@ -33,10 +36,7 @@
 
 		public static bool IsInfinite( double input )
 		{
-			return
-				double.IsNaN( input ) ||
-				double.IsInfinity( input ) ||
-				input >= InfiniteScale;
+			return !IsFinite (input);
 		}
 
 		public static Vector3D InfinitySafe( Vector3D input )
