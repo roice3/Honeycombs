@@ -1,5 +1,6 @@
 ﻿namespace R3.Geometry
 {
+	using System.Diagnostics;
 	using R3.Core;
 	using Math = System.Math;
 
@@ -11,7 +12,6 @@
 			if( Tolerance.Zero( n1.MagSquared() ) )
 				return double.NaN;
 
-			// ZZZ - Can we make this a signed distance?
 			return ( ( point - p1 ).Cross( n1 ) ).Abs() / n1.Abs();
 		}
 
@@ -169,6 +169,110 @@
 		public static bool Coplanar( Vector3D[] points )
 		{
 			throw new System.NotImplementedException();
+		}
+
+		public static Vector3D IntersectionPlaneLine( Vector3D planeNormal, Vector3D planePoint, Vector3D nl, Vector3D pl )
+		{
+			double signedDistance = DistancePointPlane( planeNormal, planePoint, pl );
+			planeNormal.Normalize();
+
+			Vector3D closest = pl - planeNormal * signedDistance;
+			Vector3D v1 = closest - pl;
+			Vector3D v2 = nl;
+			double angle = v1.AngleTo( v2 );
+
+			nl.Normalize();
+			return pl + nl * signedDistance / Math.Cos( angle );
+
+			// XXX - needs improvement.
+			/*
+			Vector3D v1 = closest - pl;
+			Vector3D v2 = nl;
+			double angle = v1.AngleTo( v2 );
+			Vector3D axis = v1.Cross( v2 );
+			v1.RotateAboutAxis( axis, -angle );
+			v1 /= Math.Cos( angle );
+			return pl + v1;*/
+		}
+
+		public static int IntersectionSphereLine( out Vector3D int1, out Vector3D int2, Vector3D sphereCenter, double sphereRadius, Vector3D nl, Vector3D pl ) 
+		{
+			int1 = int2 = Vector3D.DneVector();
+
+			// First find the distance between the sphere center and the line.
+			// This will allow us to easily determine if there are 0, 1, or 2 intersection points.
+			double distance = DistancePointLine( nl, pl, sphereCenter );
+			if( double.IsNaN( distance ) )
+				return -1;
+
+			// Handle the special case where the line goes through the sphere center.
+			if( Tolerance.Zero( distance ) )
+			{
+				if( Tolerance.Zero( sphereRadius ) )
+				{
+					// There is one intersection point (the sphere center).
+					int1 = sphereCenter;
+					return 1;
+				}
+				else
+				{
+					// There are 2 intersection points.
+					Vector3D tempDV = nl;
+					tempDV.Normalize();
+					tempDV *= sphereRadius;
+					int1 = sphereCenter + tempDV;
+					int2 = sphereCenter - tempDV;
+					return 2;
+				}
+			}
+
+			// Handle the non-intersecting case.
+			if( distance > sphereRadius )
+				return 0;
+
+			// Find a normalized direction vector from the sphere center to the closest point on the line.
+			// This will help to determine the intersection points for the remaining cases.
+			Vector3D vector = (pl - sphereCenter).Cross( nl ).Cross( nl ) * -1;
+			if( ! vector.Normalize() )
+			{
+				return -1;
+			}
+
+			// Scale the direction vector to the sphere radius.
+			vector *= sphereRadius;
+
+			// Handle the case of 1 intersection.
+			if( Tolerance.Equal( distance, sphereRadius ) )
+			{
+				// We just need to add the vector to the center.
+				vector += sphereCenter;
+				int1 = vector;
+				return 1;
+			}
+
+			// Handle the case of 2 intersections.
+			if( distance < sphereRadius )
+			{
+				// We need to rotate the vector by an angle +- alpha,
+				// where cos( alpha ) = distance / sphereRadius;
+				Debug.Assert( !Tolerance.Zero( sphereRadius ) );
+				double alpha = Utils.RadiansToDegrees( Math.Acos( distance / sphereRadius ) );
+
+				// Rotation vector.
+				Vector3D rotationVector = (pl - sphereCenter).Cross( nl );
+				Vector3D vector1 = vector, vector2 = vector;
+				vector1.RotateAboutAxis( rotationVector, alpha );
+				vector2.RotateAboutAxis( rotationVector, -1 * alpha );
+
+				// Here are the intersection points.
+				int1 = vector1 + sphereCenter;
+				int2 = vector2 + sphereCenter;
+
+				return 2;
+			}
+
+			Debug.Assert( false );
+			return -1;
 		}
 	}
 }
