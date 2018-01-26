@@ -38,6 +38,28 @@
 			return g*z / (z - 1);
 		}
 
+		public static Vector3D StereoToEqualVolume( Vector3D p )
+		{
+			Vector3D result = p;
+			result.Normalize();
+			result *= StereoToEqualVolume( p.Abs() );
+			return result;
+		}
+
+		private static double StereoToEqualVolume( double dist )
+		{
+			if( Infinity.IsInfinite( dist ) )
+				return 1;
+
+			double dot = dist*dist; // X^2 + Y^2 + Z^2
+			double w = (dot - 1) / (dot + 1);
+
+			double t = Math.PI / 2 - w * Math.Sqrt( 1 - w * w ) - Math.Asin( w );
+			double r = Math.Pow( 3 / 2 * t, 1 / 3 );
+			return r;
+
+		}
+
 		private static double m_gScale = 0.5;
 	}
 }

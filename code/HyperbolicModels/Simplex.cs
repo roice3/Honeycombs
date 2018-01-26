@@ -262,15 +262,13 @@
 			double centerOfSphereNE = ( 1 - inRadius ) / ( 1 + inRadius );
 			Vector3D center;
 			double radius;
-			H3Models.Ball.DupinCyclideSphere( -pFaceDirection * centerOfSphereNE, 1.0 /*geodesic circle*/, Geometry.Spherical, out center, out radius );		
+			H3Models.Ball.DupinCyclideSphere( pFaceDirection * centerOfSphereNE, 1.0 /*geodesic circle*/, Geometry.Spherical, out center, out radius );		
 			Sphere cellBoundary = new Sphere() { Center = center, Radius = radius };
 			//cellBoundary = H3Models.BallToUHS( cellBoundary );
 
 			Sphere[] interior = InteriorMirrors( p, q );
 			interior = interior.Select( s => H3Models.UHSToBall( s ) ).ToArray();
-
 			Sphere[] surfaces = new Sphere[] { cellBoundary, interior[0], interior[1], interior[2] };
-			surfaces[0].Invert = true;
 
 			// Apply rotations.
 			bool applyRotations = true;
@@ -398,9 +396,8 @@
 		/// </summary>
 		public static H3.Cell.Edge[] SimplexEdgesUHS( int p, int q, int r )
 		{
-			// Only implemented for honeycombs with both hyperideal edges/vertices right now.
-			if( !( Geometry2D.GetGeometry( p, q ) == Geometry.Hyperbolic &&
-					Geometry2D.GetGeometry( q, r ) == Geometry.Hyperbolic ) )
+			// Only implemented for honeycombs with hyperideal cells right now.
+			if( !( Geometry2D.GetGeometry( p, q ) == Geometry.Hyperbolic ) )
 				throw new System.NotImplementedException();
 
 			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, moveToBall: false );
@@ -433,16 +430,35 @@
 			intersection.Z = height;
 			defPoints[5] = intersection;
 
+			// Hyperideal vertex too?
 			bool order = false;
-			H3.Cell.Edge[] edges = new H3.Cell.Edge[]
+			H3.Cell.Edge[] edges = null;
+			if( Geometry2D.GetGeometry( q, r ) == Geometry.Hyperbolic )
 			{
-				new H3.Cell.Edge( new Vector3D(), new Vector3D( 0, 0, 10 ) ),
-				new H3.Cell.Edge( defPoints[4], defPoints[5], order ),
-				new H3.Cell.Edge( defPoints[0], defPoints[4], order ),
-				new H3.Cell.Edge( defPoints[1], defPoints[5], order ),
-				new H3.Cell.Edge( defPoints[2], defPoints[4], order ),
-				new H3.Cell.Edge( defPoints[3], defPoints[5], order ),
-			};
+				edges = new H3.Cell.Edge[]
+				{
+					new H3.Cell.Edge( new Vector3D(), new Vector3D( 0, 0, 10 ) ),
+					new H3.Cell.Edge( defPoints[4], defPoints[5], order ),
+					new H3.Cell.Edge( defPoints[0], defPoints[4], order ),
+					new H3.Cell.Edge( defPoints[1], defPoints[5], order ),
+					new H3.Cell.Edge( defPoints[2], defPoints[4], order ),
+					new H3.Cell.Edge( defPoints[3], defPoints[5], order ),
+				};
+			}
+			else
+			{
+				Vector3D vPointUHS = H3Models.BallToUHS( VertexPointBall( p, q, r ) );
+				defPoints[0] = defPoints[1] = vPointUHS;
+				edges = new H3.Cell.Edge[]
+				{
+					new H3.Cell.Edge( vPointUHS, new Vector3D( 0, 0, 10 ) ),
+					new H3.Cell.Edge( defPoints[4], defPoints[5], order ),
+					new H3.Cell.Edge( defPoints[0], defPoints[4], order ),
+					new H3.Cell.Edge( defPoints[1], defPoints[5], order ),
+					new H3.Cell.Edge( defPoints[2], defPoints[4], order ),
+					new H3.Cell.Edge( defPoints[3], defPoints[5], order ),
+				};
+			}
 
 			return edges;
 		}
@@ -489,7 +505,11 @@
 		{
 			Geometry g = Util.GetGeometry( p, q, r );
 			if( g == Geometry.Spherical )
-				return SimplexCalcs.MirrorsSpherical( p, q, r );
+			{
+				// These are in the ball model.
+				Sphere[] result = SimplexCalcs.MirrorsSpherical( p, q, r );
+				return result;
+			}
 			else if( g == Geometry.Euclidean )
 				return SimplexCalcs.MirrorsEuclidean();
 
@@ -641,9 +661,16 @@
 			}
 
 			// Move to ball if needed.
-			Sphere[] result = surfaces.Select( s => moveToBall ? H3Models.UHSToBall( s ) : s ).ToArray();
-			cellCenter = moveToBall ? H3Models.UHSToBall( cellCenter ) : cellCenter;
+			if( moveToBall )
+				surfaces = MoveToBall( surfaces, ref cellCenter );
 
+			return surfaces;
+		}
+
+		private static Sphere[] MoveToBall( Sphere[] surfaces, ref Vector3D cellCenter )
+		{
+			Sphere[] result = surfaces.Select( s => H3Models.UHSToBall( s ) ).ToArray();
+			cellCenter = H3Models.UHSToBall( cellCenter );
 			return result;
 		}
 
@@ -717,7 +744,7 @@
 				{
 					Center = seg.Center,
 					Radius = seg.Radius,
-					//Invert = true
+					//Invert = true	// XXX - maybe we don't invert in the case of spherical?
 				};
 
 				// j34

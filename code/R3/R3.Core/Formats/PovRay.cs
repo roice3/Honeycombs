@@ -139,6 +139,9 @@
 			double minRad = 0.0004;
 			//double minRad = 0.0017;
 
+			// STL
+			//minRad = 0.8 / 100;
+
 			if( parameters.Halfspace )
 			{
 				//v1 = H3Models.BallToUHS( v1 );
@@ -311,7 +314,7 @@
 				if( facet.Sphere.Invert ) invert1 = !invert1;
 				//bool invert1 = CheckForInvert( facet.Sphere, cell.Center );
 				sb.Append( string.Format( "{0} material {{ sphereMat }} clipped_by {{ ball }}",
-					FormatSphereNoMaterial( facet.Sphere, invert1, false ) ) );
+					FormatSphereNoMaterialOffset( facet.Sphere, invert1, false ) ) );
 
 				H3.Cell.Facet[] others = cell.Facets.Except( new H3.Cell.Facet[] { facet } ).ToArray();
 				foreach( H3.Cell.Facet otherFacet in others )
@@ -348,6 +351,10 @@
 			{
 				sw.WriteLine( SimplexFacets( facets, interiorPoint, include, color ) );
 			}
+		}
+		public static void AddSimplex( StreamWriter sw, Sphere[] facets, Vector3D interiorPoint, int[] include, string fileName, Vector3D color = new Vector3D() )
+		{
+			sw.WriteLine( SimplexFacets( facets, interiorPoint, include, color ) );
 		}
 
 		private static bool CheckForInvert( Sphere facet, Vector3D point )
@@ -470,12 +477,19 @@
 				Sphere facet = facets[idx];
 
 				bool invert = CheckForInvert( facet, interiorPoint );
-				//sb.Append( string.Format( "{0} material {{ sphereMat2 }} clipped_by {{ ball }}",
-					//FormatSphereNoMaterial( facet, invert, false ) ) );
-				
+				//sb.Append( string.Format( "{0} material {{ sphereMat1 }} clipped_by {{ ball }}",
+				//	FormatSphereNoMaterialOffset( facet, invert, false ) ) );
 
-				sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1}}} clipped_by {{ ball }}",
-					FormatSphereNoMaterial( facet, invert, false ), FormatVecLowRes( color ) ) );
+				if( color.W == 0 )
+				{
+					sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1}}} clipped_by {{ ball }}",
+						FormatSphereNoMaterialOffset( facet, invert, false ), FormatVecLowRes( color ) ) );
+				}
+				else
+				{
+					sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1} transmit {2}}} clipped_by {{ ball }}",
+						FormatSphereNoMaterialOffset( facet, invert, false ), FormatVecLowRes( color ), color.W ) );
+				}
 
 				Sphere[] others = facets.Except( new Sphere[] { facet } ).ToArray();
 				foreach( Sphere otherFacet in others )
@@ -528,14 +542,57 @@
 				double offset = offsetOnNormal.Abs();
 				if( offsetOnNormal.Dot( sphere.Normal ) < 0 )
 					offset *= -1;
+
 				return string.Format( "plane {{ {0}, {1:G6}{2} {3}",
 					FormatVec( sphere.Normal ), offset, invert ? " inverse" : string.Empty, 
 					includeClosingBracket ? "}" : string.Empty );
 			}
 			else
 			{
+				double radius = sphere.Radius;
 				return string.Format( "sphere {{ {0}, {1:G6}{2} {3}",
-					FormatVec( sphere.Center ), sphere.Radius, invert ? " inverse" : string.Empty,
+					FormatVec( sphere.Center ), radius, invert ? " inverse" : string.Empty,
+					includeClosingBracket ? "}" : string.Empty );
+			}
+		}
+
+		private static string FormatSphereNoMaterialOffset( Sphere sphere, bool invert, bool includeClosingBracket = true )
+		{
+			bool microOffset = true;
+			double microOff = 0.00001;
+			//microOff = 0.000001;
+			// Don't offset unless drawn!!!
+			//microOff = -0.00005;
+			if( invert )
+				microOff *= -1;
+
+			if( sphere.IsPlane )
+			{
+				Vector3D offsetOnNormal = Euclidean2D.ProjectOntoLine( sphere.Offset, new Vector3D(), sphere.Normal );
+				double offset = offsetOnNormal.Abs();
+				if( offsetOnNormal.Dot( sphere.Normal ) < 0 )
+					offset *= -1;
+
+				if( microOffset )
+					offset -= microOff;
+
+				return string.Format( "plane {{ {0}, {1:G6}{2} {3}",
+					FormatVec( sphere.Normal ), offset, invert ? " inverse" : string.Empty,
+					includeClosingBracket ? "}" : string.Empty );
+			}
+			else
+			{
+				double radius = sphere.Radius;
+				if( microOffset )
+				{
+					if( radius < 20 )
+						radius -= microOff;
+					else
+						radius *= (1 - microOff);
+				}
+
+				return string.Format( "sphere {{ {0}, {1:G6}{2} {3}",
+					FormatVec( sphere.Center ), radius, invert ? " inverse" : string.Empty,
 					includeClosingBracket ? "}" : string.Empty );
 			}
 		}

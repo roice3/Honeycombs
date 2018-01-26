@@ -91,6 +91,14 @@
 		private static Mobius toUpperHalfPlane = ToUpperHalfPlaneMobius();
 		private static Mobius fromUpperHalfPlane = FromUpperHalfPlaneMobius();
 
+		public static Sphere UHSToBallNotGeodesic( Sphere s )
+		{
+			Vector3D[] four = s.Get4Points();
+			for( int i = 0; i < 4; i++ )
+				four[i] = BallToUHS( four[i] );
+			return Sphere.From4Points( four[0], four[1], four[2], four[3] );
+		}
+
 		/// <summary>
 		/// NOTE: s must be geodesic! (orthogonal to boundary).
 		/// </summary>
@@ -369,7 +377,7 @@
 				out Vector3D centerEuclidean, out double radiusEuclidean )
 			{
 				DupinCyclideSphere( v, radiusEuclideanOrigin, Geometry.Hyperbolic, out centerEuclidean, out radiusEuclidean );
-				ApplyMinRadiusForWiki( ref radiusEuclidean );
+				//ApplyMinRadiusForWiki( ref radiusEuclidean );
 				//ApplyMinRadiusForPrinting( ref radiusEuclidean );
 			}
 
@@ -413,6 +421,20 @@
 				Vector3D t2 = m.Apply( new Vector3D( -mag, 0, 0 ) );
 				center = ( t1 + t2 ) / 2;
 				radius = t1.Dist( t2 ) / 2; */
+			}
+
+			/// <summary>
+			/// Returns the distance from the origin in the ball model that will give a desired euclidean radius,
+			/// given a euclidean radius at the origin.  This is a helper method for shapeways planning, since
+			/// there are minimum wire thickness.  We can use this to help figure out how far we can recurse.
+			/// http://www.wolframalpha.com/input/?i=m+%3D+r+*+(+1+-+p+*+p+)+%2F+(+1+-+p+*+p+*+r+*+r+),+solve+for+p
+			/// </summary>
+			public static double FindLocationForDesiredRadius( double radiusEuclideanOrigin, double desiredRadiusEuclidean )
+			{
+				Complex r = radiusEuclideanOrigin;
+				Complex m = desiredRadiusEuclidean;
+				Complex result = Complex.Sqrt( m - r ) / Complex.Sqrt( m * r * r - r );
+				return result.Real;
 			}
 
 			private static void ApplyMinRadiusForWiki( ref double radius )
@@ -723,7 +745,7 @@
 			private static Vector3D HalfTo( Vector3D v )
 			{
 				double distHyperbolic = DonHatch.e2hNorm( v.Abs() );
-				double halfDistEuclidean = DonHatch.h2eNorm( distHyperbolic / 3 );
+				double halfDistEuclidean = DonHatch.h2eNorm( distHyperbolic / 2 );
 				Vector3D result = v;
 				result.Normalize( halfDistEuclidean );
 				return result;
@@ -771,7 +793,7 @@
 			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2, double quality = 1.0 )
 			{
 				int div = 40; // Wiki
-				div = 37;
+				div = 57;
 				//LODThin( v1, v2, out div );
 
 				// Account for quality.
@@ -822,10 +844,10 @@
 				//if( settings.Halfspace )
 				//	throw new System.NotImplementedException();
 
-				int maxHit = 15;
-				int hit = (int)( Math.Max( e1.Abs(), e2.Abs() ) * maxHit );
-				div1 = 11;
-				div2 = 30 - hit;
+				int maxHit = 7;
+				int hit = (int)( Math.Pow( Math.Min( e1.Abs(), e2.Abs() ), 3 ) * maxHit );
+				div1 = 10 - hit;
+				div2 = 35 - hit*3;
 
 				/* lasercrystal
 				int maxHit = 8;
@@ -1075,6 +1097,12 @@
 
 	public static class H3Sphere
 	{
+		public static void AddSphere( Shapeways mesh, Sphere s, int div )
+		{
+			mesh.Div = div;
+			mesh.AddSphere( s.Center, s.Radius );
+		}
+
 		/// <summary>
 		/// A helper for adding a sphere.  center should be passed in the ball model.
 		/// The approach is similar to how we do the bananas below.

@@ -63,6 +63,7 @@
     <Compile Include="Experiments\S3_Minimal.cs" />
     <Compile Include="Experiments\SphericalTrig.cs" />
     <Compile Include="Experiments\ThreeFifty.cs" />
+    <Compile Include="Experiments\Tree.cs" />
     <Compile Include="HoneycombGen.cs" />
     <Compile Include="Experiments\ImageGrid.cs" />
     <Compile Include="Experiments\Lawson.cs" />
@@ -75,6 +76,7 @@
     <Compile Include="Experiments\Sandbox.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Simplex.cs" />
+    <Compile Include="StlGen.cs" />
     <Compile Include="Utils\DataContractHelper.cs" />
     <Compile Include="Utils\Util.cs" />
     <Compile Include="ViewPath.cs" />

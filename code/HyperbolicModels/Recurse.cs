@@ -165,6 +165,34 @@
 			return CalcCells( mirrors, cells, settings );
 		}
 
+		public static H3.Cell[] CalcCellsSmart( Sphere[] mirrors, H3.Cell[] cells, Settings settings, int desiredCount )
+		{
+			double t1 = 80;
+			double t2 = 130;
+
+			// I found that log(1/thresh)/log(count) was relatively constant,
+			// so we'll extrapolate that to get close to the right number of edges.
+			double OneOverThresh = t1;
+			settings.Threshold = 1 / OneOverThresh;
+			H3.Cell[] result = CalcCells( mirrors, cells, settings );
+			int count1 = result.Length;
+			System.Console.WriteLine( string.Format( "count1: {0}", count1 ) );
+
+			OneOverThresh = t2;
+			settings.Threshold = 1 / OneOverThresh;
+			result = CalcCells( mirrors, cells, settings );
+			int count2 = result.Length;
+			System.Console.WriteLine( string.Format( "count2: {0}", count2 ) );
+
+			double slope = (Math.Log( count2 ) - Math.Log( count1 )) / (Math.Log( t2 ) - Math.Log( t1 ));
+			double logDesiredCount = Math.Log( (double)desiredCount );
+			double temp = Math.Log( t2 ) + (logDesiredCount - Math.Log( count2 )) / slope;
+
+			settings.Threshold = 1 / Math.Exp( temp );
+			System.Console.WriteLine( string.Format( "Setting threshold to: {0}", settings.Threshold ) );
+			return CalcCells( mirrors, cells, settings );
+		}
+
 		public static H3.Cell[] CalcCells( Sphere[] mirrors, H3.Cell[] cells, Settings settings )
 		{
 			HashSet<Vector3D> completedCellIds = new HashSet<Vector3D>( cells.Select( c => c.ID ).ToArray() );
@@ -183,7 +211,8 @@
 
 			foreach( H3.Cell cell in cells )
 			//foreach( Sphere mirror in simplex )
-			for( int m=0; m<simplex.Length; m++ )
+			//for( int m=0; m<simplex.Length; m++ )
+			for( int m=simplex.Length-1; m>=0; m-- )
 			{
 				Sphere mirror = simplex[m];
 				//if( m == 2 )
@@ -193,7 +222,7 @@
 				//	return;
 
 				//if( completedCellIds.Count > settings.MaxEdges/5 )
-				if( completedCellIds.Count > settings.MaxEdges / 5 )
+				if( completedCellIds.Count > settings.MaxEdges * 3 )
 					throw new System.Exception( "Maxing out cells - will result in uneven filling." );
 
 				H3.Cell newCell = cell.Clone();	
@@ -202,6 +231,9 @@
 				// This tracks reflections across the cell facets.
 				newCell.Depths[m]++;
 				newCell.LastReflection = m;
+
+				//if( newCell.Depths[0] > 2 )
+				//	continue;
 
 				if( !CellOk( newCell, settings ) )
 					continue;
@@ -364,13 +396,7 @@
 						//if( closestToOrigin > thresh )
 						//	return false;
 
-						//if( f.Sphere.Radius < 0.001 )
-						if( f.Sphere.Radius < 0.005 )
-						//if( f.Sphere.Radius < 0.015 )
-						//if( f.Sphere.Radius < 0.02 )
-						//if( f.Sphere.Radius < 0.05 )
-						//if( f.Sphere.Radius < 0.1 )
-						//if( f.Sphere.Radius < 0.25 )
+						if( f.Sphere.Radius < thresh )
 							return false;
 					}
 					else

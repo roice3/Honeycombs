@@ -13,9 +13,10 @@
 			SetLevels( 3 );
 		}
 
-		public static void SetLevels( int levels )
+		public static int SetLevels( int levels )
 		{
 			m_maxSubdivisions = (int)Math.Pow( 2, levels );
+			return m_maxSubdivisions;
 		}
 
 		/// <summary>
