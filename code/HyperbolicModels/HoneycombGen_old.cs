@@ -5,6 +5,7 @@
 	using System.Linq;
 	using R3.Core;
 	using R3.Geometry;
+	using R3.Math;
 
 	/// <summary>
 	/// This is an attempt to cleanup the HoneycombGen code to the latest/cleanest impl.
@@ -96,7 +97,7 @@
 			int q = imageData.Q;
 			int r = imageData.R;
 
-			double thickness = 0.1;
+			double thickness = 0.05;
 			double thicknessSpherical = Spherical2D.s2eNorm( thickness );
 			double thicknessHyperbolic = R3.Math.DonHatch.h2eNorm( thickness );
 			double threshold = 1;
@@ -225,8 +226,15 @@
 				}
 			}
 
+			// Rotate
+			bool rotate = true;
+			if( rotate )
+			{
+				CompoundOfFive24Cells( edges );
+			}
+
 			// Write the file
-			bool pov = false;
+			bool pov = true;
 			if( pov )
 			{
 				string filename = string.Format( "{0}{1}{2}.pov", p, q, r );
@@ -241,13 +249,13 @@
 					verts.Add( e.Start );
 					verts.Add( e.End );
 				}
-				foreach( Vector3D v in verts )
+				/*foreach( Vector3D v in verts )
 				{
 					Vector3D t = v;
 					t.Normalize();
 					t *= 0.9;
 					System.Diagnostics.Trace.WriteLine( string.Format( "light_source {{ <{0},{1},{2}> White*.2 }}", t.X, t.Y, t.Z ) );
-				}
+				}*/
 
 
 				/*
@@ -272,6 +280,152 @@
 				else
 					throw new System.NotImplementedException();
 			}
+		}
+
+		private static void CompoundOfFive24Cells( H3.Cell.Edge[] edges )
+		{
+			List<H3.Cell.Edge> allEdges = new List<H3.Cell.Edge>();
+
+			Vector3D v600 = Sterographic.R3toS3( SimplexCalcs.VertexSpherical( 3, 3, 5 ) );
+			Vector3D v24 = Sterographic.R3toS3( SimplexCalcs.VertexSpherical( 3, 4, 3 ) );
+			Sphere[] mirrors600 = SimplexCalcs.MirrorsSpherical( 3, 3, 5 );
+
+			// Angle between 2 600-cell vertices
+			double aSwitch = Sterographic.R3toS3( edges[2].Start ).AngleTo( Sterographic.R3toS3( edges[2].End ) );
+			aSwitch = -0.628318530717952;
+
+			double a24 = v24.AngleTo( Sterographic.R3toS3( new Vector3D() ) );
+			double a600 = v600.AngleTo( Sterographic.R3toS3( new Vector3D() ) );
+
+			Matrix4D m600 = Matrix4D.MatrixToRotateinCoordinatePlane( a600, 2, 3 );
+			Matrix4D m600_ = Matrix4D.MatrixToRotateinCoordinatePlane( -a600, 2, 3 );
+			Matrix4D m24 = Matrix4D.MatrixToRotateinCoordinatePlane( a24, 2, 3 );
+			Matrix4D mSwitch = Matrix4D.MatrixToRotateinCoordinatePlane( aSwitch, 2, 3 );
+
+			double eLength = 2 * Math.PI / 10;
+			double a_id = Math.Asin( Math.Sin( eLength / 2 ) / Math.Sin( Math.PI / 3 ) * Math.Sin( Math.PI / 2 ) );
+
+			eLength = 1.0 / Math.Sin( 2 * Math.PI / 5 );
+			double a_i = Math.Asin( Math.Sin( eLength / 2 ) / Math.Sin( Math.PI / 3 ) * Math.Sin( Math.PI / 2 ) );
+
+			Func<Vector3D, int, Vector3D> rotOne = ( v, idx ) =>
+			{
+				v = Sterographic.R3toS3( v );
+				v = m24.RotateVector( v );
+				v = Sterographic.S3toR3( v );
+
+				v.RotateAboutAxis( new Vector3D( 1, 0, 0 ), -a_id );
+				//v.RotateAboutAxis( new Vector3D( 0, 0, 1 ), 2 * Math.PI / 3 );
+
+				// Vertex to cell center.
+				v = Sterographic.R3toS3( v );
+				v = m600_.RotateVector( v );
+				v = Sterographic.S3toR3( v );
+
+				List<int> reflections = new List<int>();
+				if( idx == 0 )
+				{
+					reflections.Add( 2 );
+					reflections.Add( 1 );
+					reflections.Add( 2 );
+					reflections.Add( 0 );
+					reflections.Add( 1 );
+					reflections.Add( 2 );
+					reflections.Add( 1 );
+					reflections.Add( 2 );
+				}
+
+				if( idx != 0 )
+				{
+					reflections.Add( 3 );
+				}
+				if( idx == 2 )
+				{
+					reflections.Add( 1 );
+					reflections.Add( 2 );
+				}
+				if( idx == 3 )
+				{
+					reflections.Add( 2 );
+					reflections.Add( 1 );
+				}
+				if( idx == 4 )
+				{
+					reflections.Add( 1 );
+					reflections.Add( 0 );
+					reflections.Add( 1 );
+					reflections.Add( 2 );
+					reflections.Add( 0 );
+					reflections.Add( 1 );
+					reflections.Add( 0 );
+					reflections.Add( 1 );
+				}
+
+				foreach( int reflection in reflections )
+					v = mirrors600[reflection].ReflectPoint( v );
+
+				//v = Sterographic.R3toS3( v );
+				//v = m600.RotateVector( v );
+				//v = Sterographic.S3toR3( v );
+
+				return v;
+			};
+
+			for( int i = 0; i < 5; i++ )
+			{
+				//if( i == 0 )
+				//	continue;
+
+				allEdges.AddRange( edges.Select( e =>
+				{
+					H3.Cell.Edge newEdge = new H3.Cell.Edge( rotOne( e.Start, i ), rotOne( e.End, i ) );
+					switch( i )
+					{
+					case 0:
+						newEdge.Color = new Vector3D( 1, 0, 0 );
+						break;
+					case 1:
+						newEdge.Color = new Vector3D( 0, 1, 0 );
+						break;
+					case 2:
+						newEdge.Color = new Vector3D( 0, 0, 1 );
+						break;
+					case 3:
+						newEdge.Color = new Vector3D( 1, 0, 1 );
+						break;
+					case 4:
+						newEdge.Color = new Vector3D( 0, 1, 1 );
+						break;
+					}
+					return newEdge;
+				} ) );
+			}
+
+			edges = allEdges.ToArray();
+
+			//edges = edges.Where( e => Tolerance.Equal( 1, e.Start.Abs() ) || Tolerance.Equal( 1, e.End.Abs() ) ).ToArray();
+
+			HashSet<Vector3D> uniqueVerts = new HashSet<Vector3D>();
+			foreach( H3.Cell.Edge e in edges )
+			{
+				uniqueVerts.Add( e.Start );
+				uniqueVerts.Add( e.End );
+			}
+			System.Diagnostics.Trace.WriteLine( "Number of verts = " + uniqueVerts.Count );
+
+			/*edges = edges.Where( e =>
+			{
+				Vector3D v = Tolerance.Equal( 1, e.Start.Abs() ) ? e.End : e.Start;
+				if( v.Abs() >= 0.8 || v.Abs() <= 0.7 )
+					return false;
+
+				if( Tolerance.LessThanOrEqual( v.X, 0 ) || Tolerance.GreaterThanOrEqual( v.Y, 0 ) || Tolerance.GreaterThanOrEqual( v.Z, 0 ) )
+					return false;
+
+				return true;
+			} ).ToArray();
+
+			edges = edges.OrderBy( e => Tolerance.Equal( 1, e.Start.Abs() ) ? e.End.Abs() : e.Start.Abs() ).ToArray();*/
 		}
 
 		private static void SpecialCase333()

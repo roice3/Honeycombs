@@ -259,6 +259,8 @@
 		{
 			Vector3D start = Sterographic.R3toS3( v1 );
 			Vector3D end = Sterographic.R3toS3( v2 );
+			AvoidNorthPole( ref start, end );
+			AvoidNorthPole( ref end, start );
 
 			int div = 42;
 			//int div = 56;		// 343
@@ -269,9 +271,28 @@
 			{
 				result[i].Normalize();
 				result[i] = Sterographic.S3toR3( result[i] );
+
+				if( result[i].DNE )
+				{
+					int stop = 1;
+				}
 			}
 
 			return result;
+		}
+
+		private static void AvoidNorthPole( ref Vector3D v, Vector3D direction )
+		{
+			if( !Tolerance.Equal( v.W, 1 ) )
+				return;
+
+			Vector3D cutEnd = v - direction;
+			double abs = cutEnd.Abs();
+			abs -= 0.35;
+			cutEnd.Normalize();
+			cutEnd *= abs;
+			v = direction + cutEnd;
+			v.Normalize();
 		}
 	}
 }

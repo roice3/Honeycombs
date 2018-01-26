@@ -231,13 +231,13 @@
 			// options: b_spline, linear_spline, cubic_spline
 
 			string formattedPoints = string.Join( ",", appended.Select( formatVecAndSize ).ToArray() );
-			return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex2}} }}", points.Length + 2, formattedPoints );
 			//return string.Format( "sphere_sweep {{ linear_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
 
 			// With color included.
-			color.X = 220;
+			/*color.X = 220;
 			color.Z = 0.4 + (1 - color.Z)*.6;
-			color = CHSL2RGB( color );	// May or may not want to do this.
+			color = CHSL2RGB( color );	// May or may not want to do this.*/
 			return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2}}} }}",
 				points.Length + 2, formattedPoints, FormatVecLowRes( color ) );
 			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color CHSL2RGB({2})}} }}", 

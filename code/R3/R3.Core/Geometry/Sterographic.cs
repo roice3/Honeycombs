@@ -1,5 +1,6 @@
 ﻿namespace R3.Geometry
 {
+	using R3.Core;
 	using R3.Geometry;
 	using Math = System.Math;
 
@@ -48,6 +49,9 @@
 		public static Vector3D S3toR3( Vector3D p )
 		{
 			double w = p.W;
+			if( Tolerance.Equal( w, 1 ) )
+				return Vector3D.DneVector();
+
 			return new Vector3D(
 				p.X / ( 1 - w ),
 				p.Y / ( 1 - w ),
