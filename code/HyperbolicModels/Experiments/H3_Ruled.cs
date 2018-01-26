@@ -53,12 +53,13 @@
 		{
 			List<H3.Cell.Edge> fiberList = new List<H3.Cell.Edge>();
 
-			double rotationRate = Math.PI / 40;
-			int numFibers = 350;
+			// These two params affect each other (changing numFibers will affect rotation rate).
+			double rotationRate = Math.PI / 78.5;
+			int numFibers = 1000;
 
 			// Note: we need to increment a constant hyperbolic distance each step.
 			int count = 0;
-			double max = DonHatch.e2hNorm( 0.99 );
+			double max = DonHatch.e2hNorm( 0.998 );
 			double offset = max * 2 / (numFibers - 1);
 			for( double z_h = -max; z_h <= max; z_h += offset )
 			{
@@ -77,22 +78,28 @@
 				v1 = Transform( v1 );
 				v2 = Transform( v2 );
 
-				fiberList.Add( new H3.Cell.Edge( v1, v2 ) );
+				Vector3D t = Transform( new Vector3D( 0, 0, z ) );
+				double cutoff = 0.995;
+				if( t.Abs() > cutoff )
+					continue;
+
+				fiberList.Add( new H3.Cell.Edge( v1, v2, order: false ) );
 				count++;
 			}
 
 			return fiberList.ToArray();
 		}
 
-		public Vector3D Transform( Vector3D v )
+		public static Vector3D Transform( Vector3D v )
 		{
-			v.RotateAboutAxis( new Vector3D( 1, 0 ), Math.PI / 2 );
+			double angle = Math.PI / 3;	// Kind of weird, and not really controllable.
+			v.RotateAboutAxis( new Vector3D( 1, 0 ), angle );
 
 			Mobius m = new Mobius();
-			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, 0.6 ) );
+			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, 0.5 ) );
 			v = H3Models.TransformHelper( v, m );
 
-			v.RotateAboutAxis( new Vector3D( 1, 0 ), -Math.PI / 2 );
+			v.RotateAboutAxis( new Vector3D( 1, 0 ), -angle );
 			return v;
 		}
 	}
