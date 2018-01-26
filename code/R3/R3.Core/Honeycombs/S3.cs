@@ -16,21 +16,21 @@
 
 			HashSet<Vector3D> done = new HashSet<Vector3D>();
 			foreach( Tile tile in tiling.Tiles )
-				foreach( Segment seg in tile.Boundary.Segments )
+			foreach( Segment seg in tile.Boundary.Segments )
+			{
+				if( done.Contains( seg.Midpoint ) )
+					continue;
+
+				// Subdivide the segment, and project points to S2.
+				Vector3D[] points = seg.Subdivide( segDivisions ).Select( v => Spherical2D.PlaneToSphere( v ) ).ToArray();
+				foreach( Vector3D point in points )
 				{
-					if( done.Contains( seg.Midpoint ) )
-						continue;
-
-					// Subdivide the segment, and project points to S2.
-					Vector3D[] points = seg.Subdivide( segDivisions ).Select( v => Spherical2D.PlaneToSphere( v ) ).ToArray();
-					foreach( Vector3D point in points )
-					{
-						Vector3D[] circlePoints = OneHopfCircle( point );
-						ProjectAndAddS3Points( mesh, circlePoints, shrink: false );
-					}
-
-					done.Add( seg.Midpoint );
+					Vector3D[] circlePoints = OneHopfCircle( point );
+					ProjectAndAddS3Points( mesh, circlePoints, shrink: false );
 				}
+
+				done.Add( seg.Midpoint );
+			}
 
 			STL.SaveMeshToSTL( mesh.Mesh, @"D:\p4\R3\sample\out1.stl" );
 		}
@@ -38,11 +38,11 @@
 		public static void HopfOrbit()
 		{
 			List<Vector3D> s2Points = new List<Vector3D>();
-			for( double theta = Math.PI * .1; theta <= Math.PI * .9; theta += Math.PI * .2 )
-				for( double lon = -Math.PI; lon <= Math.PI; lon += Math.PI / 10 )
-				{
-					s2Points.Add( SphericalCoords.SphericalToCartesian( new Vector3D( 1.0, theta, lon ) ) );
-				}
+			for( double theta = Math.PI * .1; theta <= Math.PI * .9; theta += Math.PI *.2 )
+			for( double lon = -Math.PI; lon <= Math.PI; lon += Math.PI/10 )
+			{
+				s2Points.Add( SphericalCoords.SphericalToCartesian( new Vector3D( 1.0, theta, lon ) ) );
+			}
 
 			using( StreamWriter sw = File.CreateText( @".\out.pov" ) )
 			{
@@ -70,9 +70,9 @@
 			double a = s2Point.X;
 			double b = s2Point.Y;
 			double c = s2Point.Z;
-			double factor = 1 / (Math.Sqrt( 1 + c ));
+			double factor = 1 / ( Math.Sqrt( 1 + c ) );
 			if( Tolerance.Equal( c, -1 ) )
-				return new Vector3D[] { };
+				return new Vector3D[] {};
 
 			List<Vector3D> circlePoints = new List<Vector3D>();
 			double angleInc = 2 * Math.PI / circleDivisions;
@@ -82,10 +82,10 @@
 				double sinTheta = Math.Sin( angle );
 				double cosTheta = Math.Cos( angle );
 				Vector3D point = new Vector3D(
-					(1 + c) * cosTheta,
-					anti ? -a * sinTheta - b * cosTheta : a * sinTheta - b * cosTheta,
-					anti ? a * cosTheta - b * sinTheta : a * cosTheta + b * sinTheta,
-					(1 + c) * sinTheta );
+					( 1 + c ) * cosTheta,
+					anti ? - a * sinTheta - b * cosTheta : a * sinTheta - b * cosTheta,
+					anti ?   a * cosTheta - b * sinTheta : a * cosTheta + b * sinTheta,
+					( 1 + c ) * sinTheta );
 				point.Normalize();
 				circlePoints.Add( point );
 
@@ -124,12 +124,12 @@
 		public static void EdgesToStl( H3.Cell.Edge[] edges )
 		{
 			Shapeways mesh = new Shapeways();
-
+			
 			int divisions = 25;
 			foreach( H3.Cell.Edge edge in edges )
 			{
-				Segment seg = Segment.Line(
-					Sterographic.R3toS3( edge.Start ),
+				Segment seg = Segment.Line( 
+					Sterographic.R3toS3( edge.Start ), 
 					Sterographic.R3toS3( edge.End ) );
 				Vector3D[] points = seg.Subdivide( divisions );
 
@@ -149,7 +149,7 @@
 
 		private static void ProjectAndAddS3Points( Shapeways mesh, Vector3D[] pointsS3 )
 		{
-			double r = 0.03;
+			double r = 0.02;
 
 			List<Vector3D> projected = new List<Vector3D>();
 			List<double> radii = new List<double>();
@@ -200,13 +200,13 @@
 
 				double abs = v.Abs();
 				if( shrink )
-					abs = Math.Tan( abs );  // The unshrunk abs.
+					abs = Math.Tan( abs );	// The unshrunk abs.
 
 				// The thickness at this vector location.
 				double result = Spherical2D.s2eNorm( Spherical2D.e2sNorm( abs ) + sphericalThickness ) - abs;
 
 				if( shrink )
-					result *= Math.Atan( abs ) / abs;   // shrink it back down.
+					result *= Math.Atan( abs ) / abs;	// shrink it back down.
 
 				return result;
 			};
@@ -217,113 +217,39 @@
 		public static void Hypercube()
 		{
 			List<Vector3D> vertices = new List<Vector3D>();
-			vertices.Add( new Vector3D( 1, 1, 1, 1 ) );
-			vertices.Add( new Vector3D( 1, 1, 1, -1 ) );
-			vertices.Add( new Vector3D( 1, 1, -1, 1 ) );
-			vertices.Add( new Vector3D( 1, 1, -1, -1 ) );
-			vertices.Add( new Vector3D( 1, -1, 1, 1 ) );
-			vertices.Add( new Vector3D( 1, -1, 1, -1 ) );
-			vertices.Add( new Vector3D( 1, -1, -1, 1 ) );
-			vertices.Add( new Vector3D( 1, -1, -1, -1 ) );
-			vertices.Add( new Vector3D( -1, 1, 1, 1 ) );
-			vertices.Add( new Vector3D( -1, 1, 1, -1 ) );
-			vertices.Add( new Vector3D( -1, 1, -1, 1 ) );
-			vertices.Add( new Vector3D( -1, 1, -1, -1 ) );
-			vertices.Add( new Vector3D( -1, -1, 1, 1 ) );
-			vertices.Add( new Vector3D( -1, -1, 1, -1 ) );
-			vertices.Add( new Vector3D( -1, -1, -1, 1 ) );
+			vertices.Add( new Vector3D(  1,  1,  1,  1 ) );
+			vertices.Add( new Vector3D(  1,  1,  1, -1 ) );
+			vertices.Add( new Vector3D(  1,  1, -1,  1 ) );
+			vertices.Add( new Vector3D(  1,  1, -1, -1 ) );
+			vertices.Add( new Vector3D(  1, -1,  1,  1 ) );
+			vertices.Add( new Vector3D(  1, -1,  1, -1 ) );
+			vertices.Add( new Vector3D(  1, -1, -1,  1 ) );
+			vertices.Add( new Vector3D(  1, -1, -1, -1 ) );
+			vertices.Add( new Vector3D( -1,  1,  1,  1 ) );
+			vertices.Add( new Vector3D( -1,  1,  1, -1 ) );
+			vertices.Add( new Vector3D( -1,  1, -1,  1 ) );
+			vertices.Add( new Vector3D( -1,  1, -1, -1 ) );
+			vertices.Add( new Vector3D( -1, -1,  1,  1 ) );
+			vertices.Add( new Vector3D( -1, -1,  1, -1 ) );
+			vertices.Add( new Vector3D( -1, -1, -1,  1 ) );
 			vertices.Add( new Vector3D( -1, -1, -1, -1 ) );
 
 			HashSet<H3.Cell.Edge> edges = new HashSet<H3.Cell.Edge>( new H3.Cell.EdgeEqualityComparer() );
 			foreach( Vector3D v1 in vertices )
-				foreach( Vector3D v2 in vertices )
-					if( v1.Dist( v2 ) == 2 )
-						edges.Add( new H3.Cell.Edge( v1, v2 ) );
-
-			//Matrix4D mat = Matrix4D.MatrixToRotateinCoordinatePlane( 2 * Math.PI / 8, 2, 3 );
+			foreach( Vector3D v2 in vertices )
+				if( v1.Dist( v2 ) == 2 )
+					edges.Add( new H3.Cell.Edge( v1, v2 ) );
 
 			// Radial project to S3, then stereographic to R3.
-			HashSet<Vector3D> verts = new HashSet<Vector3D>();
-			Shapeways mesh = new Shapeways();
 			foreach( H3.Cell.Edge edge in edges )
 			{
 				edge.Start.Normalize();
+				edge.Start = Sterographic.S3toR3( edge.Start );
 				edge.End.Normalize();
-				Vector3D mid = (edge.Start + edge.End) / 2;
-				mid.Normalize();
-
-				//edge.Start = mat.RotateVector( edge.Start );
-				//edge.End = mat.RotateVector( edge.End );
-
-				Vector3D sProjected = Sterographic.S3toR3( edge.Start );
-				Vector3D eProjected = Sterographic.S3toR3( edge.End );
-				Vector3D mProjected = Sterographic.S3toR3( mid );
-
-				//if( Tolerance.LessThan( sProjected.Z, 0 ) || Tolerance.LessThan( eProjected.Z, 0 ) )
-				//	continue;
-				if( sProjected.Z < 0 && eProjected.Z < 0 )
-					continue;
-				if( sProjected.Z < 0 )
-					sProjected = mProjected;
-				else
-					AddVert( mesh, sProjected, verts );
-				if( eProjected.Z < 0 )
-					eProjected = mProjected;
-				else
-					AddVert( mesh, eProjected, verts );
-
-				//AddVert( mesh, sProjected, verts );
-				//AddVert( mesh, eProjected, verts );
-				edge.Start = Sterographic.R3toS3( sProjected );
-				edge.End = Sterographic.R3toS3( eProjected );
-				AddEdge( mesh, edge );
-
-				edge.Start = sProjected;
-				edge.End = eProjected;
+				edge.End = Sterographic.S3toR3( edge.End );
 			}
 
-			double thresh = -.01;
-			Vector3D looking = new Vector3D( 0, 0, -1 );
-
-
-			STL.SaveMeshToSTL( mesh.Mesh, "433.stl" );
-
-			//PovRay.WriteEdges( new PovRay.Parameters() { AngularThickness = .05 }, Geometry.Spherical, edges.ToArray(), "433.pov", append: false ); 
-		}
-
-		private static void AddVert( Shapeways mesh, Vector3D vertR3, HashSet<Vector3D> completed )
-		{
-			if( completed.Contains( vertR3 ) )
-				return;
-
-			Sphere sphere = SphereFunc( vertR3 );
-			mesh.AddSphere( sphere.Center, sphere.Radius );
-		}
-
-		private static void AddEdge( Shapeways mesh, H3.Cell.Edge edge )
-		{
-			Segment seg = Segment.Line( edge.Start, edge.End );
-			Vector3D[] points = seg.Subdivide( 45 ).Select( v => { v.Normalize(); return Sterographic.S3toR3( v ); } ).ToArray();
-
-			List<Vector3D> ePoints = new List<Vector3D>();
-			List<double> eRadii = new List<double>();
-			foreach( Vector3D pNE in points )
-			{
-				Sphere sphere = SphereFunc( pNE );
-				ePoints.Add( sphere.Center );
-				eRadii.Add( sphere.Radius );
-			}
-			mesh.Div = 45;
-			mesh.AddCurve( ePoints.ToArray(), eRadii.ToArray() );
-		}
-
-		internal static Sphere SphereFunc( Vector3D v )
-		{
-			double minRad = 0.8 / 100;
-			Vector3D c;
-			double r;
-			H3Models.Ball.DupinCyclideSphere( v, 0.08 / 2, Geometry.Spherical, out c, out r );
-			return new Sphere() { Center = c, Radius = Math.Max( r, minRad ) };
+			PovRay.WriteEdges( new PovRay.Parameters() { AngularThickness = .05 }, Geometry.Spherical, edges.ToArray(), "433.pov", append: false ); 
 		}
 
 		/// <summary>
@@ -334,7 +260,7 @@
 			Vector3D start = Sterographic.R3toS3( v1 );
 			Vector3D end = Sterographic.R3toS3( v2 );
 
-			int div = 45;
+			int div = 42;
 			//int div = 56;		// 343
 			//int div = 50;		// 333
 			Segment seg = Segment.Line( start, end );

@@ -51,13 +51,54 @@
 			if( Infinity.IsInfinite( dist ) )
 				return 1;
 
-			double dot = dist*dist; // X^2 + Y^2 + Z^2
+			double dot = dist * dist; // X^2 + Y^2 + Z^2
 			double w = (dot - 1) / (dot + 1);
 
+			w = -w;	// Because I derived formula from north pole.
 			double t = Math.PI / 2 - w * Math.Sqrt( 1 - w * w ) - Math.Asin( w );
-			double r = Math.Pow( 3 / 2 * t, 1 / 3 );
+			double r = Math.Pow( t * 3 / 2, 1.0 / 3 );
 			return r;
+		}
 
+		public static Vector3D StereoToEqualArea( Vector3D p )
+		{
+			Vector3D result = p;
+			result.Normalize();
+			result *= StereoToEqualArea( p.Abs() );
+			return result;
+		}
+
+		private static double StereoToEqualArea( double dist )
+		{
+			if( Infinity.IsInfinite( dist ) )
+				return 1;
+
+			double dot = dist * dist; // X^2 + Y^2 + Z^2
+			double w = (dot - 1) / (dot + 1);
+
+			double r = Math.Sqrt( 2 * (1 + w) );
+			return r/2;
+		}
+
+		public static Vector3D StereoToEquidistant( Vector3D p )
+		{
+			Vector3D result = p;
+			result.Normalize();
+			result *= StereoToEquidistant( p.Abs() );
+			return result;
+		}
+
+		private static double StereoToEquidistant( double dist )
+		{
+			if( Infinity.IsInfinite( dist ) )
+				return 1;
+
+			double dot = dist * dist; // X^2 + Y^2 + Z^2
+			double w = (dot - 1) / (dot + 1);
+
+			double x = Math.Sqrt( 1 - w * w );
+			double r = Euclidean2D.AngleToCounterClock( new Vector3D( 0, -1 ), new Vector3D( x, w ) );
+			return r / Math.PI;
 		}
 
 		private static double m_gScale = 0.5;
