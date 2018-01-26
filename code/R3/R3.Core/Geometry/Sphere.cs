@@ -629,6 +629,10 @@
 			if( Tolerance.Zero( d ) || d > r + R )
 				return null;
 
+			// Sphere's inside spheres and not touching.
+			//if( d < Math.Abs( R - r ) )
+			//	return null;
+
 			double x = ( d*d + r*r - R*R ) / ( 2*d );
 			double y = Math.Sqrt( r*r - x*x );
 
@@ -638,6 +642,22 @@
 			result.Center = s.Center + diff * x;
 			result.Radius = y; 
 			return result;
+		}
+
+		/// <summary>
+		/// Returns null if no intersection, or a Tuple.
+		/// Currently does not work in tangent case.
+		/// </summary>
+		public System.Tuple<Vector3D,Vector3D> Intersection( Circle3D c )
+		{
+			Circle3D intersectionCircle = Intersection( new Sphere() { Center = c.Center, Radius = c.Radius } );
+			if( intersectionCircle == null )
+				return null;
+
+			Vector3D vCross = c.Normal.Cross( intersectionCircle.Normal );
+			vCross.Normalize();
+			vCross *= intersectionCircle.Radius;
+			return new System.Tuple<Vector3D, Vector3D>( intersectionCircle.Center + vCross, intersectionCircle.Center - vCross );
 		}
 
 		public static void RotateSphere( Sphere s, Vector3D axis, double rotation )

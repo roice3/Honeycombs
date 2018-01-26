@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Drawing;
+	using R3.Geometry;
 
 	internal static class Coloring
 	{
@@ -193,9 +194,14 @@
 			return c;
 		}
 
-		private static Color Inverse( Color c )
+		public static Color Inverse( Color c )
 		{
 			return Color.FromArgb( 255, 255 - c.R, 255 - c.G, 255 - c.B );
+		}
+
+		public static Vector3D ToVec( Color c )
+		{
+			return new Vector3D( (double)c.R / 255, (double)c.G / 255, (double)c.B / 255 );
 		}
 	}
 }

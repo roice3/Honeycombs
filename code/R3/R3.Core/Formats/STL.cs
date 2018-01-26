@@ -22,13 +22,17 @@
 				WriteInternal( mesh, sw );
 		}
 
+		public static void AppendMeshToSTL( Mesh mesh, StreamWriter sw )
+		{
+			WriteInternal( mesh, sw );
+		}
+
 		private static void WriteInternal( Mesh mesh, StreamWriter sw )
 		{
 			sw.WriteLine( "solid" );
 			foreach( Mesh.Triangle tri in mesh.Triangles )
 				WriteTriangle( sw, tri );
 			sw.WriteLine( "endsolid" );
-			sw.Close();
 		}
 
 		private static void WriteTriangle( StreamWriter sw, Mesh.Triangle tri )

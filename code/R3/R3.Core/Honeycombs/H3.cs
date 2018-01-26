@@ -9,6 +9,7 @@
 
 	/// <summary>
 	/// A class to play around with H3 honecombs
+	/// Except for the Cell class, this is mostly old, but it is what I used to generate STL models for Shapeways.
 	/// </summary>
 	public class H3
 	{
@@ -415,14 +416,26 @@
 				
 				if( this.Mesh != null )
 				{
+					bool reflectedInPlace = false;
 					for( int i=0; i<Mesh.Triangles.Count; i++ )
 					{
 						Mesh.Triangle tri = Mesh.Triangles[i];
+						Vector3D a = tri.a, b = tri.b, c = tri.c;
 						tri.a = sphere.ReflectPoint( tri.a );
 						tri.b = sphere.ReflectPoint( tri.b );
 						tri.c = sphere.ReflectPoint( tri.c );
+
+						// Keep orientations consistent.
+						//if( !( a == tri.a && b == tri.b && c == tri.c ) )
+							tri.ChangeOrientation();
+						if( a == tri.a && b == tri.b && c == tri.c )
+							reflectedInPlace = true;
+
 						Mesh.Triangles[i] = tri;
 					}
+
+					//if( reflectedInPlace )
+					//	Depths[0]--;
 				}
 			}
 		}
@@ -464,11 +477,38 @@
 				}
 				else
 				{
-					Vector3D[] points = H3Models.Ball.GeodesicPoints( v1, v2 );
-					if( !m_settings.ThinEdges )
-						sizeFunc = v => H3Models.Ball.SizeFunc( v, m_settings.AngularThickness );
-					mesh.AddCurve( points, sizeFunc );
+					int div1, div2;
+					H3Models.Ball.LOD_Finite( v1, v2, out div1, out div2, m_settings );
+					div1 = 15;
+					div2 = 30;
+					Vector3D[] points = H3Models.Ball.GeodesicPoints( v1, v2, div1 );
+					mesh.Div = div2;
+
+					if( m_settings.ThinEdges )
+						mesh.AddCurve( points, sizeFunc );
+					else
+					{
+						List<Vector3D> ePoints = new List<Vector3D>();
+						List<double> eRadii = new List<double>();
+						foreach( Vector3D pNE in points )
+						{
+							Sphere sphere = SphereFunc( pNE );
+							ePoints.Add( sphere.Center );
+							eRadii.Add( sphere.Radius );
+						}
+						mesh.AddCurve( ePoints.ToArray(), eRadii.ToArray() );
+					}
 				}
+			}
+
+			internal static Sphere SphereFunc( Vector3D v )
+			{
+				double minRad = 0.8 / 100;
+				//double minRad = 2.0 / 100;
+				Vector3D c;
+				double r;
+				H3Models.Ball.DupinCyclideSphere( v, m_settings.AngularThickness / 2, Geometry.Hyperbolic, out c, out r );
+				return new Sphere() { Center = c, Radius = Math.Max( r, minRad ) };
 			}
 
 			/// <summary>
@@ -547,25 +587,25 @@
 
 		public static void GenHoneycombs()
 		{
-			//GenHoneycomb( Honeycomb.H434 );
+			//GenHoneycomb( EHoneycomb.H434 );
 
-			//GenHoneycomb( Honeycomb.H435 );
-			//GenHoneycomb( Honeycomb.H534 );
-			//GenHoneycomb( Honeycomb.H535 );
-			//GenHoneycomb( Honeycomb.H353 );
+			//GenHoneycomb( EHoneycomb.H435 );
+			//GenHoneycomb( EHoneycomb.H534 );
+			//GenHoneycomb( EHoneycomb.H535 );
+			//GenHoneycomb( EHoneycomb.H353 );
 
-			//GenHoneycomb( Honeycomb.H336 );
-			//GenHoneycomb( Honeycomb.H436 );
-			//GenHoneycomb( Honeycomb.H536 );
-			//GenHoneycomb( Honeycomb.H344 );
+			//GenHoneycomb( EHoneycomb.H336 );
+			GenHoneycomb( EHoneycomb.H436 );
+			//GenHoneycomb( EHoneycomb.H536 );
+			//GenHoneycomb( EHoneycomb.H344 );
 
-			//GenHoneycomb( Honeycomb.H636 );
-			//GenHoneycomb( Honeycomb.H444 );
-			//GenHoneycomb( Honeycomb.H363 );
+			//GenHoneycomb( EHoneycomb.H636 );
+			//GenHoneycomb( EHoneycomb.H444 );
+			//GenHoneycomb( EHoneycomb.H363 );
 
-			GenHoneycomb( EHoneycomb.H33I );
+			//GenHoneycomb( EHoneycomb.H33I );
 
-			//H3Fundamental.Generate( Honeycomb.H435, m_settings );
+			//H3Fundamental.Generate( EHoneycomb.H435, m_settings );
 		}
 
 		private static int[] m_levelsToKeep = new int[] { 1, 2, 3, 4, 5 };
@@ -683,6 +723,8 @@
 				}
 				case EHoneycomb.H436:
 				{
+					m_settings.AngularThickness = 0.12;
+					m_settings.Position = Polytope.Projection.FaceCentered;
 					break;
 				}
 				case EHoneycomb.H536:
@@ -712,7 +754,7 @@
 				m_settings.Ball_MinLength = 0.001; // duals
 				//m_settings.MaxCells = 300000;
 				//m_settings.MaxCells = 100000;
-				m_settings.MaxCells = 500000;
+				m_settings.MaxCells = 750000;
 				//m_settings.Position = Polytope.Projection.EdgeCentered;
 
 				// Finite
@@ -720,6 +762,10 @@
 				//m_settings.Ball_Cutoff = 0.997;
 				//m_settings.Ball_Cutoff = 0.999;	//535
 			}
+
+			m_settings.Output = Output.STL;
+			m_settings.Position = Polytope.Projection.FaceCentered;
+			m_settings.AngularThickness = 0.13;
 		}
 
 		/// <summary>
@@ -886,12 +932,12 @@
 
 			double inRadius = Honeycomb.InRadius( honeycomb );
 			Cell.Facet[] facets = GenFacetSpheres( tiling, inRadius );
-			Cell first = new Cell( p, facets );
+			//Cell first = new Cell( p, facets );  // Uncomment to do facets only.
 
-			/*Cell first = new Cell( p, GenFacets( tiling ) );
+			Cell first = new Cell( p, GenFacets( tiling ) );
 			first.ToSphere();	// Work in ball model.
 			first.ScaleToCircumSphere( cellScale );
-			first.ApplyMobius( m_settings.Mobius );*/
+			first.ApplyMobius( m_settings.Mobius );
 
 			// This is for getting endpoints of cylinders for hollowing.
 			bool printVerts = false;
@@ -910,9 +956,9 @@
 			HashSet<Vector3D> completedCellCenters = new HashSet<Vector3D>();
 			completedCellCenters.Add( first.ID );
 			Dictionary<Cell.Edge, int> completedEdges = new Dictionary<Cell.Edge, int>( new Cell.EdgeEqualityComparer() );	// Values are recursion level, so we can save this out.
-			HashSet<Sphere> completedFacets = new HashSet<Sphere>( facets.Select( f => f.Sphere ) );
-			//if( CellOk( first ) )
-				//Util.AddEdges( first, level, completedEdges );
+			HashSet<Sphere> completedFacets = new HashSet<Sphere>( first.Facets.Select( f => f.Sphere ) );
+			if( CellOk( first ) )
+				Util.AddEdges( first, level, completedEdges );
 			List<Cell> starting = new List<Cell>();
 			starting.Add( first );
 			List<Cell> completedCells = new List<Cell>();
@@ -921,9 +967,17 @@
 			ReflectRecursive( level, starting, completedCellCenters, completedEdges, completedCells, completedFacets );
 
 			bool finite = cellScale != 1;
-			completedEdges.Clear();
+
+			double thresh = -.01;
+			Vector3D looking = new Vector3D( 0, 0,  -1 );
+			var culled = completedEdges.Keys.Where( e => e.Start.Dot( looking ) > thresh && e.End.Dot( looking ) > thresh ).ToArray();
+			completedEdges = new Dictionary<Cell.Edge, int>();
+			foreach( var c in culled )
+				completedEdges[c] = 1;
+			RemoveDanglingEdgesRecursive( completedEdges );
+
 			SaveToFile( honeycombString, completedEdges, finite );
-			PovRay.AppendFacets( completedCells.ToArray(), m_baseDir + honeycombString + ".pov" );
+			//PovRay.AppendFacets( completedCells.ToArray(), m_baseDir + honeycombString + ".pov" );
 		}
 
 		public static void SaveToFile( string honeycombString, Cell.Edge[] edges, bool finite, bool append = false )
@@ -939,7 +993,7 @@
 				MeshEdges( honeycombString, edges, finite );
 			else
 				PovRay.WriteH3Edges( new PovRay.Parameters() 
-					{ 
+					{
 						AngularThickness = m_settings.AngularThickness,
 						Halfspace = m_settings.Halfspace,
 						//Halfspace = true,
@@ -956,16 +1010,9 @@
 		public static void MeshEdges( string honeycombString, Dictionary<Cell.Edge, int> edges, bool finite )
 		{
 			Shapeways mesh = new Shapeways();
-			if( finite )
-			{
-				//AddBananas( mesh, edges );
-				AddSpheres( mesh, edges );
-			}
-			else
-			{
-				foreach( KeyValuePair<Cell.Edge, int> kvp in edges )
-					Util.AddToMeshInternal( mesh, kvp.Key.Start, kvp.Key.End );
-			}
+			foreach( KeyValuePair<Cell.Edge, int> kvp in edges )
+				Util.AddToMeshInternal( mesh, kvp.Key.Start, kvp.Key.End );
+			AddSpheres( mesh, edges );
 
 			mesh.Mesh.Scale( m_settings.Scale );
 			//SaveOutEdges( edges, m_baseDir + honeycombString + ".txt" );
@@ -1015,6 +1062,8 @@
 
 		public static void RemoveDanglingEdgesRecursive( Dictionary<Cell.Edge, int> edges )
 		{
+			const int requiredVertexValence = 3;
+
 			List<Cell.Edge> needRemoval = new List<Cell.Edge>();
 
 			// Info we'll need to remove dangling edges.
@@ -1028,8 +1077,8 @@
 			foreach( KeyValuePair<Cell.Edge, int> kvp in edges )
 			{
 				Cell.Edge e = kvp.Key;
-				if( vertexCounts[e.Start] == 1 ||
-					vertexCounts[e.End] == 1 )
+				if( vertexCounts[e.Start] < requiredVertexValence ||
+					vertexCounts[e.End] < requiredVertexValence )
 				{
 					needRemoval.Add( e );
 				}
@@ -1061,7 +1110,7 @@
 
 			foreach( KeyValuePair<Vector3D, int> kvp in vertexCounts )
 			{
-				if( kvp.Value < 4 ) // XXX - not always this.
+				//if( kvp.Value < 4 ) // XXX - not always this.
 				{
 					/*
 					Vector3D center = kvp.Key;
@@ -1075,7 +1124,13 @@
 					if( m_settings.ThinEdges )
 						mesh.AddSphere( kvp.Key, SizeFuncConst( new Vector3D() ) );
 					else
-						H3Sphere.AddSphere( mesh, kvp.Key, m_settings );
+					{
+						int div1, div2;
+						H3Models.Ball.LOD_Finite( kvp.Key, kvp.Key, out div1, out div2, m_settings );
+
+						Sphere sphere = Util.SphereFunc( kvp.Key );
+						H3Sphere.AddSphere( mesh, sphere, div2 );
+					}
 				}
 			}
 		}
@@ -1154,7 +1209,7 @@
 			if( 0 == cells.Count )
 				return;
 
-			if( level > 2 )
+			if( level > 4 )
 				return;
 
 			level++;
@@ -1167,12 +1222,12 @@
 				List<Sphere> facetSpheres = new List<Sphere>();
 				foreach( Cell.Facet facet in cell.Facets )
 				{
-					facetSpheres.Add( facet.Sphere );
-					/*
-					if( idealVerts )
+					if( facet.Sphere != null )
+						facetSpheres.Add( facet.Sphere );
+					else if( idealVerts )
 						facetSpheres.Add( H3Models.Ball.OrthogonalSphere( facet.Verts[0], facet.Verts[1], facet.Verts[2] ) );
 					else
-						facetSpheres.Add( H3Models.Ball.OrthogonalSphereInterior( facet.Verts[0], facet.Verts[1], facet.Verts[2] ) );*/
+						facetSpheres.Add( H3Models.Ball.OrthogonalSphereInterior( facet.Verts[0], facet.Verts[1], facet.Verts[2] ) );
 				}
 
 				foreach( Sphere facetSphere in facetSpheres )
@@ -1186,8 +1241,7 @@
 						!CellOk( newCell ) )
 						continue;
 
-					//if( CellOk( newCell ) )
-						//Util.AddEdges( newCell, level, completedEdges );
+					Util.AddEdges( newCell, level, completedEdges );
 					reflected.Add( newCell );
 					completedCellCenters.Add( newCell.ID );
 					completedCells.Add( newCell );
@@ -1201,6 +1255,8 @@
 
 		private static bool CellOk( Cell cell )
 		{
+			return true;
+
 			bool idealVerts = cell.IdealVerts;
 
 			// ZZZ - maybe criterion should be total perimeter?

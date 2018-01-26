@@ -28,8 +28,31 @@
 			{
 				get
 				{
-					return (b - a).Cross( c - a );
+					// Doing this in drawn out steps was because I was having floating point issues for small triangles.
+					// This mid-way normalization solved this.
+					Vector3D v1 = b - a;
+					Vector3D v2 = c - a;
+					v1.Normalize();
+					v2.Normalize();
+					Vector3D n = v1.Cross( v2 );
+					n.Normalize();
+					return n;
 				}
+			}
+
+			public Vector3D Center
+			{
+				get
+				{
+					return (a + b + c) / 3;
+				}
+			}
+
+			public void ChangeOrientation()
+			{
+				Vector3D t = b;
+				b = c;
+				c = t;
 			}
 		}
 
@@ -144,12 +167,15 @@
 		/// Function to add one band
 		/// d1 and d2 are two pre-calc'd edges (often disks) of points.
 		/// </summary>
-		public void AddBand( Vector3D[] d1, Vector3D[] d2 )
+		public void AddBand( Vector3D[] d1, Vector3D[] d2, bool close = true )
 		{
 			if( d1.Length != d2.Length )
 				throw new System.ArgumentException( "Edges must have the same length." );
 
-			for( int i = 0; i < d1.Length; i++ )
+			int end = d1.Length;
+			if( !close )
+				end--;
+			for( int i = 0; i < end; i++ )
 			{
 				int idx1 = i;
 				int idx2 = i == d1.Length - 1 ? 0 : i + 1;

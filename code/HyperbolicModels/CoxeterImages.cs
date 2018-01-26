@@ -6,6 +6,7 @@
 	using System.Linq;
 	using System.Numerics;
 	using System.Threading.Tasks;
+	using R3.Core;
 	using R3.Drawing;
 	using R3.Geometry;
 	using R3.Math;
@@ -109,6 +110,7 @@
 
 							v = ApplyTransformation( v, t );
 							v = PlaneModelToBall( v, t );
+							v *= m_z;
 							int cellFlipsTemp;
 							Color color = CalcColor( settings, ref v, out cellFlipsTemp );
 							cellFlips = Math.Max( cellFlips, cellFlipsTemp );
@@ -143,6 +145,8 @@
 			encoderParams.Param[0] = encoderParam;
 			image.Save( settings.FileName, jgpEncoder, encoderParams );*/
 		}
+
+		internal double m_z = 0;
 
 		/// <summary>
 		/// http://www.wolframalpha.com/input/?i=1%2F+%281%2Be%5E%28-10*%28x-0.5%29%29%29
@@ -196,8 +200,8 @@
 						// Worry that throwing out unconverged could bias.
 						int cellFlips = 0;
 						int[] flips = new int[4];
-						int dummy = -1;
-						if( ReflectToFundamental( settings, ref v, ref flips, ref dummy ) )
+						List<int> allFlips = new List<int>();
+						if( ReflectToFundamental( settings, ref v, ref flips, ref allFlips ) )
 						{
 							cellFlips = flips[0];
 							flipsPerPixel.Add( cellFlips );
@@ -353,6 +357,13 @@
 			Mobius m0 = new Mobius(), m1 = new Mobius(), m2 = new Mobius(), m3 = new Mobius();
 			Sphere unitSphere = new Sphere();
 
+			v.Y -= .8;
+			v *= 7;
+			m0.UpperHalfPlane();
+			v = m0.Apply( v );
+			
+			return v;
+
 			// self-similar scale for 437
 			//v*= 4.259171776329806;
 
@@ -457,7 +468,7 @@
 
 			List<Sphere> toDraw = new List<Sphere>();
 			toDraw.AddRange( settings.Mirrors );
-			toDraw.Add( AlteredFacetForTrueApparent2DTilings( settings.Mirrors ) );
+			//toDraw.Add( AlteredFacetForTrueApparent2DTilings( settings.Mirrors ) );
 
 			using( Graphics g = Graphics.FromImage( image ) )
 			using( Pen p = new Pen( Color.Red, scale * 3.0f ) )
@@ -498,6 +509,9 @@
 
 		private Color AvgColor( List<Color> colors )
 		{
+			//if( colors.Contains( Color.White ) )
+			//	return Color.White;
+
 			int a = (int)colors.Select( c => (double)c.A ).Average();
 			int r = (int)colors.Select( c => (double)c.R ).Average();
 			int g = (int)colors.Select( c => (double)c.G ).Average();
@@ -507,9 +521,9 @@
 
 		private Color CalcColor( Settings settings, ref Vector3D v, out int cellFlips )
 		{
-			int first = -1;
 			int[] flips = new int[4];
-			if( !ReflectToFundamental( settings, ref v, ref flips, ref first ) )
+			List<int> allFlips = new List<int>();
+			if( !ReflectToFundamental( settings, ref v, ref flips, ref allFlips ) )
 			{
 				cellFlips = 0;
 				return Color.White;
@@ -518,14 +532,24 @@
 			cellFlips = flips[0];
 			int totalFlips = flips.Sum();
 
-			//return Color.Black;
-			return ColorFunc( m_whiteBoundary, v, cellFlips, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
+			//int idx = allFlips.FindLastIndex( i => i == 0 );
+			//int faceFlips = allFlips.Skip( idx ).Sum( m => m == 1 ? 1 : 0 );
+			//int layer = cellFlips + faceFlips;
+
+			HashSet<double> layers = new HashSet<double>( new DoubleEqualityComparer() );
+			Vector3D o = new Vector3D();
+			layers.Add( o.Abs() );
+			allFlips.ForEach( i => { o = settings.Mirrors[i].ReflectPoint( o ); layers.Add( o.Abs() ); } );
+			int layer = layers.Count - 1;
+
+
+			return ColorFunc( m_whiteBoundary, v, layer, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
 		}
 
 		/// <summary>
 		/// Somewhat based on http://commons.wikimedia.org/wiki/User:Tamfang/programs
 		/// </summary>
-		private bool ReflectToFundamental( Settings settings, ref Vector3D v, ref int[] flips, ref int first )
+		private bool ReflectToFundamental( Settings settings, ref Vector3D v, ref int[] mirrorFlips, ref List<int> allFlips )
 		{
 			Vector3D original = v;
 
@@ -540,18 +564,18 @@
 				int[] indices = null;
 
 				indices = new int[] { 3 };
-				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref first, ref iterationCount ) )
+				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref mirrorFlips, ref allFlips, ref iterationCount ) )
 					continue;
 
 				indices = new int[] { 3, 2 };	// I'm guessing order is important (?)
-				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref first, ref iterationCount ) )
+				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref mirrorFlips, ref allFlips, ref iterationCount ) )
 					continue;
 
 				indices = new int[] { 3, 2, 1 };
-				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref flips, ref first, ref iterationCount ) )
+				if( !ReflectAcrossMirrors( settings.Mirrors, ref v, indices, ref mirrorFlips, ref allFlips, ref iterationCount ) )
 					continue;
 
-				if( ReflectAcrossMirror( settings.Mirrors, ref v, 0, ref flips, ref first ) )
+				if( ReflectAcrossMirror( settings.Mirrors, ref v, 0, ref mirrorFlips, ref allFlips ) )
 					return true;
 			}
 
@@ -561,30 +585,30 @@
 
 		private int m_maxIterations = 4000;
 
-		private bool ReflectAcrossMirror( Sphere[] mirrors, ref Vector3D v, int idx, ref int[] flips, ref int first )
+		private bool ReflectAcrossMirror( Sphere[] mirrors, ref Vector3D v, int idx, ref int[] mirrorFlips, ref List<int> allFlips )
 		{
 			Sphere mirror = mirrors[idx];
 			bool outsideFacet = mirror.IsPointInside( v );
 			if( outsideFacet )
 			{
 				v = mirror.ReflectPoint( v );
-				flips[idx]++;
-				if( first == -1 )
-					first = idx;
+				mirrorFlips[idx]++;
+				allFlips.Add( idx );
 				return false;
 			}
 
 			return true;
 		}
 
-		private bool ReflectAcrossMirrors( Sphere[] mirrors, ref Vector3D v, int[] indices, ref int[] flips, ref int first, ref int iterationCount )
+		private bool ReflectAcrossMirrors( Sphere[] mirrors, ref Vector3D v, int[] indices, ref int[] mirrorFlips, ref List<int> allFlips, ref int iterationCount )
 		{
 			int clean = 0;
 			while( true && iterationCount < m_maxIterations )
 			{
+				iterationCount++;
 				foreach( int idx in indices )
 				{
-					if( !ReflectAcrossMirror( mirrors, ref v, idx, ref flips, ref first ) )
+					if( !ReflectAcrossMirror( mirrors, ref v, idx, ref mirrorFlips, ref allFlips ) )
 					{
 						clean = 0;
 					}
@@ -595,7 +619,6 @@
 							return true;
 					}
 				}
-				iterationCount++;
 			}
 
 			return false;
@@ -624,8 +647,11 @@
 				//if( i == 2 )	// Dual
 				//if( true )  XXX - try with all and see how it looks!
 				{
-					//facetSphere = GeodesicOffset( s, offset );
-					facetSphere = AlteredFacetForTrueApparent2DTilings( fundamentalRegion );
+					//facetSphere = GeodesicOffset( s, 0.01 );
+					//facetSphere = AlteredFacetForTrueApparent2DTilings( fundamentalRegion );
+
+					facetSphere = fundamentalRegion[0].Clone();
+					facetSphere = new Sphere() { Center = facetSphere.Center, Radius = facetSphere.Radius * 1.05 };
 				}
 				else
 					facetSphere = s;
@@ -644,6 +670,10 @@
 		/// </summary>
 		public static Sphere AlteredFacetForTrueApparent2DTilings( Sphere[] simplex )
 		{
+			//Sphere m = H3Models.BallToUHS( simplex[0] );
+			//Sphere t = new Sphere() { Center = m.Center, Radius = m.Radius*100 };
+			//return H3Models.UHSToBall( t );
+
 			// We first need to find the size of the apparent 2D disk surrounding the leg.
 			// This is also the size of the apparent cell head disk of the dual.
 			// So we want to get the midsphere (insphere would also work) of the dual cell with that head, 
@@ -686,7 +716,7 @@
 
 			double bananaThickness = 0.025;
 			//bananaThickness = 0.15;
-			//bananaThickness = 0.04;
+			bananaThickness = 0.05;
 
 			// Transform the intersection points to a standard Poincare disk.
 			// The midsphere radius is the scale of the apparent 2D tilings.
@@ -822,8 +852,12 @@
 					//return Color.White;
 			}
 
-			//return DepthColor( reflections, colorScaling, invert );
-			return Coloring.ColorAlongHexagon( (int)colorScaling, reflections );
+			//return reflections >= 3 ? Color.White : Color.Black;
+
+			Color c = Coloring.ColorAlongHexagon( (int)colorScaling, reflections );
+			if( invert )
+				c = Coloring.Inverse( c );
+			return c;
 		}
 	}
 }

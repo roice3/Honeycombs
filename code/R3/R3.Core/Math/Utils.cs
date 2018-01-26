@@ -1,6 +1,8 @@
 ﻿namespace R3.Core
 {
 	using R3.Geometry;
+	using System.Collections.Generic;
+	using Math = System.Math;
 
 	public static class Tolerance
 	{
@@ -34,7 +36,7 @@
 
 		public static bool GreaterThanOrEqual( double d1, double d2 )
 		{
-			return d1 > ( d2 + Threshold );
+			return d1 >= ( d2 - Threshold );
 		}
 
 		public static bool Equal( double d1, double d2, double threshold )
@@ -56,6 +58,23 @@
 		{
 			return d1 > ( d2 + threshold );
 		}
+	}
+
+	public class DoubleEqualityComparer : IEqualityComparer<double>
+	{
+		public bool Equals( double d1, double d2 )
+		{
+			return Tolerance.Equal( d1, d2 );
+		}
+
+		public int GetHashCode( double d )
+		{
+			double inverse = 1 / m_tolerance;
+			int decimals = (int)Math.Log10( inverse );
+			return Math.Round( d, decimals ).GetHashCode();
+		}
+
+		private double m_tolerance = Tolerance.Threshold;
 	}
 
 	public static class Utils

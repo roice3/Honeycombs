@@ -57,6 +57,20 @@
 		{
 			return str.Split( new char[] { ',' } ).Select( s => int.Parse( s ) ).ToArray();
 		}
+
+		public string FileName( string extension )
+		{
+			string fileName = string.Format( "{0}-{1}-{2}",
+				NorI( P ), NorI( Q ), NorI( R ) );
+			if( !string.IsNullOrEmpty( extension ) )
+				fileName += "." + extension;
+			return fileName;
+		}
+
+		private static string NorI( int n )
+		{
+			return n == -1 ? "i" : n.ToString();
+		}
 	}
 
 	[DataContract( Namespace = "" )]

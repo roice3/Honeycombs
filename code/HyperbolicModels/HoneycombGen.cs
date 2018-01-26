@@ -6,6 +6,7 @@
 	using System.Linq;
 	using R3.Core;
 	using R3.Geometry;
+	using R3.Math;
 
 	public enum PQR
 	{
@@ -510,6 +511,22 @@
 				//startingEdges.Add( new H3.Cell.Edge( simplex.Verts[0], simplex.Verts[3] ) );	// Used for Borromean Rings complement image.
 			}
 
+			if( false )
+			{
+				Vector3D[] kv = simplex.Verts.Select( v => HyperbolicModels.PoincareToKlein( v ) ).ToArray();
+				kv[3] = SimplexCalcs.VertexPointKlein( def.P, def.Q, def.R );
+				Vector3D t = (kv[3] - kv[0]) * 0.5;
+				Sphere gSphere = H3Models.Ball.OrthogonalSphereInterior( HyperbolicModels.KleinToPoincare( t ) );
+				gSphere = H3Models.BallToKlein( gSphere );
+				Vector3D t2 = Euclidean3D.IntersectionPlaneLine( gSphere.Normal, gSphere.Offset, kv[3] - kv[2], kv[2] );
+				//t2 = kv[2] + ( kv[3] - kv[2]) * 0.5;
+
+				t = HyperbolicModels.KleinToPoincare( t );
+				t2 = HyperbolicModels.KleinToPoincare( t2 );
+				startingEdges.Add( new H3.Cell.Edge( t, t2 ) );
+				startingEdges.Add( new H3.Cell.Edge( t, simplex.ReflectInFacet( t, 3 ) ) );
+			}
+
 			// If we are doing a view path, transform our geometry.
 			if( ViewPath != null )
 			{
@@ -526,7 +543,54 @@
 			Recurse.m_background =  baseHue == -1 ? new Vector3D() : new Vector3D( baseHue, 1, .1 );
 
 			H3.Cell.Edge[] edges = Recurse.CalcEdgesSmart2( simplex.Facets, startingEdges.ToArray(), numEdges );
-			//edges = edges.Where( e => e.Depths[0] % 2 == 1 ).ToArray();
+			//H3.Cell.Edge[] edges = Recurse.CalcEdges( simplex.Facets, startingEdges.ToArray(), 
+			//	new Recurse.Settings() { ThreshType = Recurse.EdgeThreshType.Radial, Threshold = H3Models.Ball.FindLocationForDesiredRadius( settings.PovRay.EdgeWidth, 0.8/100 ) } );
+			//edges = edges.Where( e => e.Depths[0] % 2 == 1 ).ToArray();	// Used for Borromean Rings complement image.
+
+			// Shapeways truncated 436.
+			if( false )
+			if( true )
+			{
+				Mobius m = Mobius.Scale( 1.0 / H3Models.UHS.ToE( Honeycomb.InRadius( def.P, def.Q, def.R ) ) );
+				double a = -Math.PI / 2 + Math.Asin( 1 / Math.Sqrt( 3 ) );
+				edges = edges.Select( e =>
+				{
+					Vector3D v1 = e.Start; 
+					Vector3D v2 = e.End;
+					v1.RotateAboutAxis( new Vector3D( 1, 0, 0 ), a );
+					v2.RotateAboutAxis( new Vector3D( 1, 0, 0 ), a );
+					v1 = H3Models.Ball.ApplyMobius( m, v1 );
+					v2 = H3Models.Ball.ApplyMobius( m, v2 );
+					return new H3.Cell.Edge( v1, v2 );
+				} ).ToArray();
+
+				double thresh = -.01;
+				Vector3D looking = new Vector3D( 0, 0, -1 );
+				edges = edges.Where( e => e.Start.Dot( looking ) > thresh && e.End.Dot( looking ) > thresh ).ToArray();
+
+				Dictionary<H3.Cell.Edge, int> edgeDict = edges.ToDictionary( e => e, e => 1 );
+				H3.RemoveDanglingEdgesRecursive( edgeDict );
+				edges = edgeDict.Keys.ToArray();
+			}
+			else
+			{
+				Mobius m = Mobius.Scale( 2 );
+				edges = edges.Select( e =>
+				{
+					Vector3D v1 = e.Start;
+					Vector3D v2 = e.End;
+					v1 = H3Models.Ball.ApplyMobius( m, v1 );
+					v2 = H3Models.Ball.ApplyMobius( m, v2 );
+					return new H3.Cell.Edge( v1, v2 );
+				} ).ToArray();
+
+				Dictionary<H3.Cell.Edge, int> edgeDict = edges.ToDictionary( e => e, e => 1 );
+				H3.RemoveDanglingEdgesRecursive( edgeDict );
+				edges = edgeDict.Keys.ToArray();
+			}
+
+			//H3.m_settings.Output = H3.Output.STL;
+			//H3.m_settings.Scale = 50;
 			H3.SaveToFile( fileName, edges, finite: true, append: true );
 
 			bool doCells = false;
@@ -576,7 +640,9 @@
 			if( def != null )
 			{
 				HoneycombDef d = def.Value;
-				kleinVerts[3] = SimplexCalcs.VertexPointKlein( d.P, d.Q, d.R );
+				Geometry vertexGeometry = Geometry2D.GetGeometry( d.Q, d.R );
+				if( vertexGeometry == Geometry.Hyperbolic )
+					kleinVerts[3] = SimplexCalcs.VertexPointKlein( d.P, d.Q, d.R );
 			}
 
 			// Normalizing barycentric coords amounts to making sure the 4 coords add to 1.
