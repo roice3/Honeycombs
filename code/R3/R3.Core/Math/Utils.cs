@@ -72,6 +72,9 @@
 
 		public int GetHashCode( double d )
 		{
+			if( Infinity.IsInfinite( d ) )
+				return double.PositiveInfinity.GetHashCode();
+
 			double inverse = 1 / m_tolerance;
 			int decimals = (int)Math.Log10( inverse );
 			return Math.Round( d, decimals ).GetHashCode();
