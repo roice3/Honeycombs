@@ -64,6 +64,9 @@
 	{
 		public bool Equals( double d1, double d2 )
 		{
+			if( Infinity.IsInfinite( d1 ) && Infinity.IsInfinite( d2 ) )
+				return true;
+
 			return Tolerance.Equal( d1, d2 );
 		}
 
