@@ -52,3 +52,4 @@ code/R3/R3.Core/bin/Debug
 code/R3/R3.Core/bin/Release
 code/R3/R3.Core/obj
 *.suo
+*.vsp
