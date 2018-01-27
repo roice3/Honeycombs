@@ -702,6 +702,16 @@
 			}
 
 			/// <summary>
+			/// Returns the spherical distance between two points.
+			/// </summary>
+			public static double SDist( Vector3D u, Vector3D v )
+			{
+				// Likely a more efficient way to do this, analagous to HDist func.
+				Vector3D u_ = Sterographic.R3toS3( u ), v_ = Sterographic.R3toS3( v );
+				return u_.AngleTo( v_ );
+			}
+
+			/// <summary>
 			/// Calculate the hyperbolic midpoint of an edge.
 			/// Only works for non-ideal edges at the moment.
 			/// </summary>
