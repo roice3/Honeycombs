@@ -230,7 +230,7 @@
 			bool rotate = true;
 			if( rotate )
 			{
-				CompoundOfFive24Cells( edges );
+				CompoundOfFive24Cells( ref edges );
 			}
 
 			// Write the file
@@ -282,7 +282,7 @@
 			}
 		}
 
-		private static void CompoundOfFive24Cells( H3.Cell.Edge[] edges )
+		private static void CompoundOfFive24Cells( ref H3.Cell.Edge[] edges )
 		{
 			List<H3.Cell.Edge> allEdges = new List<H3.Cell.Edge>();
 
@@ -290,32 +290,34 @@
 			Vector3D v24 = Sterographic.R3toS3( SimplexCalcs.VertexSpherical( 3, 4, 3 ) );
 			Sphere[] mirrors600 = SimplexCalcs.MirrorsSpherical( 3, 3, 5 );
 
-			// Angle between 2 600-cell vertices
-			double aSwitch = Sterographic.R3toS3( edges[2].Start ).AngleTo( Sterographic.R3toS3( edges[2].End ) );
-			aSwitch = -0.628318530717952;
-
 			double a24 = v24.AngleTo( Sterographic.R3toS3( new Vector3D() ) );
 			double a600 = v600.AngleTo( Sterographic.R3toS3( new Vector3D() ) );
 
 			Matrix4D m600 = Matrix4D.MatrixToRotateinCoordinatePlane( a600, 2, 3 );
 			Matrix4D m600_ = Matrix4D.MatrixToRotateinCoordinatePlane( -a600, 2, 3 );
 			Matrix4D m24 = Matrix4D.MatrixToRotateinCoordinatePlane( a24, 2, 3 );
-			Matrix4D mSwitch = Matrix4D.MatrixToRotateinCoordinatePlane( aSwitch, 2, 3 );
+			Matrix4D m24_ = Matrix4D.MatrixToRotateinCoordinatePlane( -a24, 2, 3 );
 
-			double eLength = 2 * Math.PI / 10;
+			double eLength = 2 * Math.PI / 10;	// 600-cell edge length
 			double a_id = Math.Asin( Math.Sin( eLength / 2 ) / Math.Sin( Math.PI / 3 ) * Math.Sin( Math.PI / 2 ) );
 
-			eLength = 1.0 / Math.Sin( 2 * Math.PI / 5 );
-			double a_i = Math.Asin( Math.Sin( eLength / 2 ) / Math.Sin( Math.PI / 3 ) * Math.Sin( Math.PI / 2 ) );
+			eLength = 1.0 / Math.Sin( 2 * Math.PI / 5 );	// icosahedron edge length
+			double a_i = Math.Asin( Math.Sin( eLength / 2 ) / Math.Sin( Math.PI / 3 ) * Math.Sin( Math.PI / 5 ) );
+
+			Func<Vector3D, Vector3D> rot600 = v =>
+			{
+				v = Sterographic.R3toS3( v );
+				v = m600.RotateVector( v );
+				v = Sterographic.S3toR3( v );
+				return v;
+			};
 
 			Func<Vector3D, int, Vector3D> rotOne = ( v, idx ) =>
 			{
 				v = Sterographic.R3toS3( v );
 				v = m24.RotateVector( v );
 				v = Sterographic.S3toR3( v );
-
 				v.RotateAboutAxis( new Vector3D( 1, 0, 0 ), -a_id );
-				//v.RotateAboutAxis( new Vector3D( 0, 0, 1 ), 2 * Math.PI / 3 );
 
 				// Vertex to cell center.
 				v = Sterographic.R3toS3( v );
@@ -364,9 +366,16 @@
 				foreach( int reflection in reflections )
 					v = mirrors600[reflection].ReflectPoint( v );
 
-				//v = Sterographic.R3toS3( v );
-				//v = m600.RotateVector( v );
-				//v = Sterographic.S3toR3( v );
+				v = Sterographic.R3toS3( v );
+				v = m600.RotateVector( v );
+				v = Sterographic.S3toR3( v );
+
+				//v.RotateAboutAxis( new Vector3D( 0, 0, 1 ), Math.PI/3 );
+				//v.RotateAboutAxis( new Vector3D( 1, 0, 0 ), -a_i*2 );
+				v = Sterographic.R3toS3( v );
+				//v = m24_.RotateVector( v );
+				v = Sterographic.S3toR3( v );
+				
 
 				return v;
 			};
@@ -379,22 +388,24 @@
 				allEdges.AddRange( edges.Select( e =>
 				{
 					H3.Cell.Edge newEdge = new H3.Cell.Edge( rotOne( e.Start, i ), rotOne( e.End, i ) );
+					//H3.Cell.Edge newEdge = new H3.Cell.Edge( rot600( e.Start ), rot600( e.End ) );
 					switch( i )
 					{
 					case 0:
-						newEdge.Color = new Vector3D( 1, 0, 0 );
+						newEdge.Color = new Vector3D( 1, 0, 0 , 1 );
+						//newEdge.Color = new Vector3D( 1, 1, 1, 0 );
 						break;
 					case 1:
-						newEdge.Color = new Vector3D( 0, 1, 0 );
+						newEdge.Color = new Vector3D( 0, 1, 0 , 2 );
 						break;
 					case 2:
-						newEdge.Color = new Vector3D( 0, 0, 1 );
+						newEdge.Color = new Vector3D( 0, 0, 1, 3 );
 						break;
 					case 3:
-						newEdge.Color = new Vector3D( 1, 0, 1 );
+						newEdge.Color = new Vector3D( 1, 0, 1, 4 );
 						break;
 					case 4:
-						newEdge.Color = new Vector3D( 0, 1, 1 );
+						newEdge.Color = new Vector3D( 0, 1, 1, 5 );
 						break;
 					}
 					return newEdge;
