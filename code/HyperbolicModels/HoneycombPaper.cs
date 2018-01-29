@@ -51,21 +51,14 @@
 		public static void OneImage( Settings config, double t = 0.0 )
 		{
 			HoneycombDef imageData = new HoneycombDef( config.P, config.Q, config.R );
+			int p = imageData.P, q = imageData.Q, r = imageData.R;
+
 			string filename = imageData.FormatFilename();
 			//if( File.Exists( filename ) )
 			//	return;
 
-			// These boundary images don't work if the geometry of cells and vertex figures are both spherical.
-
-			int p = imageData.P, q = imageData.Q, r = imageData.R;
-			Geometry gCell = Geometry2D.GetGeometry( p, q );
-			Geometry gVertex = Geometry2D.GetGeometry( q, r );
-			//if( gCell == Geometry.Spherical && gVertex == Geometry.Spherical )
-			//	return;
-
 			Sphere[] mirrors = SimplexCalcs.Mirrors( p, q, r );
-			double bounds = 1.0; //config.UhsBoundary.Bounds;
-			bounds = 9.0;
+			double bounds = config.UhsBoundary.Bounds;
 
 			// Calculate the color scale.
 			int size = 200;
@@ -79,34 +72,17 @@
 				FileName = imageData.FormatFilename(),
 			};
 
-			double maxEuclidean = 0.999;
 			CoxeterImages imageCalculator = new CoxeterImages();
-			imageCalculator.m_z = maxEuclidean;
-			//imageCalculator.AutoCalcScale( settings );
+			imageCalculator.AutoCalcScale( settings );
 			if( settings.ColorScaling < 1 )
 				settings.ColorScaling = 15;
-			//settings.ColorScaling = 3;
-			//settings.ColorScaling = 11;
-			settings.ColorScaling = 18;
 
 			Program.Log( "\nGenerating full image..." );
-			size = 700;
-			settings.Width = size;//config.UhsBoundary.ImageWidth;
-			settings.Height = size;//config.UhsBoundary.ImageHeight;
+			size = 500;
+			settings.Width = config.UhsBoundary.ImageWidth;
+			settings.Height = config.UhsBoundary.ImageHeight;
 			settings.FileName = filename;
-			//imageCalculator.GenImage( settings, t );
-
-			double max = Spherical2D.e2sNorm( 25 );
-			DonHatch.e2hNorm( maxEuclidean );
-			int numSteps = 1800; // 30 seconds
-			double step = max / numSteps;
-			for( int i=0; i<numSteps; i++ )
-			{
-				imageCalculator.m_z = Spherical2D.s2eNorm( 25 );
-				DonHatch.h2eNorm( step * i );
-				settings.FileName = string.Format( "533_{0:D4}.png", i);
-				imageCalculator.GenImage( settings, t );
-			}
+			imageCalculator.GenImage( settings, t );
 		}
 
 		internal static CoxeterImages.Settings AutoCalcScale( HoneycombDef def, Sphere[] mirrors )
@@ -127,7 +103,6 @@
 			imageCalculator.AutoCalcScale( settings );
 			if( settings.ColorScaling < 1 )
 				settings.ColorScaling = 15;
-			//settings.ColorScaling = 3;
 
 			return settings;
 		}

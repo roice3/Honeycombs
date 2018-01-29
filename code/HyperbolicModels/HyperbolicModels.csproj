@@ -74,6 +74,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Recurse.cs" />
     <Compile Include="Experiments\Sandbox.cs" />
+    <Compile Include="Sections.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Simplex.cs" />
     <Compile Include="StlGen.cs" />
