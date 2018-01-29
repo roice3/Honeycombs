@@ -271,11 +271,6 @@
 			{
 				result[i].Normalize();
 				result[i] = Sterographic.S3toR3( result[i] );
-
-				if( result[i].DNE )
-				{
-					int stop = 1;
-				}
 			}
 
 			return result;
