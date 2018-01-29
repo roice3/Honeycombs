@@ -1,6 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2013
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HyperbolicModels", "HyperbolicModels.csproj", "{85062372-5ABE-4C92-B39A-CA93B3AF7257}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "R3.Core", "..\R3\R3.Core\R3.Core.csproj", "{8D56AB30-6E10-4D66-B10E-0DCC4A0F4051}"
