@@ -262,9 +262,8 @@
 			double centerOfSphereNE = ( 1 - inRadius ) / ( 1 + inRadius );
 			Vector3D center;
 			double radius;
-			H3Models.Ball.DupinCyclideSphere( pFaceDirection * centerOfSphereNE, 1.0 /*geodesic circle*/, Geometry.Spherical, out center, out radius );		
-			Sphere cellBoundary = new Sphere() { Center = center, Radius = radius };
-			//cellBoundary = H3Models.BallToUHS( cellBoundary );
+			H3Models.Ball.DupinCyclideSphere( -pFaceDirection * centerOfSphereNE, 1.0 /*geodesic circle*/, Geometry.Spherical, out center, out radius );		
+			Sphere cellBoundary = new Sphere() { Center = center, Radius = radius, Invert = true };
 
 			Sphere[] interior = InteriorMirrors( p, q );
 			interior = interior.Select( s => H3Models.UHSToBall( s ) ).ToArray();

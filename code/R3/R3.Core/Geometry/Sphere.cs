@@ -178,13 +178,39 @@
 		/// <summary>
 		/// Our Center.
 		/// </summary>
-		public Vector3D Center { get; set; }
+		public Vector3D Center
+		{
+			get
+			{
+				return m_center;
+			}
+			set
+			{
+				m_center = value;
+
+				if( this.IsPlane )
+				{
+					m_normal = m_center;
+					m_normal.Normalize();
+				}
+			}
+		}
+		private Vector3D m_center;
 
 		/// <summary>
 		/// Our Radius. As a limiting case, we support infinite radii.
 		/// The sphere is then a plane with a normal equal to the center, and an optional offset.
 		/// </summary>
-		public double Radius { get; set; }
+		public double Radius
+		{
+			get { return m_radius;  }
+			set
+			{
+				m_radius = value;
+				this.IsPlane = Infinity.IsInfinite( m_radius );
+			}
+		}
+		private double m_radius;
 
 		/// <summary>
 		/// Required for planes which do not go through the origin.
@@ -205,21 +231,14 @@
 		{
 			get
 			{
-				if( !this.IsPlane )
-					return Vector3D.DneVector();
-
-				Vector3D n = Center;
-				n.Normalize();
-				return n;
+				return m_normal;
 			}
 		}
+		private Vector3D m_normal = Vector3D.DneVector();
 
 		public bool IsPlane
 		{
-			get
-			{
-				return Infinity.IsInfinite( Radius );
-			}
+			get; private set;
 		}
 
 		public Vector3D ID
@@ -328,10 +347,12 @@
 		{
 			if( IsPlane )
 			{
-				//Debug.Assert( !Infinity.IsInfinite( p ) );
-				Vector3D v = Euclidean3D.ProjectOntoPlane( this.Normal, this.Offset, p );
-				v = p + (v - p)*2;
-				return v;
+				// We used to call ProjectOntoPlane, but optimized it away.
+				// This is faster because we already know our normal is normalized,
+				// and it avoids some extra Vector3D operations.
+				double dist = Euclidean3D.DistancePointPlane( this.Normal, this.Offset, p );
+				Vector3D offset = this.Normal * dist * -2;
+				return p + offset;
 			}
 			else
 			{
