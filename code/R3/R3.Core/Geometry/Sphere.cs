@@ -187,12 +187,7 @@
 			set
 			{
 				m_center = value;
-
-				if( this.IsPlane )
-				{
-					m_normal = m_center;
-					m_normal.Normalize();
-				}
+				CalcNormal();
 			}
 		}
 		private Vector3D m_center;
@@ -208,6 +203,7 @@
 			{
 				m_radius = value;
 				this.IsPlane = Infinity.IsInfinite( m_radius );
+				CalcNormal();
 			}
 		}
 		private double m_radius;
@@ -235,6 +231,15 @@
 			}
 		}
 		private Vector3D m_normal = Vector3D.DneVector();
+
+		private void CalcNormal()
+		{
+			if( this.IsPlane )
+			{
+				m_normal = m_center;
+				m_normal.Normalize();
+			}
+		}
 
 		public bool IsPlane
 		{
@@ -282,7 +287,7 @@
 				return false;
 
 			return
-				Radius == s.Radius &&
+				Tolerance.Equal( Radius, s.Radius ) &&
 				Center == s.Center /*&&
 				Offset == s.Offset &&
 				Invert == s.Invert*/;
@@ -290,7 +295,7 @@
 
 		public override int GetHashCode()
 		{
-			return Radius.GetHashCode() ^ Center.GetHashCode() ^ Offset.GetHashCode();
+			return ID.GetHashCode();
 		}
 
 		public Sphere Clone()
