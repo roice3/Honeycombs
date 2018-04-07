@@ -349,6 +349,17 @@
 
 			return false;
 		}
+
+		public bool HasVertexInside( Polygon poly )
+		{
+			foreach( Segment seg in poly.Segments )
+			{
+				if( IsPointInside( seg.P1 ) )
+					return true;
+			}
+
+			return false;
+		}
 	}
 
 	/// <summary>
@@ -358,6 +369,17 @@
 	/// </summary>
 	public class CircleNE : Circle, ITransformable
 	{
+		public CircleNE() { }
+
+		public CircleNE( Circle c, Vector3D centerNE )
+		{
+			Center = c.Center;
+			Radius = c.Radius;
+			P1 = c.P1;
+			P2 = c.P2;
+			CenterNE = centerNE;
+		}
+
 		public Vector3D CenterNE { get; set; }
 
 		public new CircleNE Clone()
@@ -411,12 +433,7 @@
 			{
 				// We are inside if the test point is on the same side
 				// as the non-Euclidean center.
-				Vector3D d = P2 - P1;
-				Vector3D t1 = (testPoint - P1).Cross( d );
-				Vector3D t2 = (CenterNE - P1).Cross( d );
-				bool pos1 = t1.Z > 0;
-				bool pos2 = t2.Z > 0;
-				return !(pos1 ^ pos2);
+				return Euclidean2D.SameSideOfLine( P1, P2, testPoint, CenterNE );
 			}
 			else
 			{
@@ -431,15 +448,36 @@
 					   (inverted && !pointInside);
 			}
 		}
-		
+
+		public static bool IsPointInsideNE( CircleNE c, Vector3D testPoint )
+		{
+			return c.IsPointInsideNE( testPoint );
+		}
+
 		/// <summary>
 		/// This is an optimized version for puzzle building when not in spherical geometry,
 		/// in which case we know our circles will not be inverted.
 		/// Profiling showed the general code in IsPointInsideNE to be very slow.
+		/// For speed, this method assumes we are most likely to not be in the circle.
+		/// http://stackoverflow.com/a/7227057/5700835
 		/// </summary>
 		public bool IsPointInsideFast( Vector3D testPoint )
 		{
-			return this.IsPointInside( testPoint );
+			double r = Radius;
+			double dx = Math.Abs( testPoint.X - Center.X );
+			if( dx > r )
+				return false;
+			double dy = Math.Abs( testPoint.Y - Center.Y );
+			if( dy > r )
+				return false;
+			if( dx + dy <= r )
+				return true;
+			return (dx * dx + dy * dy <= r * r);
+		}
+
+		public static bool IsPointInsideFast( CircleNE c, Vector3D testPoint )
+		{
+			return c.IsPointInsideFast( testPoint );
 		}
 	}
 

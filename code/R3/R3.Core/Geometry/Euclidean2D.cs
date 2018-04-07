@@ -219,5 +219,15 @@
 			Vector3D p = Euclidean2D.ProjectOntoLine( input, p1, p2 );
 			return input + ( p - input ) * 2;
 		}
+
+		public static bool SameSideOfLine( Vector3D lineP1, Vector3D lineP2, Vector3D test1, Vector3D test2 )
+		{
+			Vector3D d = lineP2 - lineP1;
+			Vector3D t1 = (test1 - lineP1).Cross( d );
+			Vector3D t2 = (test2 - lineP1).Cross( d );
+			bool pos1 = t1.Z > 0;
+			bool pos2 = t2.Z > 0;
+			return !(pos1 ^ pos2);
+		}
 	}
 }
