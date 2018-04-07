@@ -67,5 +67,15 @@
 		{
 			GreatCirclePole( new Vector3D( 0, 0, 0 ), p1, p2, out pole1, out pole2 );
 		}
+
+		/// <summary>
+		/// Spherical distance between two points on the plane.
+		/// </summary>
+		public static double SDist( Vector3D p1, Vector3D p2 )
+		{
+			p1 = PlaneToSphere( p1 );
+			p2 = PlaneToSphere( p2 );
+			return p1.AngleTo( p2 );
+		}
 	}
 }
