@@ -11,7 +11,8 @@
 		Pseudosphere,
 		Hyperboloid,
 		Band,
-		UpperHalfPlane
+		UpperHalfPlane,
+		Orthographic,
 	}
 
 	public class HyperbolicModels
@@ -25,13 +26,73 @@
 		public static Vector3D KleinToPoincare( Vector3D k )
 		{
 			double dot = k.Dot( k );
-			if( dot > 1 )   // This avoids some NaN problems I saw.
-			{
-				k.Normalize();
+			if( dot > 1 )	// This avoids some NaN problems I saw.
 				dot = 1;
-			}
 			double mag = (1 - Math.Sqrt( 1 - dot )) / dot;
 			return k * mag;
 		}
+
+		private static Mobius Upper
+		{
+			get
+			{
+				Cache();
+				return m_upper;
+			}
+		}
+		private static Mobius UpperInv
+		{
+			get
+			{
+				Cache();
+				return m_upperInv;
+			}
+		}
+
+		/// <summary>
+		/// This was needed for performance.  We don't want this Mobius transform calculated repeatedly.
+		/// </summary>
+		private static void Cache()
+		{
+			if( m_cached )
+				return;
+
+			Mobius m1 = new Mobius(), m2 = new Mobius();
+			m2.Isometry( Geometry.Euclidean, 0, new Complex( 0, -1 ) );
+			m1.UpperHalfPlane();
+			m_upper = m2 * m1;
+			m_upperInv = m_upper.Inverse();
+
+			m_cached = true;
+		}
+		private static bool m_cached = false;
+		private static Mobius m_upper, m_upperInv;
+
+
+		public static Vector3D PoincareToUpper( Vector3D v )
+		{
+			v = Upper.Apply( v );
+			return v;
+		}
+
+		public static Vector3D UpperToPoincare( Vector3D v )
+		{
+			v = UpperInv.Apply( v );
+			return v;
+		}
+
+		public static Vector3D PoincareToOrtho( Vector3D v )
+		{
+			// This may not be correct.
+			// Should probably project to hyperboloid, then remove z coord.
+			return SphericalModels.StereoToGnomonic( v );
+		}
+
+		public static Vector3D OrthoToPoincare( Vector3D v )
+		{
+			return SphericalModels.GnomonicToStereo( v );
+		}
+
+
 	}
 }
