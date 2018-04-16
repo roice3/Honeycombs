@@ -59,6 +59,7 @@
     <Compile Include="Geometry\Circle.cs" />
     <Compile Include="Drawing\Coordinates.cs" />
     <Compile Include="Geometry\Euclidean3D.cs" />
+    <Compile Include="Geometry\EuclideanModels.cs" />
     <Compile Include="Geometry\Geometry2D.cs" />
     <Compile Include="Geometry\Hyperbolic2D.cs" />
     <Compile Include="Geometry\HyperbolicModels.cs" />
