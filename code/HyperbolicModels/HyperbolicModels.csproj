@@ -59,6 +59,7 @@
     <Compile Include="Experiments\Acrohedron.cs" />
     <Compile Include="Experiments\H3_Ruled.cs" />
     <Compile Include="Experiments\H3_Hopf.cs" />
+    <Compile Include="Experiments\HoneycombCircles.cs" />
     <Compile Include="Experiments\S3_Hopf.cs" />
     <Compile Include="Experiments\S3_Minimal.cs" />
     <Compile Include="Experiments\SphericalTrig.cs" />
