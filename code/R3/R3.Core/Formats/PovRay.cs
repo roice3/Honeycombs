@@ -241,8 +241,8 @@
 			/*color.X = 220;
 			color.Z = 0.4 + (1 - color.Z)*.6;
 			color = CHSL2RGB( color );	// May or may not want to do this.*/
-			return string.Format( "#if( t{3:0} != 1 ) sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2} transmit t{3:0}}} }} #end",
-				points.Length + 2, formattedPoints, FormatVecLowRes( color ), color.W );
+			return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color rgb {2}}} }}",
+				points.Length + 2, formattedPoints, FormatVecLowRes( color ) );
 			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} finish {{fin}} pigment {{color CHSL2RGB({2})}} }}", 
 			//	points.Length + 2, formattedPoints, FormatVec( color ) );
 		}
