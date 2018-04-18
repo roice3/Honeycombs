@@ -13,6 +13,7 @@
 		public Vector3D Center { get; set; }
 		public double Radius { get; set; }
 		public Vector3D Normal { get; set; }
+		public System.Drawing.Color Color { get; set; }
 
 		public Circle3D()
 		{
@@ -207,6 +208,8 @@
 			}
 		}
 		private double m_radius;
+
+		public System.Drawing.Color Color { get; set; }
 
 		/// <summary>
 		/// Required for planes which do not go through the origin.

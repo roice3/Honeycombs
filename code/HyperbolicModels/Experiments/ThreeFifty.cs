@@ -586,6 +586,43 @@
 			image.Save( "threefifty.png", ImageFormat.Png );
 		}
 
+		public static void GenImage2()
+		{
+			int size = 10000;
+			Bitmap image = new Bitmap( size, size );
+			ImageSpace iSpace = new ImageSpace( size, size );
+			double b = 1.0;
+			iSpace.XMin = 0;
+			iSpace.XMax = b;
+			iSpace.YMin = 0;
+			iSpace.YMax = b;
+
+			Vector3D cen = HoneycombPaper.InteriorPointBall;
+			cen = H3Models.BallToUHS( cen );
+			Sphere[] simplex = Simplex( ref cen );
+
+			Sphere inSphere = InSphere( simplex );
+
+			using( Graphics g = Graphics.FromImage( image ) )
+			{
+				g.Clear( Color.White );
+
+				int count = 75;
+				double offset = b / count / 2;
+				for( int i=0; i<count; i++ )
+				for( int j=0; j<count; j++ )
+				{
+					Vector3D center = new Vector3D( 2*offset * i, 2*offset * j );
+					Circle circ = new Circle { Center = center, Radius = offset * .85 };
+
+					using( Brush brush = new SolidBrush( Color.DarkBlue ) )
+						DrawUtils.DrawFilledCircle( circ, g, iSpace, brush );
+				}
+			}
+
+			image.Save( "fundamental.png", ImageFormat.Png );
+		}
+
 		private static Sphere InSphere( Sphere[] simplex )
 		{
 			// The point centered on a face is the closest point of the cell mirror to the origin.
