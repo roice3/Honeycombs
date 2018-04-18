@@ -148,5 +148,62 @@
 			}
 		}
 
+		/////////////////////////////////////////////////////////
+		// Hacking around.  I should remove this or make CalcCells() configurable enough to deal with more cases.
+		public static H3.Cell[] CalcCells2( Sphere[] mirrors, H3.Cell[] cells )
+		{
+			Settings settings = new Settings();
+			return CalcCells2( mirrors, cells, settings );
+		}
+
+		public static H3.Cell[] CalcCells2( Sphere[] mirrors, H3.Cell[] cells, Settings settings )
+		{
+			HashSet<Vector3D> completedCellIds = new HashSet<Vector3D>( cells.Select( c => c.ID ).ToArray() );
+			List<H3.Cell> completedCells = new List<H3.Cell>( cells );
+			ReflectCellsRecursive2( mirrors, cells, settings, completedCells, completedCellIds );
+			return completedCells.ToArray();
+		}
+
+		private static void ReflectCellsRecursive2( Sphere[] simplex, H3.Cell[] cells, Settings settings,
+			List<H3.Cell> completedCells, HashSet<Vector3D> completedCellIds )
+		{
+			if( 0 == cells.Length )
+				return;
+
+			List<H3.Cell> newCells = new List<H3.Cell>();
+
+			foreach( H3.Cell cell in cells )
+				//foreach( Sphere mirror in simplex )
+				for( int m = 0; m < simplex.Length; m++ )
+				{
+					Sphere mirror = simplex[m];
+					if( completedCellIds.Count > 250000 )
+						return;
+
+					H3.Cell newCell = cell.Clone();
+					newCell.Reflect( mirror );
+					//if( !CellOk( newCell, settings ) )
+					bool cellOk = true;
+					foreach( H3.Cell.Facet f in cell.Facets )
+						if( f.Sphere.Radius < 0.002 )
+							cellOk = false;
+					if( !cellOk )
+						continue;
+
+					// This tracks reflections across the cell facets.
+					newCell.Depths[m]++;
+
+					if( completedCellIds.Add( newCell.ID ) )
+					{
+						// Haven't seen this cell yet, so 
+						// we'll need to recurse on it.
+						newCells.Add( newCell );
+						completedCells.Add( newCell );
+					}
+				}
+
+			ReflectCellsRecursive2( simplex, newCells.ToArray(), settings, completedCells, completedCellIds );
+		}
+		/////////////////////////////////////////////////////////
 	}
 }
