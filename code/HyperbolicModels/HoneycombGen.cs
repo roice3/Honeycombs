@@ -456,12 +456,12 @@
 		/// Ultimately, I'd like this method to work for material, paracompact, and hyperideal honeycombs.
 		/// Some in the last category definitely don't work right (esp. hyperbolic cells).
 		/// </summary>
-		public static void OneHoneycombOrthoscheme( Settings settings )
+		public static H3.Cell.Edge[] OneHoneycombOrthoscheme( Settings settings )
 		{
-			OneHoneycombOrthoscheme( new HoneycombDef(), null, 0, settings );
+			return OneHoneycombOrthoscheme( new HoneycombDef(), null, 0, settings );
 		}
 
-		public static void OneHoneycombOrthoscheme( HoneycombDef def, int[] active, int baseHue, Settings settings = null )
+		public static H3.Cell.Edge[] OneHoneycombOrthoscheme( HoneycombDef def, int[] active, int baseHue, Settings settings = null )
 		{
 			// Setup parameters.
 			int numEdges = 250000;
@@ -502,7 +502,7 @@
 
 			Vector3D startingPoint = IterateToStartingPoint( def, active, simplex );
 			if( startingPoint.DNE )
-				return;
+				return null;
 			List<H3.Cell.Edge> startingEdges = new List<H3.Cell.Edge>();
 			foreach( int a in active )
 			{
@@ -604,6 +604,8 @@
 				cellsToHighlight = Recurse.CalcCells( simplex.Facets, new H3.Cell[] { startingCell } );
 				H3.AppendFacets( fileName, cellsToHighlight );
 			}
+
+			return edges;
 		}
 
 		// CHEAT! (would be better to do a geometrical construction)
