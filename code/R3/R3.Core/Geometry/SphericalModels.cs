@@ -7,7 +7,11 @@
 	public enum SphericalModel
 	{
 		Sterographic,
-		Gnomonic
+		Gnomonic,
+		Azimuthal_Equidistant,
+		Azimuthal_EqualArea,
+		Equirectangular,
+		Mercator,
 	}
 
 	public class SphericalModels
@@ -99,6 +103,28 @@
 			double x = Math.Sqrt( 1 - w * w );
 			double r = Euclidean2D.AngleToCounterClock( new Vector3D( 0, -1 ), new Vector3D( x, w ) );
 			return r / Math.PI;
+		}
+
+		public static Vector3D EquirectangularToStereo( Vector3D v )
+		{
+			// http://mathworld.wolfram.com/EquirectangularProjection.html
+			// y is the latitude
+			// x is the longitude
+			// Assume inputs go from -1 to 1.
+			Vector3D spherical = new Vector3D( 1, Math.PI / 2 * (1 - v.Y), v.X * Math.PI );
+			Vector3D onBall = SphericalCoords.SphericalToCartesian( spherical );
+			return Sterographic.SphereToPlane( onBall );
+		}
+
+		// http://archive.bridgesmathart.org/2013/bridges2013-217.pdf
+		public static Vector3D MercatorToStereo( Vector3D v )
+		{
+			v *= Math.PI;	// Input is [-1,1]
+			double lat = 2 * Math.Atan( Math.Exp( v.Y ) ) - Math.PI / 2;
+			double inclination = lat + Math.PI / 2;
+			Vector3D spherical = new Vector3D( 1, inclination, v.X );
+			Vector3D onBall = SphericalCoords.SphericalToCartesian( spherical );
+			return Sterographic.SphereToPlane( onBall );
 		}
 
 		private static double m_gScale = 0.5;
