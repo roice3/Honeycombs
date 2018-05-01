@@ -1,6 +1,10 @@
 ﻿namespace R3.Core
 {
 	using R3.Geometry;
+	using System;
+	using System.Collections.Generic;
+	using System.Drawing;
+	using System.Linq;
 	using Math = System.Math;
 
 	public static class ColorUtil
@@ -53,6 +57,105 @@
 				rgb = (1 - L) * Col + (2 * L - 1) * ones;
 
 			return rgb;
+		}
+
+		public static Color AvgColor( List<Color> colors )
+		{
+			int a = (int)colors.Select( c => (double)c.A ).Average();
+			int r = (int)colors.Select( c => (double)c.R ).Average();
+			int g = (int)colors.Select( c => (double)c.G ).Average();
+			int b = (int)colors.Select( c => (double)c.B ).Average();
+			return Color.FromArgb( a, r, g, b );
+		}
+
+		public static Color AvgColorSquare( List<Color> colors )
+		{
+			int a = (int)Math.Sqrt( colors.Select( c => (double)c.A * c.A ).Average() );
+			int r = (int)Math.Sqrt( colors.Select( c => (double)c.R * c.R ).Average() );
+			int g = (int)Math.Sqrt( colors.Select( c => (double)c.G * c.G ).Average() );
+			int b = (int)Math.Sqrt( colors.Select( c => (double)c.B * c.B ).Average() );
+			return Color.FromArgb( a, r, g, b );
+		}
+
+		public static Color Inverse( Color c )
+		{
+			return Color.FromArgb( 255, 255 - c.R, 255 - c.G, 255 - c.B );
+		}
+
+		public static Color FromRGB( Vector3D rgb )
+		{
+			rgb *= 255;
+			return Color.FromArgb( 255, (int)rgb.X, (int)rgb.Y, (int)rgb.Z );
+		}
+
+		public static Color AdjustL( Color c, double l )
+		{
+			Vector3D hsl = new Vector3D( c.GetHue(), c.GetSaturation(), c.GetBrightness() );
+			hsl.Z = l;
+			Vector3D rgb = CHSL2RGB( hsl );
+			return FromRGB( rgb );
+		}
+
+		/// <summary>
+		/// This will calculate the color along a hexagon on the edges of an RGB cube.
+		/// incrementsUntilRepeat is the value where we return to the starting point of the hexagon (white).
+		/// increments is used as the distance-along-hexagon parameter.
+		/// </summary>
+		public static Color ColorAlongHexagon( int incrementsUntilRepeat, int increments )
+		{
+			// Bring to main hexagon (handle looping)
+			increments += (int)(.0 * incrementsUntilRepeat);    // an offset along the color hexagon
+			increments = increments % incrementsUntilRepeat;
+
+			// 0 to 6, so we can have each edge of the hexagon live in a unit interval.
+			double distAlongHex = (double)increments * 6 / incrementsUntilRepeat;
+
+			Func<double, int> subtractive = d => (int)(255.0 * (1.0 - d));
+			Func<double, int> addative = d => (int)(255.0 * d);
+
+			bool blue = true;
+			if( blue )
+			{
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, subtractive( distAlongHex ), 255, 255 );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 0, subtractive( distAlongHex ), 255 );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 0, 0, subtractive( distAlongHex ) );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, addative( distAlongHex ), 0, 0 );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 255, addative( distAlongHex ), 0 );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 255, 255, addative( distAlongHex ) );
+			}
+			else
+			{
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 255, 255, subtractive( distAlongHex ) );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 255, subtractive( distAlongHex ), 0 );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, subtractive( distAlongHex ), 0, 0 );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 0, 0, addative( distAlongHex ) );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, 0, addative( distAlongHex ), 255 );
+				distAlongHex--;
+				if( distAlongHex < 1 )
+					return Color.FromArgb( 255, addative( distAlongHex ), 255, 255 );
+			}
+
+			throw new System.Exception( "Bad impl" );
 		}
 	}
 }
