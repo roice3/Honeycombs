@@ -56,7 +56,7 @@
 			return points.ToArray();
 		}
 
-		private static Vector3D[] CalcViaProjections( Vector3D p1, Vector3D p2, Vector3D p3, int divisions, Geometry g )
+		public static Vector3D[] CalcViaProjections( Vector3D p1, Vector3D p2, Vector3D p3, int divisions, Geometry g )
 		{
 			if( g == Geometry.Euclidean )
 				throw new System.NotImplementedException();
