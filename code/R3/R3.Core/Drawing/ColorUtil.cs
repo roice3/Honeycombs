@@ -88,6 +88,22 @@
 			return Color.FromArgb( 255, (int)rgb.X, (int)rgb.Y, (int)rgb.Z );
 		}
 
+		public static Color AdjustH( Color c, double h )
+		{
+			Vector3D hsl = new Vector3D( c.GetHue(), c.GetSaturation(), c.GetBrightness() );
+			hsl.X = h;
+			Vector3D rgb = CHSL2RGB( hsl );
+			return FromRGB( rgb );
+		}
+
+		public static Color AdjustS( Color c, double s )
+		{
+			Vector3D hsl = new Vector3D( c.GetHue(), c.GetSaturation(), c.GetBrightness() );
+			hsl.Y = s;
+			Vector3D rgb = CHSL2RGB( hsl );
+			return FromRGB( rgb );
+		}
+
 		public static Color AdjustL( Color c, double l )
 		{
 			Vector3D hsl = new Vector3D( c.GetHue(), c.GetSaturation(), c.GetBrightness() );
