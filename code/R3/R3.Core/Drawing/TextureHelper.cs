@@ -306,5 +306,65 @@
 
 			return result.ToArray();
 		}
+
+		public static Dictionary<int, int[]> ElementGraph( int numBaseTriangles, int LOD )
+		{
+			Dictionary<int, int[]> result = new Dictionary<int, int[]>();
+
+			// Brute force.
+			int[] textureElements = TextureElements( numBaseTriangles, LOD );
+			Dictionary<GraphEdge, List<int>> edgeToTriangles = new Dictionary<GraphEdge, List<int>>();
+			for( int i = 0; i < textureElements.Length / 3; i++ )
+			{
+				int idx1 = i * 3;
+				int idx2 = i * 3 + 1;
+				int idx3 = i * 3 + 2;
+
+				System.Action<GraphEdge, int> addEdge = (e,idx) =>
+				{
+					List<int> tris;
+					if( !edgeToTriangles.TryGetValue( e, out tris ) )
+						tris = new List<int>();
+					tris.Add( idx );
+					edgeToTriangles[e] = tris;
+				};
+
+				addEdge( new GraphEdge( textureElements[idx1], textureElements[idx2] ), i );
+				addEdge( new GraphEdge( textureElements[idx2], textureElements[idx3] ), i );
+				addEdge( new GraphEdge( textureElements[idx3], textureElements[idx1] ), i );
+			}
+
+			Dictionary<int, List<int>> temp = new Dictionary<int, List<int>>();
+			System.Action<int, int> addIncident = ( idx1, idx2 ) =>
+			{
+				List<int> incident;
+				if( !temp.TryGetValue( idx1, out incident ) )
+					incident = new List<int>();
+				incident.Add( idx2 );
+				temp[idx1] = incident;
+			};
+
+			foreach( var tris in edgeToTriangles.Values )
+			{
+				if( tris.Count == 1 )
+					continue;
+				else if( tris.Count == 2 )
+				{
+					addIncident( tris[0], tris[1] );
+					addIncident( tris[1], tris[0] );
+				}
+				else
+					throw new System.Exception();
+			}
+
+			int divisions = m_maxSubdivisions;
+			for( int i = 0; i < divisions; i++ )
+				addIncident( i, -1 );
+
+			foreach( var kvp in temp )
+				result[kvp.Key] = kvp.Value.ToArray();
+			
+			return result;
+		}
 	}
 }

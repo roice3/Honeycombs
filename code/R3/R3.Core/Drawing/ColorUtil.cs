@@ -106,6 +106,11 @@
 
 		public static Color AdjustL( Color c, double l )
 		{
+			if( l > 1 )
+				l = 1;
+			if( l < 0 )
+				l = 0;
+
 			Vector3D hsl = new Vector3D( c.GetHue(), c.GetSaturation(), c.GetBrightness() );
 			hsl.Z = l;
 			Vector3D rgb = CHSL2RGB( hsl );
