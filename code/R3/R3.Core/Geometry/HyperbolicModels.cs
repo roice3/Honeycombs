@@ -13,6 +13,7 @@
 		Band,
 		UpperHalfPlane,
 		Orthographic,
+		Square,
 	}
 
 	public class HyperbolicModels
@@ -23,16 +24,21 @@
 			return p * mag;
 		}
 
+		public static double KleinToPoincare( double magSquared )
+		{
+			double dot = magSquared;
+			if (dot > 1)    // This avoids some NaN problems I saw.
+				dot = 1;
+			return (1 - Math.Sqrt( 1 - dot )) / dot;
+		}
+
 		public static Vector3D KleinToPoincare( Vector3D k )
 		{
 			double dot = k.Dot( k );
-			if( dot > 1 )	// This avoids some NaN problems I saw.
-				dot = 1;
-			double mag = (1 - Math.Sqrt( 1 - dot )) / dot;
-			return k * mag;
+			return k * KleinToPoincare( dot );
 		}
 
-		private static Mobius Upper
+		public static Mobius Upper
 		{
 			get
 			{
@@ -40,7 +46,7 @@
 				return m_upper;
 			}
 		}
-		private static Mobius UpperInv
+		public static Mobius UpperInv
 		{
 			get
 			{

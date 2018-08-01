@@ -167,7 +167,7 @@
 		/// <summary>
 		/// Subdivides a segment from p1->p2 with the two endpoints not on the origin, in the respective geometry.
 		/// </summary>
-		private static Vector3D[] SubdivideSegmentInGeometry( Vector3D p1, Vector3D p2, int divisions, Geometry g )
+		public static Vector3D[] SubdivideSegmentInGeometry( Vector3D p1, Vector3D p2, int divisions, Geometry g )
 		{
 			// Handle this specially, so we can keep things 3D if needed.
 			if( g == Geometry.Euclidean )
