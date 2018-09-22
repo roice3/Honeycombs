@@ -14,6 +14,7 @@
 		UpperHalfPlane,
 		Orthographic,
 		Square,
+		InvertedPoincare,
 	}
 
 	public class HyperbolicModels

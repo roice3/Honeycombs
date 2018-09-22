@@ -172,6 +172,9 @@
 
 		public bool IsPointOn( Vector3D test )
 		{
+			if( this.IsLine )
+				return Tolerance.Zero( Euclidean2D.DistancePointLine( test, P1, P2 ) );
+
 			return Tolerance.Equal( ( test - Center ).Abs(), Radius );
 		}
 

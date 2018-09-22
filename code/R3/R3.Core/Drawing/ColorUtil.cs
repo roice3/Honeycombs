@@ -61,6 +61,9 @@
 
 		public static Color AvgColor( List<Color> colors )
 		{
+			if( colors.Count == 0 )
+				return Color.FromArgb( 0, 0, 0, 0 );
+
 			int a = (int)colors.Select( c => (double)c.A ).Average();
 			int r = (int)colors.Select( c => (double)c.R ).Average();
 			int g = (int)colors.Select( c => (double)c.G ).Average();
@@ -70,6 +73,9 @@
 
 		public static Color AvgColorSquare( List<Color> colors )
 		{
+			if( colors.Count == 0 )
+				return Color.FromArgb( 0, 0, 0, 0 );
+
 			int a = (int)Math.Sqrt( colors.Select( c => (double)c.A * c.A ).Average() );
 			int r = (int)Math.Sqrt( colors.Select( c => (double)c.R * c.R ).Average() );
 			int g = (int)Math.Sqrt( colors.Select( c => (double)c.G * c.G ).Average() );
