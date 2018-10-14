@@ -13,6 +13,7 @@
 		Equirectangular,
 		Mercator,
 		Orthographic,
+		Sinusoidal,
 	}
 
 	public class SphericalModels
@@ -158,6 +159,14 @@
 			// x is the longitude
 			// Assume inputs go from -1 to 1.
 			Vector3D spherical = new Vector3D( 1, Math.PI / 2 * (1 - v.Y), v.X * Math.PI );
+			Vector3D onBall = SphericalCoords.SphericalToCartesian( spherical );
+			return Sterographic.SphereToPlane( onBall );
+		}
+
+		public static Vector3D SinusoidalToStereo(Vector3D v)
+		{
+			double lat = Math.PI / 2 * ( 1 - v.Y );
+			Vector3D spherical = new Vector3D( 1, lat, Math.PI * v.X / Math.Cos( lat - Math.PI / 2 ) );
 			Vector3D onBall = SphericalCoords.SphericalToCartesian( spherical );
 			return Sterographic.SphereToPlane( onBall );
 		}
