@@ -15,6 +15,7 @@
 		Orthographic,
 		Square,
 		InvertedPoincare,
+		Joukowsky,
 	}
 
 	public class HyperbolicModels
@@ -100,6 +101,60 @@
 			return SphericalModels.GnomonicToStereo( v );
 		}
 
+		public static Vector3D BandToPoincare( Vector3D v )
+		{
+			Complex vc = v.ToComplex();
+			vc = ( Complex.Exp( Math.PI * vc / 2 ) - 1 ) / ( Complex.Exp( Math.PI * vc / 2 ) + 1 );
+			return Vector3D.FromComplex( vc );
+		}
 
+		public static Vector3D JoukowskyToPoincare( Vector3D v )
+		{
+			Complex w = v.ToComplex();
+
+			// Conformally map disk to ellipse with a > 1 and b = 1;
+			// https://math.stackexchange.com/questions/1582608/conformally-mapping-an-ellipse-into-the-unit-circle
+			// https://www.physicsforums.com/threads/conformal-mapping-unit-circle-ellipse.218014/
+			double a = 0.9;
+			double b = 1.0;
+			double alpha = ( a + b ) / 2;
+			double beta = ( a - b ) / 2;
+
+			// disk -> ellipse
+			// Complex result = alpha * z + beta / z;
+
+			double off = 0;
+			System.Func<Complex, Complex> foil = z =>
+			{
+				//w *= 1 + Math.Sqrt( 2 );
+				Vector3D cen = new Vector3D( -off, -off );
+				double rad = 1 + off;// cen.Dist( new Vector3D( 1, 0 ) );
+				z *= rad;
+				z += cen.ToComplex();
+				return z;
+			};
+
+			// ellipse->disk
+			/*Complex temp = Complex.Sqrt( w * w - 4 * alpha * beta );
+			if( w.Real < 0 )
+				temp *= -1;
+			Complex z = ( w + temp ) / ( 2 * alpha );
+			*/
+
+			Complex r1 = w + Complex.Sqrt( w * w - 1 );
+			Complex r2 = w - Complex.Sqrt( w * w - 1 );
+			r1 = foil( r1 );
+			r2 = foil( r2 );
+			if( r1.Magnitude <= 1 ) // Pick the root that puts us inside the disk.
+			{
+				w = r1;
+			}
+			else
+			{
+				w = r2;
+			}
+
+			return Vector3D.FromComplex( w );
+		}
 	}
 }
