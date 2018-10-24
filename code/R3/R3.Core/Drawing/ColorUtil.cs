@@ -90,6 +90,9 @@
 
 		public static Color FromRGB( Vector3D rgb )
 		{
+			if( rgb.DNE )
+				return Color.FromArgb( 0, 255, 255, 255 );
+
 			rgb *= 255;
 			return Color.FromArgb( 255, (int)rgb.X, (int)rgb.Y, (int)rgb.Z );
 		}
