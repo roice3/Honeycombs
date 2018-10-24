@@ -21,6 +21,15 @@
 			W = w;
 		}
 
+		public Vector3D( double[] vals )
+			: this()
+		{
+			X = vals[0];
+			Y = vals[1];
+			Z = vals[2];
+			W = vals[3];
+		}
+
 		public Vector3D( double x, double y, double z ) 
 			: this()
 		{

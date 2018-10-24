@@ -19,6 +19,13 @@
 				Data[i][j] = data[i,j];
 		}
 
+		public Matrix4D( Vector3D[] rows )
+		{
+			Initialize();
+			for( int i=0; i<4; i++ )
+				Data[i] = new double[] { rows[i].X, rows[i].Y, rows[i].Z, rows[i].W };
+		}
+
 		private void Initialize()
 		{
 			Data = new double[4][];
@@ -60,15 +67,15 @@
 			}
 		}
 
-		public VectorND this[int i]
+		public Vector3D this[int i]
 		{
 			get
 			{
-				return new VectorND( Data[i] );
+				return new Vector3D( Data[i] );
 			}
 			set
 			{
-				Data[i] = value.X;
+				Data[i] = new double[] { value.X, value.Y, value.Z, value.W };
 			}
 		}
 
@@ -110,6 +117,24 @@
 		}
 
 		/// <summary>
+		/// http://www.euclideanspace.com/maths/algebra/matrix/functions/determinant/fourD/index.htm
+		/// </summary>
+		public double Determinant
+		{
+			get
+			{
+				double det =
+				Data[0][3] * Data[1][2] * Data[2][1] * Data[3][0] - Data[0][2] * Data[1][3] * Data[2][1] * Data[3][0] - Data[0][3] * Data[1][1] * Data[2][2] * Data[3][0] + Data[0][1] * Data[1][3] * Data[2][2] * Data[3][0] +
+				Data[0][2] * Data[1][1] * Data[2][3] * Data[3][0] - Data[0][1] * Data[1][2] * Data[2][3] * Data[3][0] - Data[0][3] * Data[1][2] * Data[2][0] * Data[3][1] + Data[0][2] * Data[1][3] * Data[2][0] * Data[3][1] +
+				Data[0][3] * Data[1][0] * Data[2][2] * Data[3][1] - Data[0][0] * Data[1][3] * Data[2][2] * Data[3][1] - Data[0][2] * Data[1][0] * Data[2][3] * Data[3][1] + Data[0][0] * Data[1][2] * Data[2][3] * Data[3][1] +
+				Data[0][3] * Data[1][1] * Data[2][0] * Data[3][2] - Data[0][1] * Data[1][3] * Data[2][0] * Data[3][2] - Data[0][3] * Data[1][0] * Data[2][1] * Data[3][2] + Data[0][0] * Data[1][3] * Data[2][1] * Data[3][2] +
+				Data[0][1] * Data[1][0] * Data[2][3] * Data[3][2] - Data[0][0] * Data[1][1] * Data[2][3] * Data[3][2] - Data[0][2] * Data[1][1] * Data[2][0] * Data[3][3] + Data[0][1] * Data[1][2] * Data[2][0] * Data[3][3] +
+				Data[0][2] * Data[1][0] * Data[2][1] * Data[3][3] - Data[0][0] * Data[1][2] * Data[2][1] * Data[3][3] - Data[0][1] * Data[1][0] * Data[2][2] * Data[3][3] + Data[0][0] * Data[1][1] * Data[2][2] * Data[3][3];
+				return det;
+			}
+		}
+
+		/// <summary>
 		/// Gram-Schmidt orthonormalize
 		/// </summary>
 		public static Matrix4D GramSchmidt( Matrix4D input )
@@ -121,8 +146,8 @@
 				{
 					// result[j] is already unit length...
 					// result[i] -= (result[i] dot result[j])*result[j]
-					VectorND iVec = result[i];
-					VectorND jVec = result[j];
+					Vector3D iVec = result[i];
+					Vector3D jVec = result[j];
 					iVec -= ( iVec.Dot( jVec ) ) * jVec;
 					result[i] = iVec;
 				}
@@ -136,15 +161,15 @@
 		/// Gram-Schmidt orthonormalize
 		/// </summary>
 		public static Matrix4D GramSchmidt( Matrix4D input,
-			Func<VectorND, VectorND, double> innerProduct, Func<VectorND, VectorND> normalize )
+			Func<Vector3D, Vector3D, double> innerProduct, Func<Vector3D, Vector3D> normalize )
 		{
 			Matrix4D result = input;
 			for( int i=0; i<4; i++ )
 			{
 				for( int j=i+1; j<4; j++ )
 				{
-					VectorND iVec = result[i];
-					VectorND jVec = result[j];
+					Vector3D iVec = result[i];
+					Vector3D jVec = result[j];
 					iVec -= innerProduct( iVec, jVec ) * jVec;
 					result[i] = iVec;
 				}
@@ -159,33 +184,15 @@
 		/// </summary>
 		public Vector3D RotateVector( Vector3D input )
 		{
-			VectorND result = new VectorND( 4 );
-			VectorND copy = new VectorND( new double[] { input.X, input.Y, input.Z, input.W } );
+			Vector3D result = new Vector3D();
+			Vector3D copy = new Vector3D( new double[] { input.X, input.Y, input.Z, input.W } );
 			for( int i = 0; i < 4; i++ )
 			{
-				result.X[i] =
-					copy.X[0] * this[i, 0] +
-					copy.X[1] * this[i, 1] +
-					copy.X[2] * this[i, 2] +
-					copy.X[3] * this[i, 3];
-			}
-			return new Vector3D( result.X[0], result.X[1], result.X[2], result.X[3] );
-		}
-
-		/// <summary>
-		/// Rotate a vector with this matrix.
-		/// </summary>
-		public VectorND RotateVector( VectorND input )
-		{
-			VectorND result = new VectorND( 4 );
-			VectorND copy = input.Clone();
-			for( int i = 0; i < 4; i++ )
-			{
-				result.X[i] =
-					copy.X[0] * this[i, 0] +
-					copy.X[1] * this[i, 1] +
-					copy.X[2] * this[i, 2] +
-					copy.X[3] * this[i, 3];
+				result[i] =
+					copy[0] * this[i, 0] +
+					copy[1] * this[i, 1] +
+					copy[2] * this[i, 2] +
+					copy[3] * this[i, 3];
 			}
 			return result;
 		}
