@@ -92,6 +92,25 @@
 			AddCurve( disks, points, start, end );
 		}
 
+		public void AddClosedCurve( Vector3D[] points, double[] radii )
+		{
+			if( points.Length < 3 )
+				throw new System.ArgumentException( "AddCurve requires at least three input points." );
+
+			if( points.First() == points.Last() )
+			{
+				int count = points.Length - 1;
+				points = points.Take( count ).ToArray();
+				radii = radii.Take( count ).ToArray();
+			}
+
+			List<Vector3D[]> disks = CalcDisks( points, radii );
+			disks.Add( disks.First() );
+
+			for( int i = 0; i < disks.Count - 1; i++ )
+				AddSegment( disks[i], disks[i + 1] );
+		}
+
 		public void AddCurve( Vector3D[] points, double[] radii )
 		{
 			if( points.Length < 2 )

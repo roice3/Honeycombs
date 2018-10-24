@@ -270,7 +270,7 @@
 			Sphere[] surfaces = new Sphere[] { cellBoundary, interior[0], interior[1], interior[2] };
 
 			// Apply rotations.
-			bool applyRotations = true;
+			bool applyRotations = false;
 			if( applyRotations )
 			{
 				double rotation = Math.PI / 2;
@@ -285,6 +285,32 @@
 		{
 			double circumRadius = Spherical2D.s2eNorm( Honeycomb.CircumRadius( p, q, r ) );
 			return new Vector3D( 0, 0, -circumRadius );
+		}
+
+		public static Vector3D FaceCenterSpherical( int p, int q, int r )
+		{
+			// Get a {q,p} tiling on the z=0 plane.
+			Segment[] baseTileSegments = BaseTileSegments( q, p );
+
+			// This will be unit length.
+			Vector3D pFaceDirection = H3Models.UHSToBall( baseTileSegments.First().P1 );
+
+			// In-radius is in conformal model
+			double inRadius = Spherical2D.s2eNorm( Honeycomb.InRadius( p, q, r ) );
+
+			return pFaceDirection * inRadius;
+		}
+
+		public static Vector3D EdgeMidpointSpherical( int p, int q, int r )
+		{
+			// Get a {q,p} tiling on the z=0 plane.
+			Segment[] baseTileSegments = BaseTileSegments( q, p );
+
+			Vector3D direction = H3Models.UHSToBall( baseTileSegments.First().Midpoint );
+			direction.Normalize();
+			double midRadius = Spherical2D.s2eNorm( Honeycomb.MidRadius( p, q, r ) );
+
+			return direction * midRadius;
 		}
 
 		public static Sphere[] MirrorsEuclidean()
@@ -339,8 +365,8 @@
 			List<Vector3D> verts = new List<Vector3D>();
 			verts.Add( new Vector3D() );
 			verts.Add( pFaceDirection * m_eScale );
-			verts.Add( pVertexDirection * Math.Sqrt( 3 ) * m_eScale );
 			verts.Add( pMidEdgeDirection * Math.Sqrt( 2 ) * m_eScale );
+			verts.Add( pVertexDirection * Math.Sqrt( 3 ) * m_eScale );
 
 			// Apply rotations.
 			double rotation = Math.PI / 2;
@@ -877,14 +903,14 @@
 			{
 				for( int j = 0; j < i; j++ )
 				{
-					VectorND iVec = result[i];
-					VectorND jVec = result[j];
+					Vector3D iVec = result[i];
+					Vector3D jVec = result[j];
 					double inner = innerProductValues[i].Dot( jVec );
 					iVec -= inner * jVec;
 					result[i] = iVec;
 				}
 
-				// Normalize.  We don't use VectorND normalize because we might have timelike vectors.
+				// Normalize.  We don't use Vector3D normalize because we might have timelike vectors.
 				double mag2 = innerProductValues[i].Dot( result[i] );
 				double abs = mag2 < 0 ? -Math.Sqrt( -mag2 ) : Math.Sqrt( mag2 );
 				result[i].Divide( abs );
@@ -902,16 +928,13 @@
 		}
 
 		// Minkowski inner product.
-		private static double MinkowskiInnerProduct( VectorND v1, VectorND v2 )
+		private static double MinkowskiInnerProduct( Vector3D v1, Vector3D v2 )
 		{
-			double inner = -v1.X[0] * v2.X[0];
-			for( int i = 1; i < v1.Dimension; i++ )
-				inner += v1.X[i] * v2.X[i];
-			return inner;
+			return -v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z + v1.W * v2.W;
 		}
 
 		// Minkowski normalization.
-		private static VectorND MinkowskiNormalize( VectorND v )
+		private static Vector3D MinkowskiNormalize( Vector3D v )
 		{
 			double mag2 = MinkowskiInnerProduct( v, v );
 			double abs = mag2 < 0 ? Math.Sqrt( -mag2 ) : Math.Sqrt( mag2 );
@@ -919,13 +942,13 @@
 			return v;
 		}
 
-		public static Vector3D HyperboloidToBall( VectorND hyperboloidPoint )
+		public static Vector3D HyperboloidToBall( Vector3D hyperboloidPoint )
 		{	
-			double t = hyperboloidPoint.X[0];
+			double t = hyperboloidPoint.X;
 			return new Vector3D(
-				hyperboloidPoint.X[1] / ( 1 + t ),
-				hyperboloidPoint.X[2] / ( 1 + t ),
-				hyperboloidPoint.X[3] / ( 1 + t ) );
+				hyperboloidPoint.Y / ( 1 + t ),
+				hyperboloidPoint.Z / ( 1 + t ),
+				hyperboloidPoint.W / ( 1 + t ) );
 		}
 
 		/// <summary>

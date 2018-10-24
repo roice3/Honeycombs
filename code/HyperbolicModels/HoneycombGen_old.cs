@@ -123,9 +123,9 @@
 			else if( g == Geometry.Euclidean )
 			{
 				thickness = thickness / 2;
-				threshold = 5/*20*/;
+				threshold = 1/*20*/;
 
-				SimplexCalcs.CalcEScale();
+				//SimplexCalcs.CalcEScale();
 				simplex = SimplexCalcs.MirrorsEuclidean();
 				Vector3D[] verts = SimplexCalcs.VertsEuclidean();
 				vertex = verts[2];
@@ -184,9 +184,22 @@
 				if( dual )
 					startingEdges = new H3.Cell.Edge[] { SimplexCalcs.DualEdgeBall( simplex ) };
 				else
-					startingEdges = new H3.Cell.Edge[] { SimplexCalcs.HoneycombEdgeBall( simplex, vertex ) };
+				{
+					//startingEdges = new H3.Cell.Edge[] { SimplexCalcs.HoneycombEdgeBall( simplex, vertex ) };
+					Vector3D[] verts = SimplexCalcs.VertsEuclidean();
+					Vector3D v1 = verts[0] + 2*verts[2]; // adjacent cube center
+					Vector3D corner = verts[3];
+
+					startingEdges = new H3.Cell.Edge[] { new H3.Cell.Edge( v1, corner ) };
+				}
 
 				edges = Recurse.CalcEdges( simplex, startingEdges, new Recurse.Settings() { G = g, Threshold = threshold } );
+
+				edges = edges.Where( e =>
+				{
+					int sum = e.Depths.Count( d => d == 0 );
+					return true;
+				} ).ToArray();
 
 				//CullHalfOfEdges( ref edges );
 
@@ -227,7 +240,7 @@
 			}
 
 			// Rotate
-			bool rotate = true;
+			bool rotate = false;
 			if( rotate )
 			{
 				CompoundOfFive24Cells( ref edges );

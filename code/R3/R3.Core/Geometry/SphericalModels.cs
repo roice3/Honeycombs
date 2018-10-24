@@ -22,7 +22,7 @@
 		{
 			Vector3D sphere = Sterographic.PlaneToSphere( p );
 
-			// We can't only represent the lower hemisphere.
+			// We can only represent the lower hemisphere.
 			if( sphere.Z >= 0 )
 			{
 				sphere.Z = 0;

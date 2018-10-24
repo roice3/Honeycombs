@@ -599,6 +599,11 @@
 
 		public static string Sphere( Sphere sphere )
 		{
+			if( sphere.IsPlane )
+			{
+				return string.Format( "plane {{ {0}, 0 material {{ sphereMat }} }}", FormatVec( sphere.Normal ) );
+			}
+
 			return string.Format( "sphere {{ {0}, {1:G6} material {{ sphereMat }} }}",
 					FormatVec( sphere.Center ), sphere.Radius );
 			//return string.Format( "sphere {{ {0}, rad material {{ sphereMat }} }}",

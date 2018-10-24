@@ -14,25 +14,167 @@
 		static int m_div = 7;
 		static double m_thresh = 0.1;//0.004;
 
-		public static void Helicoid()
+		public static void H3Helicoid()
 		{
-			Mesh thinMesh = new Mesh();
-
 			H3Ruled ruled = new H3Ruled();
 			H3.Cell.Edge[] edgesBall = ruled.Helicoid();
-			List<Vector3D[]> boundaryPoints = new List<Vector3D[]>();
+
+			System.Func<H3.Cell.Edge, Vector3D[]> divider = e =>
+			{
+				return H3Models.Ball.GeodesicPoints( e.Start, e.End, 50 );
+			};
+
+			Mesh thinMesh;
+			List<Vector3D[]> boundaryPoints;
+			ThinMesh( edgesBall, divider, out thinMesh, out boundaryPoints );
+			HelicoidHelper( thinMesh, boundaryPoints );
+		}
+
+		public static void S3BiHelicoid()
+		{
+			double cutoff = 8.0;
+			int div = 500;
+
+			Matrix4D mat = Matrix4D.MatrixToRotateinCoordinatePlane( 1*Math.PI/4, 0, 3 );
+			Mesh m1 = S3Helicoid( div, mat, reciprocal: false );
+			//m1.Triangles = m1.Triangles.Where( t => t.a.Abs() < cutoff && t.b.Abs() < cutoff && t.c.Abs() < cutoff ).ToList();
+
+			Mesh m2 = S3Helicoid( div, mat, reciprocal: true );
+			//m2.Triangles = m2.Triangles.Where( t => t.a.Abs() < cutoff && t.b.Abs() < cutoff && t.c.Abs() < cutoff ).ToList();
+
+			Mesh m3 = new Mesh();
+			System.Action<bool> addCore = recip =>
+			{
+				List<Vector3D> circlePoints = new List<Vector3D>();
+				double aOffset = 2 * Math.PI / div;
+				for( int i = 0; i <= div; i++ )
+				{
+					double x = Math.Sin( aOffset * i );
+					double y =  Math.Cos( aOffset * i );
+					circlePoints.Add( recip ? 
+						new Vector3D( x, y ) : new Vector3D( 0, 0, x, y ) );
+				}
+
+				// partial transform to R3 here.
+				circlePoints = circlePoints.Select( p =>
+				{
+					p = mat.RotateVector( p );
+					p = Sterographic.S3toR3( p );
+					return p;
+				} ).ToList();
+
+				List<Vector3D> ePoints = new List<Vector3D>();
+				List<double> eRadii = new List<double>();
+				foreach( Vector3D pNE in circlePoints )
+				{
+					Sphere sphere = SphereFuncBall( Geometry.Spherical, pNE, false );
+					ePoints.Add( sphere.Center );
+					eRadii.Add( sphere.Radius );
+				}
+
+				Shapeways shapeways = new Shapeways();
+				shapeways.AddClosedCurve( ePoints.ToArray(), eRadii.ToArray() );
+				m3.Append( shapeways.Mesh );
+			};
+			addCore( false );
+			addCore( true );
+			for( int i=0; i<m3.Triangles.Count; i++ )
+			{
+				Mesh.Triangle t = m3.Triangles[i];
+				m3.Triangles[i] = Transform( t, SphericalModels.StereoToEquidistant );
+			}
+
+			string filename = "helicoid.stl";
+			File.Delete( filename );
+			using( StreamWriter sw = File.AppendText( filename ) )
+			{
+				STL.AppendMeshToSTL( m1, sw );
+				STL.AppendMeshToSTL( m2, sw );
+				STL.AppendMeshToSTL( m3, sw );
+			}
+
+			//HelicoidHelper( thinMesh, boundaryPoints );
+		}
+
+		private static Mesh S3Helicoid( int numFibers, Matrix4D mat, bool reciprocal )
+		{
+			List<H3.Cell.Edge> fiberList = new List<H3.Cell.Edge>();
+
+			double numRotations = 3;
+			double rotationRate = 2 * Math.PI  * numRotations;
+			
+			double aOffset = 2 * Math.PI / numFibers;
+			for( int i=0; i<=numFibers; i++ )
+			{
+				double mag = 1 / Math.Sqrt( 2 );
+				double angleAlongCore = aOffset * i;
+				Vector3D corePoint, ray;
+				double rotAngle = (double)i/numFibers * rotationRate;
+
+				if( reciprocal )
+				{
+					Utils.Swap( ref angleAlongCore, ref rotAngle );
+					//rotAngle = -1 * rotAngle;
+				}
+
+				double x = mag * Math.Sin( angleAlongCore );
+				double y = mag * Math.Cos( angleAlongCore );
+				double z = mag * Math.Sin( rotAngle );
+				double w = mag * Math.Cos( rotAngle );
+
+				if( !reciprocal )
+				{
+					corePoint = new Vector3D( x, y );
+					ray = new Vector3D( 0, 0, z, w );
+				}
+				else
+				{
+					corePoint = new Vector3D( 0, 0, x, y );
+					ray = new Vector3D( z, w ) * -1;
+				}
+
+				fiberList.Add( new H3.Cell.Edge( corePoint - ray, corePoint + ray, order: false ) );
+			}
+
+			System.Func<H3.Cell.Edge, Vector3D[]> divider = e =>
+			{
+				// Unequal subdivision on hypersphere, but shouldn't matter.
+				Segment seg = Segment.Line( e.Start, e.End );
+				return seg.Subdivide( numFibers ).Select( p => Transform2( p, mat ) ).ToArray();
+			};
+
+			Mesh thinMesh;
+			List<Vector3D[]> boundaryPoints;
+			ThinMesh( fiberList.ToArray(), divider, out thinMesh, out boundaryPoints );
+			return thinMesh;
+		}
+
+		private static Vector3D Transform2( Vector3D p, Matrix4D mat )
+		{
+			p.Normalize();
+			p = mat.RotateVector( p );
+			p = Sterographic.S3toR3( p );
+			p = SphericalModels.StereoToEquidistant( p );
+			return p;
+		}
+
+		private static void ThinMesh( H3.Cell.Edge[] edges, System.Func<H3.Cell.Edge, Vector3D[]> divider,
+			out Mesh thinMesh, out List<Vector3D[]> boundaryPoints )
+		{
+			thinMesh = new Mesh();
+
+			boundaryPoints = new List<Vector3D[]>();
 			List<Vector3D> starts = new List<Vector3D>();
 			List<Vector3D> ends = new List<Vector3D>();
-			for( int i = 0; i < edgesBall.Length - 1; i++ )
+			for( int i = 0; i < edges.Length - 1; i++ )
 			{
 				int idx1 = i;
 				int idx2 = i + 1;
-				H3.Cell.Edge e1 = edgesBall[idx1];
-				H3.Cell.Edge e2 = edgesBall[idx2];
+				H3.Cell.Edge e1 = edges[idx1];
+				H3.Cell.Edge e2 = edges[idx2];
 
-				int div = 50;
-				Vector3D[] points1 = H3Models.Ball.GeodesicPoints( e1.Start, e1.End, div );
-				Vector3D[] points2 = H3Models.Ball.GeodesicPoints( e2.Start, e2.End, div );
+				Vector3D[] points1 = divider( e1 );
+				Vector3D[] points2 = divider( e2 );
 
 				thinMesh.AddBand( points1, points2, close: false );
 
@@ -40,7 +182,7 @@
 				ends.Add( e1.End );
 				if( idx1 == 0 )
 					boundaryPoints.Add( points1 );
-				if( idx2 == edgesBall.Length - 1 )
+				if( idx2 == edges.Length - 1 )
 				{
 					boundaryPoints.Add( points2 );
 					starts.Add( e2.Start );
@@ -50,7 +192,10 @@
 			starts.Reverse();
 			boundaryPoints.Add( starts.ToArray() );
 			boundaryPoints.Add( ends.ToArray() );
+		}
 
+		private static void HelicoidHelper( Mesh thinMesh, List<Vector3D[]> boundaryPoints )
+		{ 
 			// Build a normal map.
 			Dictionary<Vector3D, Vector3D> normalMap = new Dictionary<Vector3D, Vector3D>();
 			{
@@ -85,12 +230,12 @@
 			Mesh fullMesh = new Mesh();
 			foreach( Mesh.Triangle tri in thinMesh.Triangles )
 			{
-				Mesh.Triangle[] thickened = ThickenInBallSimple( tri, normalMap );
+				Mesh.Triangle[] thickened = ThickenSimple( tri, normalMap );
 				fullMesh.Triangles.AddRange( thickened );
 			}
 			//fullMesh.Append( thinMesh );
 
-			System.Func<Vector3D, System.Tuple<Vector3D, Vector3D>> thickenFn = v => ThickenInBallSimple( v, normalMap );
+			System.Func<Vector3D, System.Tuple<Vector3D, Vector3D>> thickenFn = v => ThickenSimple( v, normalMap );
 			fullMesh.Append( ThickenBoundary( boundaryPoints[0], thickenFn ) );
 			fullMesh.Append( ThickenBoundary( boundaryPoints[2], thickenFn ) );
 			fullMesh.Append( ThickenBoundary( boundaryPoints[3], thickenFn ) );
@@ -99,16 +244,21 @@
 			fullMesh.Append( temp );
 
 			string filename = "helicoid.stl";
+			SaveMesh( fullMesh, filename );
+		}
+
+		private static void SaveMesh( Mesh mesh, string filename )
+		{
 			System.IO.File.Delete( filename );
 			using( StreamWriter sw = File.AppendText( filename ) )
 			{
-				STL.AppendMeshToSTL( fullMesh, sw );
+				STL.AppendMeshToSTL( mesh, sw );
 
 				Vector3D aStart = H3Ruled.Transform( new Vector3D( 0, 0, -1 ) );
 				Vector3D aEnd = H3Ruled.Transform( new Vector3D( 0, 0, 1 ) );
 				Mesh m3 = new Mesh();
 				AddEdge( m3, aStart, aEnd );
-				STL.AppendMeshToSTL( m3, sw );
+				//STL.AppendMeshToSTL( m3, sw );
 			}
 		}
 
@@ -144,7 +294,7 @@
 					Sphere normal = cell.Facets[0].Sphere;
 					foreach( Mesh.Triangle tri in cell.Mesh.Triangles )
 					{
-						Mesh.Triangle[] thickened = ThickenInBallSimple( tri, normal );
+						Mesh.Triangle[] thickened = ThickenSimple( tri, normal );
 						m.Triangles.AddRange( thickened );
 					}
 
@@ -153,7 +303,7 @@
 
 					STL.AppendMeshToSTL( m, sw );
 
-					System.Func<Vector3D, System.Tuple<Vector3D, Vector3D>> thickenFn = v => ThickenInBallSimple( v, normal );
+					System.Func<Vector3D, System.Tuple<Vector3D, Vector3D>> thickenFn = v => ThickenSimple( v, normal );
 					int stride = (int)Math.Sqrt( cell.Mesh.Triangles.Count ) + 1;
 					Vector3D[] e1 = cell.AuxPoints.Skip( 1 + 0 * stride ).Take( stride ).ToArray();
 					Vector3D[] e2 = cell.AuxPoints.Skip( 1 + 1 * stride ).Take( stride ).ToArray();
@@ -532,9 +682,14 @@
 
 		private static Mesh.Triangle Transform( Mesh.Triangle tri )
 		{
-			tri.a = Transform( tri.a );
-			tri.b = Transform( tri.b );
-			tri.c = Transform( tri.c );
+			return Transform( tri, Transform );
+		}
+
+		private static Mesh.Triangle Transform( Mesh.Triangle tri, System.Func<Vector3D,Vector3D> transform )
+		{
+			tri.a = transform( tri.a );
+			tri.b = transform( tri.b );
+			tri.c = transform( tri.c );
 			return tri;
 		}
 
@@ -581,7 +736,7 @@
 			List<double> eRadii = new List<double>();
 			foreach( Vector3D pNE in points )
 			{
-				Sphere sphere = SphereFuncBall( pNE, false );
+				Sphere sphere = SphereFuncBall( Geometry.Hyperbolic, pNE, false );
 				ePoints.Add( sphere.Center );
 				eRadii.Add( sphere.Radius );
 			}
@@ -591,7 +746,7 @@
 			mesh.Append( shapeways.Mesh );
 		}
 
-		internal static Sphere SphereFuncBall( Vector3D v, bool simple = true )
+		internal static Sphere SphereFuncBall( Geometry g, Vector3D v, bool simple = true )
 		{
 			//bool simple = true;
 			if( simple )
@@ -610,21 +765,21 @@
 				double minRad = 1.0 / 125;
 				Vector3D c;
 				double r;
-				H3Models.Ball.DupinCyclideSphere( v, thick / 2, Geometry.Hyperbolic, out c, out r );
+				H3Models.Ball.DupinCyclideSphere( v, thick / 2, g, out c, out r );
 				return new Sphere() { Center = c, Radius = Math.Max( r, minRad ) };
 			}
 		}
 
 		internal static Sphere SphereFuncUHS( Vector3D v )
 		{
-			return H3Models.BallToUHS( SphereFuncBall( H3Models.UHSToBall( v ) ) );
+			return H3Models.BallToUHS( SphereFuncBall( Geometry.Hyperbolic, H3Models.UHSToBall( v ) ) );
 		}
 
 		/// <summary>
 		/// A simple thickening. This is not accurate, but meant to save cost by minimizing wall thickness everywhere.
 		/// The input vector should live on normal.
 		/// </summary>
-		private static System.Tuple<Vector3D, Vector3D> ThickenInBallSimple( Vector3D v, Sphere normal )
+		private static System.Tuple<Vector3D, Vector3D> ThickenSimple( Vector3D v, Sphere normal )
 		{
 			double size = 125;
 			double thickCen = 2.0 / size;
@@ -632,29 +787,29 @@
 			double thickEdge = 1.0 / size;
 			double thick = thickCen - v.Abs() * (thickCen - thickEdge);
 			Vector3D direction = v - normal.Center;
-			return ThickenInBallSimple( v, direction, thick );
+			return ThickenSimple( v, direction, thick );
 		}
 
-		private static System.Tuple<Vector3D,Vector3D> ThickenInBallSimple( Vector3D v, Vector3D direction, double thickness )
+		private static System.Tuple<Vector3D,Vector3D> ThickenSimple( Vector3D v, Vector3D direction, double thickness )
 		{
 			direction.Normalize();
 			direction *= thickness;
 			return new System.Tuple<Vector3D, Vector3D>( v + direction, v - direction );
 		}
 
-		private static System.Tuple<Vector3D, Vector3D> ThickenInBallSimple( Vector3D v, Dictionary<Vector3D, Vector3D> normalMap )
+		private static System.Tuple<Vector3D, Vector3D> ThickenSimple( Vector3D v, Dictionary<Vector3D, Vector3D> normalMap )
 		{
-			Sphere s = SphereFuncBall( v );
-			return ThickenInBallSimple( v, normalMap[v], s.Radius );
+			Sphere s = SphereFuncBall( Geometry.Hyperbolic, v );
+			return ThickenSimple( v, normalMap[v], s.Radius );
 		}
 
-		private static Mesh.Triangle[] ThickenInBallSimple( Mesh.Triangle tri, Sphere normal )
+		private static Mesh.Triangle[] ThickenSimple( Mesh.Triangle tri, Sphere normal )
 		{
 			List<Mesh.Triangle> result = new List<Mesh.Triangle>();
 
-			System.Tuple<Vector3D, Vector3D> a = ThickenInBallSimple( tri.a, normal );
-			System.Tuple<Vector3D, Vector3D> b = ThickenInBallSimple( tri.b, normal );
-			System.Tuple<Vector3D, Vector3D> c = ThickenInBallSimple( tri.c, normal );
+			System.Tuple<Vector3D, Vector3D> a = ThickenSimple( tri.a, normal );
+			System.Tuple<Vector3D, Vector3D> b = ThickenSimple( tri.b, normal );
+			System.Tuple<Vector3D, Vector3D> c = ThickenSimple( tri.c, normal );
 
 			result.Add( new Mesh.Triangle( a.Item1, c.Item1, b.Item1 ) );   // For consistent orientations
 			result.Add( new Mesh.Triangle( a.Item2, b.Item2, c.Item2 ) );
@@ -662,13 +817,13 @@
 			return result.ToArray();
 		}
 
-		private static Mesh.Triangle[] ThickenInBallSimple( Mesh.Triangle tri, Dictionary<Vector3D,Vector3D> normalMap )
+		private static Mesh.Triangle[] ThickenSimple( Mesh.Triangle tri, Dictionary<Vector3D,Vector3D> normalMap )
 		{
 			List<Mesh.Triangle> result = new List<Mesh.Triangle>();
 
-			System.Tuple<Vector3D, Vector3D> a = ThickenInBallSimple( tri.a, normalMap );
-			System.Tuple<Vector3D, Vector3D> b = ThickenInBallSimple( tri.b, normalMap );
-			System.Tuple<Vector3D, Vector3D> c = ThickenInBallSimple( tri.c, normalMap );
+			System.Tuple<Vector3D, Vector3D> a = ThickenSimple( tri.a, normalMap );
+			System.Tuple<Vector3D, Vector3D> b = ThickenSimple( tri.b, normalMap );
+			System.Tuple<Vector3D, Vector3D> c = ThickenSimple( tri.c, normalMap );
 
 			result.Add( new Mesh.Triangle( a.Item1, c.Item1, b.Item1 ) );   // For consistent orientations
 			result.Add( new Mesh.Triangle( a.Item2, b.Item2, c.Item2 ) );
