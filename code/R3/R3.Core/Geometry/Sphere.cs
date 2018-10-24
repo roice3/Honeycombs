@@ -31,6 +31,12 @@
 			Radius = radius;
 			
 			Vector3D normal = ( t2 - t1 ).Cross( t3 - t1 );
+			if( Infinity.IsInfinite( Radius ) )
+			{
+				Center = Vector3D.DneVector();
+				normal = !t1.IsOrigin ? t1 : !t2.IsOrigin ? t2 : t3;	// Hacky rep of line.
+			}
+
 			normal.Normalize();
 			Normal = normal;
 		}
