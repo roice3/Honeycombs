@@ -1,6 +1,7 @@
 ﻿namespace R3.Geometry
 {
 	using R3.Geometry;
+	using R3.Math;
 	using System.Numerics;
 	using Math = System.Math;
 
@@ -29,36 +30,41 @@
 			return v;	
 		}
 
-		public static Vector3D SpiralToIsometric( Vector3D v )
+		public static Vector3D SpiralToIsometric( Vector3D v, int p, int m, int n )
 		{
-			//Mobius mob = Mobius.CreateFromIsometry( Geometry.Spherical, 0, new System.Numerics.Complex( 1, 0 ) );
-			//v = mob.Apply( v );
-
 			Complex vc = v.ToComplex();
-
-
 			v = new Vector3D( Math.Log( vc.Magnitude ), vc.Phase );
-			//vc = Complex.Exp( vc );
-			//v = Vector3D.FromComplex( vc );
 
-			int m_ = 7;
-			int n_ = 3;
-			double scale = Math.Sqrt( m_ * m_ + n_ * n_ );
-			double a = Euclidean2D.AngleToClock( new Vector3D( 0, 1 ), new Vector3D( m_, n_ ) );
+			Vector3D e1 = new Vector3D( 0, 1 );
+			Vector3D e2;
+			switch( p )
+			{
+				case 3:
+					e2 = new Vector3D(); break;
+				case 4:
+					e2 = new Vector3D(); break;
+				case 6:
+					e2 = new Vector3D(); break;
+				default:
+					throw new System.ArgumentException();
+			}
+
+			double scale = Math.Sqrt( m * m + n * n );
+			double a = Euclidean2D.AngleToClock( new Vector3D( 0, 1 ), new Vector3D( m, n ) );
 
 			v.RotateXY( a ); // Rotate
 			v *= scale; // Scale
-
-			//v *= 4;	// Make the grid more dense.
 
 			v *= Math.Sqrt( 2 ) * Geometry2D.EuclideanHypotenuse / ( 2 * Math.PI );
 			v.RotateXY( Math.PI / 4 );
 			return v;
 		}
 
-		public static Vector3D LoxodromicToIsometric( Vector3D v )
+		public static Vector3D LoxodromicToIsometric( Vector3D v, int p, int m, int n )
 		{
-			throw new System.NotImplementedException();
+			Mobius mob = Mobius.CreateFromIsometry( Geometry.Spherical, 0, new System.Numerics.Complex( 1, 0 ) );
+			v = mob.Apply( v );
+			return SpiralToIsometric( v, p, m, n );
 		}
 	}
 }

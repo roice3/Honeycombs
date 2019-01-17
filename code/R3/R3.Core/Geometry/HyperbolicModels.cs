@@ -108,7 +108,7 @@
 			return Vector3D.FromComplex( vc );
 		}
 
-		public static Vector3D JoukowskyToPoincare( Vector3D v )
+		public static Vector3D JoukowskyToPoincare( Vector3D v, Vector3D cen )
 		{
 			Complex w = v.ToComplex();
 
@@ -123,11 +123,11 @@
 			// disk -> ellipse
 			// Complex result = alpha * z + beta / z;
 
-			double off = 0;
+			double off = 0.0;
 			System.Func<Complex, Complex> foil = z =>
 			{
 				//w *= 1 + Math.Sqrt( 2 );
-				Vector3D cen = new Vector3D( -off, -off );
+				//Vector3D cen = new Vector3D( -off, -off );
 				double rad = 1 + off;// cen.Dist( new Vector3D( 1, 0 ) );
 				z *= rad;
 				z += cen.ToComplex();
