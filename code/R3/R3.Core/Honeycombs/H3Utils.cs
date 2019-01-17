@@ -767,6 +767,13 @@
 			/// </summary>
 			public static void GeodesicIdealEndpoints( Vector3D v1, Vector3D v2, out Vector3D b1, out Vector3D b2 )
 			{
+				if( Tolerance.Equal( v1.MagSquared(), 1 ) && Tolerance.Equal( v2.MagSquared(), 1 ) )
+				{
+					b1 = v1;
+					b2 = v2;
+					return;
+				}
+
 				// Leverage the UHS method.
 				Vector3D v1_UHS = H3Models.BallToUHS( v1 );
 				Vector3D v2_UHS = H3Models.BallToUHS( v2 );
@@ -802,8 +809,9 @@
 			/// </summary>
 			public static Vector3D[] GeodesicPoints( Vector3D v1, Vector3D v2, double quality = 1.0 )
 			{
+				int max = 57;
 				int div = 40; // Wiki
-				div = 57;
+				div = max;
 				//LODThin( v1, v2, out div );
 
 				// Account for quality.
@@ -811,7 +819,7 @@
 
 				// Keep in reasonable range.
 				div = Math.Max( div, 4 );
-				div = Math.Min( div, 57 );
+				div = Math.Min( div, max );
 
 				return GeodesicPoints( v1, v2, div );
 			}
