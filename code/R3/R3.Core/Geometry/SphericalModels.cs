@@ -14,6 +14,7 @@
 		Mercator,
 		Orthographic,
 		Sinusoidal,
+		PierceQuincuncial,
 	}
 
 	public class SphericalModels
