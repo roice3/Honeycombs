@@ -1,7 +1,9 @@
 ﻿namespace R3.Drawing
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Drawing;
+	using System.Linq;
 	using R3.Geometry;
 
 	internal static class Coloring
@@ -202,6 +204,18 @@
 		public static Vector3D ToVec( Color c )
 		{
 			return new Vector3D( (double)c.R / 255, (double)c.G / 255, (double)c.B / 255 );
+		}
+
+		public static Color AvgColor( List<Color> colors )
+		{
+			//if( colors.Contains( Color.White ) )
+			//	return Color.White;
+
+			int a = (int)colors.Select( c => (double)c.A ).Average();
+			int r = (int)colors.Select( c => (double)c.R ).Average();
+			int g = (int)colors.Select( c => (double)c.G ).Average();
+			int b = (int)colors.Select( c => (double)c.B ).Average();
+			return Color.FromArgb( a, r, g, b );
 		}
 	}
 }
