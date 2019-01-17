@@ -78,6 +78,25 @@
 				hyperboloidPoint.Y / ( 1 + z ) );
 		}
 
+		public static Vector3D PoincareBallToHyperboloid( Vector3D planePoint )
+		{
+			double temp = planePoint.Dot( planePoint );
+			return new Vector3D(
+				2 * planePoint.X / ( 1 - temp ),
+				2 * planePoint.Y / ( 1 - temp ),
+				2 * planePoint.Z / ( 1 - temp ),
+				( 1 + temp ) / ( 1 - temp ) );
+		}
+
+		public static Vector3D HyperboloidToPoincareBall( Vector3D hyperboloidPoint )
+		{
+			double z = hyperboloidPoint.Z;
+			return new Vector3D(
+				hyperboloidPoint.X / ( 1 + z ),
+				hyperboloidPoint.Y / ( 1 + z ),
+				hyperboloidPoint.Z / ( 1 + z ) );
+		}
+
 		public static void NormalizeToHyperboloid( ref Vector3D v )
 		{
 			double normSquared = v.Z * v.Z - ( v.X * v.X + v.Y * v.Y );
