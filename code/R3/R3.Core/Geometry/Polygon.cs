@@ -537,10 +537,8 @@
 			return newPoly;
 		}
 
-		public void CreateRegular( int numSides, int q )
+		public void CreateRegular( int p, double q )
 		{
-			int p = numSides;
-
 			Segments.Clear();
 			List<Vector3D> points = new List<Vector3D>();
 

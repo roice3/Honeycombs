@@ -33,18 +33,18 @@
 
 	public static class Geometry2D
 	{
-		public static double PiOverNSafe( int n )
+		public static double PiOverNSafe( double n )
 		{
 			return n == -1 ? 0 : Math.PI / n;
 		}
 
 		// Returns the geometry induced by a polygon with p points, q meeting at a vertex.
-		public static Geometry GetGeometry( int p, int q )
+		public static Geometry GetGeometry( double p, double q )
 		{
 			double test = 1.0 / p + 1.0 / q;
 			if( test > 0.5 )
 				return Geometry.Spherical;
-			else if( test == 0.5 )
+			else if( Tolerance.Equal( test, 0.5 ) )
 				return Geometry.Euclidean;
 
 			return Geometry.Hyperbolic;
@@ -53,7 +53,7 @@
 		public static double EuclideanHypotenuse = 1.0 / 3;	// ZZZ - ??????????
 		public static double DiskRadius = 1;
 
-		public static double GetNormalizedCircumRadius( int p, int q )
+		public static double GetNormalizedCircumRadius( int p, double q )
 		{
 			double hypot = GetTriangleHypotenuse( p, q );
 			switch( Geometry2D.GetGeometry( p, q ) )
@@ -80,7 +80,7 @@
 		/// <summary>
 		/// In the induced geometry.
 		/// </summary>
-		public static double GetTriangleHypotenuse( int p, int q )
+		public static double GetTriangleHypotenuse( int p, double q )
 		{
 			Geometry g = Geometry2D.GetGeometry( p, q );
 			if( g == Geometry.Euclidean )
