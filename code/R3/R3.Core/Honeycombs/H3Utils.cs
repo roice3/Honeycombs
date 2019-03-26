@@ -552,7 +552,7 @@
 
 			/// <summary>
 			/// Given 2 points in the interior of the ball, calculate the center and radius of the orthogonal circle.
-			/// One point may optionally be on the boundary, but one shoudl be in the interior.
+			/// One point may optionally be on the boundary, but one should be in the interior.
 			/// If both points are on the boundary, we'll fall back on our other method.
 			/// </summary>
 			public static void OrthogonalCircleInterior( Vector3D v1, Vector3D v2, out Circle3D circle )

@@ -16,6 +16,7 @@
 		Square,
 		InvertedPoincare,
 		Joukowsky,
+		Ring,
 	}
 
 	public class HyperbolicModels
@@ -101,11 +102,42 @@
 			return SphericalModels.GnomonicToStereo( v );
 		}
 
+		public static Vector3D PoincareToBand( Vector3D v )
+		{
+			Complex z = v.ToComplex();
+			z = 2 / Math.PI * Complex.Log( ( 1 + z ) / ( 1 - z ) );
+			return Vector3D.FromComplex( z );
+		}
+
 		public static Vector3D BandToPoincare( Vector3D v )
 		{
 			Complex vc = v.ToComplex();
 			vc = ( Complex.Exp( Math.PI * vc / 2 ) - 1 ) / ( Complex.Exp( Math.PI * vc / 2 ) + 1 );
 			return Vector3D.FromComplex( vc );
+		}
+
+		/// <param name="a">The Euclidean period of the tiling in the band model.</param>
+		public static Vector3D BandToRing( Vector3D v, double P, int k )
+		{
+			Complex vc = v.ToComplex();
+			Complex i = new Complex( 0, 1 );
+			vc = Complex.Exp( 2*Math.PI*i*(vc+i)/(k*P) );
+			return Vector3D.FromComplex( vc );
+		}
+
+		/// <param name="a">The Euclidean period of the tiling in the band model.</param>
+		public static Vector3D RingToBand( Vector3D v, double P, int k)
+		{
+			Complex vc = v.ToComplex();
+			Complex i = new Complex( 0, 1 );
+			vc = -P*k*i*Complex.Log( vc ) / (2*Math.PI) - i;
+			return Vector3D.FromComplex( vc );
+		}
+
+		public static Vector3D RingToPoincare( Vector3D v, double P, int k)
+		{
+			Vector3D b = RingToBand( v, P, k );
+			return BandToPoincare( b );
 		}
 
 		public static Vector3D JoukowskyToPoincare( Vector3D v, Vector3D cen )
@@ -123,7 +155,7 @@
 			// disk -> ellipse
 			// Complex result = alpha * z + beta / z;
 
-			double off = 0.0;
+			double off = cen.Abs();
 			System.Func<Complex, Complex> foil = z =>
 			{
 				//w *= 1 + Math.Sqrt( 2 );
