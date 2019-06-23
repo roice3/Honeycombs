@@ -17,6 +17,8 @@
 		InvertedPoincare,
 		Joukowsky,
 		Ring,
+		Azimuthal_Equidistant,
+		Azimuthal_EqualArea,
 	}
 
 	public class HyperbolicModels
@@ -187,6 +189,33 @@
 			}
 
 			return Vector3D.FromComplex( w );
+		}
+
+		public static Vector3D EquidistantToPoincare( Vector3D p )
+		{
+			Vector3D result = p;
+			result.Normalize();
+			result *= EquidistantToPoincare( p.Abs() );
+			return result;
+		}
+
+		private static double EquidistantToPoincare( double dist )
+		{
+			return DonHatch.h2eNorm( dist );
+		}
+
+		public static Vector3D EqualAreaToPoincare( Vector3D p )
+		{
+			Vector3D result = p;
+			result.Normalize();
+			result *= EqualAreaToPoincare( p.Abs() );
+			return result;
+		}
+
+		private static double EqualAreaToPoincare( double dist )
+		{
+			double h = 2 * DonHatch.asinh( dist );
+			return DonHatch.h2eNorm( h );
 		}
 	}
 }
