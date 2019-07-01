@@ -66,7 +66,6 @@
     <Compile Include="Experiments\ThreeFifty.cs" />
     <Compile Include="Experiments\Tree.cs" />
     <Compile Include="HoneycombGen.cs" />
-    <Compile Include="Experiments\ImageGrid.cs" />
     <Compile Include="Experiments\Lawson.cs" />
     <Compile Include="HoneycombGen_old.cs" />
     <Compile Include="HoneycombPaper.cs" />
