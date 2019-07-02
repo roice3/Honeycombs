@@ -1,4 +1,4 @@
-﻿namespace HyperbolicModels
+﻿namespace R3.Drawing
 {
 	using System.Drawing;
 	using System.Drawing.Imaging;
@@ -45,10 +45,10 @@
 		{
 			Bitmap image = new Bitmap( s.Width, s.Height );
 			Graphics g = Graphics.FromImage( image );
-			g.Clear( Color.White );
+			g.Clear( Color.Black );
 
-			int tileWidth = 1000;//s.Width / s.Columns;
-			int tileHeight = 1000;// s.Height / s.Rows;
+			int tileWidth = 200;//s.Width / s.Columns;
+			int tileHeight = 200;// s.Height / s.Rows;
 			int vGap = s.vGap, hGap = s.hGap;
 			Size tileSize = new Size( tileWidth, tileHeight );
 
@@ -56,10 +56,10 @@
 			foreach( string imageName in s.InputImages )
 			{
 				string fullFileName = Path.Combine( s.Directory, imageName );
-				Bitmap tile = new Bitmap( fullFileName );
+				Bitmap original = new Bitmap( fullFileName );
 
 				// Resize
-				tile = new Bitmap( tile, tileSize );
+				Bitmap tile = new Bitmap( original, tileSize );
 
 				// Copy to location.
 				for( int i=0; i<tile.Width; i++ )
@@ -68,6 +68,9 @@
 					Color c = tile.GetPixel( i, j );
 					image.SetPixel( currentCol * (tileWidth + hGap) + i, currentRow * (tileHeight + vGap) + j, c );
 				}
+
+				original.Dispose();
+				tile.Dispose();
 
 				currentCol++;
 				if( currentCol >= s.Columns )
