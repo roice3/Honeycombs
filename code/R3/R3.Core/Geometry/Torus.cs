@@ -96,6 +96,9 @@
 			if( r2 < 0 )
 				r2 = 0;
 
+			r1 *= Math.Sqrt( 2 );
+			r2 *= Math.Sqrt( 2 );
+				
 			double angleInc1 = 2 * Math.PI / n1;
 			double angleInc2 = 2 * Math.PI / n2;
 
