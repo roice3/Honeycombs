@@ -47,8 +47,8 @@
 			Graphics g = Graphics.FromImage( image );
 			g.Clear( Color.Black );
 
-			int tileWidth = 200;//s.Width / s.Columns;
-			int tileHeight = 200;// s.Height / s.Rows;
+			int tileWidth = 300;//s.Width / s.Columns;
+			int tileHeight = 300;// s.Height / s.Rows;
 			int vGap = s.vGap, hGap = s.hGap;
 			Size tileSize = new Size( tileWidth, tileHeight );
 
@@ -66,7 +66,7 @@
 				for( int j=0; j<tile.Height; j++ )
 				{
 					Color c = tile.GetPixel( i, j );
-					image.SetPixel( currentCol * (tileWidth + hGap) + i, currentRow * (tileHeight + vGap) + j, c );
+					image.SetPixel( hGap + currentCol * (tileWidth + hGap) + i, vGap + currentRow * (tileHeight + vGap) + j, c );
 				}
 
 				original.Dispose();
