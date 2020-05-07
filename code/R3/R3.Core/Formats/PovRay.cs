@@ -234,8 +234,10 @@
 			// options: b_spline, linear_spline, cubic_spline
 
 			string formattedPoints = string.Join( ",", appended.Select( formatVecAndSize ).ToArray() );
-			//return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{tex2}} }}", points.Length + 2, formattedPoints );
-			//return string.Format( "sphere_sweep {{ linear_spline {0}, {1} texture {{tex}} }}", points.Length + 2, formattedPoints );
+			if( true )
+				return string.Format( "sphere_sweep {{ b_spline {0}, {1} texture {{edge_tex}} }}", points.Length + 2, formattedPoints );
+			else
+				return string.Format( "sphere_sweep {{ cubic_spline {0}, {1} texture {{edge_tex}} }}", points.Length + 2, formattedPoints );
 
 			// With color included.
 			/*color.X = 220;
@@ -313,7 +315,7 @@
 				bool invert1 = !facet.Sphere.IsPointInside( cell.Center );
 				if( facet.Sphere.Invert ) invert1 = !invert1;
 				//bool invert1 = CheckForInvert( facet.Sphere, cell.Center );
-				sb.Append( string.Format( "{0} material {{ sphereMat }} clipped_by {{ ball }}",
+				sb.Append( string.Format( "{0} texture {{ facet_tex }} clipped_by {{ ball }}",
 					FormatSphereNoMaterialOffset( facet.Sphere, invert1, false ) ) );
 
 				H3.Cell.Facet[] others = cell.Facets.Except( new H3.Cell.Facet[] { facet } ).ToArray();
@@ -482,7 +484,9 @@
 
 				if( color.W == 0 )
 				{
-					sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1}}} clipped_by {{ ball }}",
+					//sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1}}} clipped_by {{ ball }}",
+						//FormatSphereNoMaterialOffset( facet, invert, false ), FormatVecLowRes( color ) ) );
+					sb.Append( string.Format( "{0} texture {{ facet_tex }} clipped_by {{ ball }}",
 						FormatSphereNoMaterialOffset( facet, invert, false ), FormatVecLowRes( color ) ) );
 				}
 				else
@@ -498,7 +502,7 @@
 					sb.Append( string.Format( " clipped_by {{ {0} }}", FormatSphereNoMaterial( otherFacet, invert ) ) );
 				}
 
-				sb.Append( " }" );
+				sb.Append( " }\n" );
 			}
 
 			return sb.ToString();
