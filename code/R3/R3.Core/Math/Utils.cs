@@ -62,6 +62,13 @@
 
 	public class DoubleEqualityComparer : IEqualityComparer<double>
 	{
+		public DoubleEqualityComparer() { }
+
+		public DoubleEqualityComparer( double tol )
+		{
+			m_tolerance = tol;
+		}
+
 		public bool Equals( double d1, double d2 )
 		{
 			if( Infinity.IsInfinite( d1 ) && Infinity.IsInfinite( d2 ) )

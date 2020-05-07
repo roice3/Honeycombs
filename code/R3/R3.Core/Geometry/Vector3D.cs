@@ -280,7 +280,7 @@
 		public bool Normalize()
 		{
 			double magnitude = Abs();
-			if( Tolerance.Zero( magnitude ) )
+			if( Tolerance.Zero( magnitude, 1E-10 ) )
 				return false;
 			Divide( magnitude );
 			return true;
