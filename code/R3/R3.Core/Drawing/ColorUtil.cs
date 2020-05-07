@@ -83,6 +83,20 @@
 			return Color.FromArgb( a, r, g, b );
 		}
 
+		public static Color InterpColor( Color c1, Color c2, double input )
+		{
+			System.Func<int, int, double, int> interp = ( i1, i2, d ) =>
+			{
+				return (int)( (double)i1 + d * (double)( i2 - i1 ) );
+			};
+
+			int a = interp( c1.A, c2.A, input );
+			int r = interp( c1.R, c2.R, input );
+			int g = interp( c1.G, c2.G, input );
+			int b = interp( c1.B, c2.B, input );
+			return Color.FromArgb( a, r, g, b );
+		}
+
 		public static Color Inverse( Color c )
 		{
 			return Color.FromArgb( 255, 255 - c.R, 255 - c.G, 255 - c.B );
