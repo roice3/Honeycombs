@@ -1,18 +1,16 @@
 ﻿namespace HyperbolicModels
 {
+	using R3.Algorithm;
+	using R3.Core;
+	using R3.Drawing;
+	using R3.Geometry;
+	using R3.Math;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Drawing;
 	using System.IO;
 	using System.Linq;
-	using System.Text.RegularExpressions;
-	using R3.Algorithm;
-	using R3.Core;
-	using R3.Geometry;
-	using R3.Math;
-
 	using Math = System.Math;
-	
+
 	internal static class Sandbox
 	{
 		public static void ElevenCell()
