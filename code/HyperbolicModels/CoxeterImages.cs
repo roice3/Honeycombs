@@ -111,9 +111,7 @@
 							v = ApplyTransformation( v, t );
 							v = PlaneModelToBall( v, t );
 							v *= m_z;
-							int cellFlipsTemp;
-							Color color = CalcColor( settings, ref v, out cellFlipsTemp );
-							cellFlips = Math.Max( cellFlips, cellFlipsTemp );
+							Color color = CalcColor( settings, ref v, out cellFlips );
 							colors.Add( color );
 						}
 
@@ -146,7 +144,7 @@
 			image.Save( settings.FileName, jgpEncoder, encoderParams );*/
 		}
 
-		internal double m_z = 0;
+		internal double m_z = 1.0;
 
 		/// <summary>
 		/// http://www.wolframalpha.com/input/?i=1%2F+%281%2Be%5E%28-10*%28x-0.5%29%29%29
@@ -536,14 +534,14 @@
 			//int faceFlips = allFlips.Skip( idx ).Sum( m => m == 1 ? 1 : 0 );
 			//int layer = cellFlips + faceFlips;
 
-			HashSet<double> layers = new HashSet<double>( new DoubleEqualityComparer() );
+			/*HashSet<double> layers = new HashSet<double>( new DoubleEqualityComparer() );
 			Vector3D o = new Vector3D();
 			layers.Add( o.Abs() );
 			allFlips.ForEach( i => { o = settings.Mirrors[i].ReflectPoint( o ); layers.Add( o.Abs() ); } );
 			int layer = layers.Count - 1;
+			*/
 
-
-			return ColorFunc( m_whiteBoundary, v, layer, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
+			return ColorFunc( m_whiteBoundary, v, cellFlips, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
 		}
 
 		/// <summary>
@@ -648,10 +646,10 @@
 				//if( true )  XXX - try with all and see how it looks!
 				{
 					//facetSphere = GeodesicOffset( s, 0.01 );
-					//facetSphere = AlteredFacetForTrueApparent2DTilings( fundamentalRegion );
+					facetSphere = AlteredFacetForTrueApparent2DTilings( fundamentalRegion );
 
-					facetSphere = fundamentalRegion[0].Clone();
-					facetSphere = new Sphere() { Center = facetSphere.Center, Radius = facetSphere.Radius * 1.05 };
+					//facetSphere = fundamentalRegion[0].Clone();
+					//facetSphere = new Sphere() { Center = facetSphere.Center, Radius = facetSphere.Radius * 1.05 };
 				}
 				else
 					facetSphere = s;
