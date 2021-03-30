@@ -19,6 +19,7 @@
 		Ring,
 		Azimuthal_Equidistant,
 		Azimuthal_EqualArea,
+		Schwarz_Christoffel
 	}
 
 	public class HyperbolicModels
