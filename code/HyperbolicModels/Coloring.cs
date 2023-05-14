@@ -13,7 +13,7 @@
 		/// incrementsUntilRepeat is the value where we return to the starting point of the hexagon (white).
 		/// increments is used as the distance-along-hexagon parameter.
 		/// </summary>
-		public static Color ColorAlongHexagon( int incrementsUntilRepeat, int increments )
+		public static Color ColorAlongHexagon( int incrementsUntilRepeat, double increments )
 		{
 			//if( 0 == increments )
 			//	return Color.FromArgb( 255, 187, 23, 23 );
@@ -33,11 +33,10 @@
 			//increments = (int)( Math.Pow( (double)increments, 1.35 ) );
 
 			// Bring to main hexagon (handle looping)
-			increments += (int)(.0*incrementsUntilRepeat);	// an offset along the color hexagon
 			increments = increments % incrementsUntilRepeat;
 
 			// 0 to 6, so we can have each edge of the hexagon live in a unit interval.
-			double distAlongHex = (double)increments * 6 / incrementsUntilRepeat;
+			double distAlongHex = increments * 6 / incrementsUntilRepeat;
 
 			// 464
 			// Give the first 
