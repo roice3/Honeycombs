@@ -19,10 +19,12 @@
 			public Settings() { Antialias = true; Dual = true; }
 
 			public HoneycombDef Honeycomb { get; set; }
+			public Geometry G { get; set; }
 			public int Width { get; set; }
 			public int Height { get; set; }
 			public double Bounds { get; set; }			// y bounds (x will be scaled accordingly).
 			public Sphere[] Mirrors { get; set; }		// in ball model
+			public Vector3D[] Verts { get; set; }
 			public string FileName { get; set; }
 			public bool Antialias { get; set; }
 			public double ColorScaling { get; set; }	// Depth to cycle through one hexagon
@@ -51,6 +53,213 @@
 					return Bounds * 2 / (Height - 1);
 				}
 			}
+
+			public class EdgeInfo
+			{
+				public H3.Cell.Edge Edge { get; set; }
+				public Color Color { get; set; }
+
+				public void PreCalc()
+				{
+					Circle3D c;
+					H3Models.Ball.OrthogonalCircleInterior( Edge.Start, Edge.End, out c );
+					Circle = c;
+				}
+
+				public Circle3D Circle { get; private set; }
+			}
+
+			public class VertInfo
+			{
+				public VertInfo() { ApplicableSpheres = new List<FacetInfo>(); Orientations = new List<bool>(); }
+
+				public int Idx { get; set; }
+
+				public List<FacetInfo> ApplicableSpheres { get; set; }
+
+				public List<bool> Orientations { get; set; }
+
+				/// <summary>
+				/// Check if the facets for this vert applies to this point,
+				/// i.e. if the point has the same orientation w.r.t to the spheres.
+				/// </summary>
+				public bool PointLikeVert( Vector3D p )
+				{
+					if( ApplicableSpheres.Count == 0 )
+						return false;
+
+					for( int i = 0; i < ApplicableSpheres.Count; i++ )
+						if( ApplicableSpheres[i].Sphere.IsPointInside( p ) != Orientations[i] )
+							return false;
+
+					return true;
+				}
+			}
+
+			public class FacetInfo
+			{
+				public FacetInfo() { Color = Color.Black; }
+
+				public Sphere Sphere { get; set; }
+				public Color Color { get; set; }
+
+				public int[] AffectedVerts { get; set; }
+			}
+
+			public VertInfo[] UniformVerts;
+			public EdgeInfo[] UniformEdges;
+			public FacetInfo[] UniformFacets;
+
+			/// <summary>
+			/// This will be faster than calculating the actual distance, though
+			/// we may be able to do more interesting things later with the distance.
+			/// </summary>
+			public Color PointWithinDist( double dEuc, Vector3D p )
+			{
+				int vert = -1;
+				foreach( VertInfo vi in UniformVerts )
+				{
+					if( vi.PointLikeVert( p ) )
+					{
+						vert = vi.Idx;
+						break;
+					}
+				}
+
+				if( vert == -1 )
+				{
+					return Color.White;
+					// happend on 73i and I didn't track down the reason.
+					// throw new System.Exception( "unexpected" );
+				}
+
+				foreach( FacetInfo fi in UniformVerts[vert].ApplicableSpheres )
+					if( PointWithinDist( dEuc, p, fi.Sphere ) )
+						return fi.Color;
+
+				return Color.White;
+			}
+
+			public bool PointWithinDist( double dEuc, Vector3D p, EdgeInfo edge )
+			{
+				return PointWithinDist( dEuc, p, edge.Circle.Center, edge.Circle.Radius );
+			}
+
+			public bool PointWithinDist( double dEuc, Vector3D p, Sphere s )
+			{
+				if( s.IsPlane )
+				{
+					// Get the sphere surrounding the point.
+					Vector3D cen_;
+					double rad_;
+					H3Models.Ball.DupinCyclideSphere( p, dEuc, G, out cen_, out rad_ );
+
+					double distToPlane = Math.Abs( Euclidean3D.DistancePointPlane( s.Normal, s.Offset, cen_ ) );
+					return distToPlane < rad_; 
+				}
+
+				return PointWithinDist( dEuc, p, s.Center, s.Radius );
+			}
+
+			private bool PointWithinDist( double dEuc, Vector3D p, Vector3D cen, double rad )
+			{
+				// Get the sphere surrounding the point.
+				Vector3D cen_;
+				double rad_;
+				H3Models.Ball.DupinCyclideSphere( p, dEuc, G, out cen_, out rad_ );
+
+				// We are within the distance if the passed in sphere/arc intersects this.
+				// We'll make the check a "strict" within.
+				double dist = cen_.Dist( cen );
+				return 
+					dist < rad + rad_ &&
+					dist > rad - rad_;
+			}
+
+			/// <summary>
+			/// Calculates edges and facets for uniform honeycombs.
+			/// </summary>
+			public void CalcElements()
+			{
+				int[] all = new int[] { 0, 1, 2, 3 };
+				//int[] active = new int[] { 2, 3 };
+				int[] active = new int[] { 3 };
+				//int[] active = new int[] { 0, 3 };
+				Vector3D startingPoint = HoneycombGen.IterateToStartingPoint( G, Mirrors, Verts, active );
+
+				List<EdgeInfo> edges = new List<EdgeInfo>();
+				Dictionary<Sphere, HashSet<int>> facetSpheres = new Dictionary<Sphere, HashSet<int>>();
+				foreach( int a in active )
+				{
+					Vector3D reflected = Mirrors[a].ReflectPoint( startingPoint );
+					edges.Add( new EdgeInfo()
+					{
+						Edge = new H3.Cell.Edge( startingPoint, reflected )
+					} );
+
+					// This *might* also define a new facet.
+					// We don't need to check the current mirror, because that will 
+					foreach( int o in all.Except( new int[] { a } ) )
+					{
+						Vector3D p3 = Mirrors[o].ReflectPoint( reflected );
+						if( p3 == reflected )
+							continue;
+						
+						Sphere s = H3Models.Ball.OrthogonalSphereInterior( startingPoint, reflected, p3 );
+						foreach( int o2 in all.Except( new int[] { a, o } ) )
+						{
+							if( s.IsPointOn( Verts[o2] ) )
+								continue;
+
+							HashSet<int> affectedVerts;
+							if( !facetSpheres.TryGetValue( s, out affectedVerts ) )
+								affectedVerts = new HashSet<int>();
+							affectedVerts.Add( o2 );
+							facetSpheres[s] = affectedVerts;
+						}
+					}
+				}
+
+				UniformEdges = edges.ToArray();
+				foreach( EdgeInfo e in UniformEdges )
+					e.PreCalc();
+
+				List<FacetInfo> facets = new List<FacetInfo>();
+				foreach( var kvp in facetSpheres )
+				{
+					FacetInfo fi = new FacetInfo();
+					fi.Sphere = kvp.Key;
+					fi.AffectedVerts = kvp.Value.ToArray();
+					facets.Add( fi );
+				}
+				{
+					Color red = ColorTranslator.FromHtml( "#CF3721" );
+					Color green = ColorTranslator.FromHtml( "#258039" );
+					Color blue = ColorTranslator.FromHtml( "#375E97" );
+					//facets[0].Color = red;
+					//facets[1].Color = green;
+					//facets[2].Color = blue;
+					for (int i = 0; i < facets.Count; i++)
+						facets[i].Color = Color.Black;
+				}
+				UniformFacets = facets.ToArray();
+
+				List<VertInfo> verts = new List<VertInfo>();
+				for( int i = 0; i < 4; i++ )
+				{
+					VertInfo vi = new VertInfo() { Idx = i };
+					foreach( FacetInfo fi in UniformFacets )
+					{
+						if( fi.AffectedVerts.Contains( i ) )
+						{
+							vi.ApplicableSpheres.Add( fi );
+							vi.Orientations.Add( fi.Sphere.IsPointInside( Verts[i] ) );
+						}
+					}
+					verts.Add( vi );
+				}
+				UniformVerts = verts.ToArray();
+			}
 		}
 
 		Sphere[] m_whiteBoundary;
@@ -77,6 +286,8 @@
 
 			// Setup the boundary which will determine coloring.
 			m_whiteBoundary = WhiteBoundary( settings );
+			CalcLayers( settings );
+			settings.CalcElements();
 
 			// Cycle through all the pixels and calculate the color.
 			int row = 0;
@@ -110,15 +321,31 @@
 
 							v = ApplyTransformation( v, t );
 							v = PlaneModelToBall( v, t );
-							v *= m_z;
-							Color color = CalcColor( settings, ref v, out cellFlips );
-							colors.Add( color );
+
+							v *= m_r;
+							v += m_cen;
+							//v.RotateAboutAxis( m_cen, t*Math.PI );							
+							//v = H3Models.TransformHelper( v, m_z );
+							//v.Z = -m_r;
+							//v.RotateAboutAxis( new Vector3D( 1, 0 ), m_r * Math.PI / 2 );
+							
+							if( settings.G == Geometry.Spherical || v.Abs() < 1 )
+							{
+								Color? color = CalcColor( settings, ref v, out cellFlips );
+                                if( color.HasValue)
+								    colors.Add( color.Value );
+							}
 						}
 
 						lock( m_lock )
 						{
-							Color avg = AvgColor( colors );
-							image.SetPixel( i, j, avg );
+                            if (colors.Count > 0)
+                            {
+                                Color avg = Coloring.AvgColor(colors);
+                                image.SetPixel(i, j, avg);
+                            }
+                            else
+                                image.SetPixel(i, j, Color.White);
 						}
 					}
 					else
@@ -127,7 +354,7 @@
 						{
 							Vector3D v = PlaneModelToBall( new Vector3D( x, y ) );
 							int cellFlips;
-							image.SetPixel( i, j, CalcColor( settings, ref v, out cellFlips ) );
+							image.SetPixel( i, j, CalcColor( settings, ref v, out cellFlips ) ?? Color.White );
 						}
 					}
 				}
@@ -144,7 +371,9 @@
 			image.Save( settings.FileName, jgpEncoder, encoderParams );*/
 		}
 
-		internal double m_z = 1.0;
+		internal Vector3D m_cen = new Vector3D();
+		internal double m_r = 1.0;
+		internal Mobius m_z = Mobius.Identity();
 
 		/// <summary>
 		/// http://www.wolframalpha.com/input/?i=1%2F+%281%2Be%5E%28-10*%28x-0.5%29%29%29
@@ -355,6 +584,10 @@
 			Mobius m0 = new Mobius(), m1 = new Mobius(), m2 = new Mobius(), m3 = new Mobius();
 			Sphere unitSphere = new Sphere();
 
+			v -= new Vector3D( .8, 1.1 );
+			v = unitSphere.ReflectPoint( v );
+			return v;
+
 			v.Y -= .8;
 			v *= 7;
 			m0.UpperHalfPlane();
@@ -505,44 +738,118 @@
 
 		private readonly object m_lock = new object();
 
-		private Color AvgColor( List<Color> colors )
-		{
-			//if( colors.Contains( Color.White ) )
-			//	return Color.White;
-
-			int a = (int)colors.Select( c => (double)c.A ).Average();
-			int r = (int)colors.Select( c => (double)c.R ).Average();
-			int g = (int)colors.Select( c => (double)c.G ).Average();
-			int b = (int)colors.Select( c => (double)c.B ).Average();
-			return Color.FromArgb( a, r, g, b );
-		}
-
-		private Color CalcColor( Settings settings, ref Vector3D v, out int cellFlips )
+		private Color? CalcColor( Settings settings, ref Vector3D v, out int cellFlips )
 		{
 			int[] flips = new int[4];
 			List<int> allFlips = new List<int>();
 			if( !ReflectToFundamental( settings, ref v, ref flips, ref allFlips ) )
 			{
 				cellFlips = 0;
-				return Color.White;
+				return null;
 			}
 
 			cellFlips = flips[0];
 			int totalFlips = flips.Sum();
 
-			//int idx = allFlips.FindLastIndex( i => i == 0 );
-			//int faceFlips = allFlips.Skip( idx ).Sum( m => m == 1 ? 1 : 0 );
-			//int layer = cellFlips + faceFlips;
+			if( true )
+			{
+				//double dEuc = 0.02;
+				double dEuc = 0.025;
+				double dH = 0;
+				bool plywood = false;
+				int count = plywood ? 14 : 1;
 
-			/*HashSet<double> layers = new HashSet<double>( new DoubleEqualityComparer() );
-			Vector3D o = new Vector3D();
-			layers.Add( o.Abs() );
-			allFlips.ForEach( i => { o = settings.Mirrors[i].ReflectPoint( o ); layers.Add( o.Abs() ); } );
-			int layer = layers.Count - 1;
-			*/
+				for( int i = 0; i < count; i++ )
+				{
+					dH += 0.05;
+					dEuc = DonHatch.h2eNorm( dH );
 
-			return ColorFunc( m_whiteBoundary, v, cellFlips, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
+					Color col = settings.PointWithinDist( dEuc, v );
+					bool within = col != Color.White;
+					double frac = 255.0 * (double)i / count;
+					int scale = 50;
+					col = Coloring.ColorAlongHexagon( scale, (int)(scale * (0.5 + frac * 0.5 / 255.0)) );
+					//int gray = (int)( 255.0 * (double)i / count );
+					//col = Color.FromArgb( 255, gray, gray, gray );
+
+					if( i % 2 == 0 )
+					{
+						if( within )
+							return col;
+					}
+					else
+					{
+						if( within )
+							return Color.White;
+					}
+				}
+
+				//cellFlips += 5;
+				int colorScaling = 10;
+				colorScaling = 20;
+				return Coloring.ColorAlongHexagon( (int)colorScaling, cellFlips );
+				return Color.White;
+
+				//return settings.PointWithinDist( dEuc, v );
+			}
+
+			Color c;
+
+			// for spherical...
+			if( false )
+			{
+				Vector3D o = new Vector3D();
+				allFlips.ForEach( i => { o = settings.Mirrors[i].ReflectPoint( o ); } );
+				int layer = 9;
+				if( !Infinity.IsInfinite( o ) )
+					layer = m_layers[o.Abs()];
+				c = ColorFunc( m_whiteBoundary, v, layer, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
+			}
+
+			//int layer = cellFlips;
+			//settings.ColorScaling = 8;
+
+			c = ColorFunc( m_whiteBoundary, v, cellFlips/*layer*/, settings.ColorScaling, false /*0 == totalFlips % 2*/ );
+
+			// Color gradient to make things more interesting.
+			/*if( c != Color.Black )
+			{
+				double lum = c.GetBrightness();
+				double newLum = NewLum( lum, H3Models.Ball.SDist( new Vector3D(), v ) );
+				Vector3D rgb = ColorUtil.CHSL2RGB( new Vector3D( c.GetHue(), c.GetSaturation(), newLum ) );
+				c = Color.FromArgb( 255, (int)( rgb.X * 255 ), (int)(rgb.Y * 255 ), (int)(rgb.Z * 255 ) );
+			}*/
+
+			return c;
 		}
+
+		double NewLum( double inputLum, double dist )
+		{
+			double mag = Math.Exp( -Math.Pow( 2 * dist, 2 ) );
+			double range = 1.0 - inputLum;
+			return 1.0 - range * mag;
+		}
+
+		/// <summary>
+		/// I was using this for spherical honeycombs.
+		/// </summary>
+		private void CalcLayers( Settings settings )
+		{
+			HashSet<double> layers = new HashSet<double>( new DoubleEqualityComparer() );
+
+			H3.Cell startingCell = new H3.Cell( settings.Mirrors.Select( m => new H3.Cell.Facet( m ) ).ToArray() );
+			startingCell.Center = HoneycombPaper.InteriorPointBall;
+			startingCell.AuxPoints = new Vector3D[] { new Vector3D() };
+			var cells = Recurse.CalcCells( settings.Mirrors, new H3.Cell[] { startingCell } );
+			foreach( var cell in cells )
+				layers.Add( cell.AuxPoints[0].Abs() );
+
+			List<double> layersList = layers.OrderBy( d => d ).ToList();
+			m_layers = new Dictionary<double, int>( new DoubleEqualityComparer() );
+			for( int i = 0; i < layersList.Count; i++ )
+				m_layers[layersList[i]] = i;
+		}
+		private Dictionary<double, int> m_layers;
 
 		/// <summary>
 		/// Somewhat based on http://commons.wikimedia.org/wiki/User:Tamfang/programs
@@ -577,11 +884,11 @@
 					return true;
 			}
 
-			//System.Console.WriteLine( string.Format( "Did not converge at point {0}", original.ToString() ) );
+			System.Console.WriteLine( string.Format( "Did not converge at point {0}", original.ToString() ) );
 			return false;
 		}
 
-		private int m_maxIterations = 4000;
+		private int m_maxIterations = 40000;
 
 		private bool ReflectAcrossMirror( Sphere[] mirrors, ref Vector3D v, int idx, ref int[] mirrorFlips, ref List<int> allFlips )
 		{
@@ -589,7 +896,15 @@
 			bool outsideFacet = mirror.IsPointInside( v );
 			if( outsideFacet )
 			{
-				v = mirror.ReflectPoint( v );
+                // Floating point tolerance fix.
+                // I wish I had a more proper solution.
+                // If we are on the cell mirror and reflect to the same point, we won't consider ourselves outside after all.
+                // If we don't do this, we can just keep reflecting back and forth across the cell mirror
+                Vector3D reflected = mirror.ReflectPoint(v);
+                if (idx == 0 && v == reflected)
+                    return true;
+
+                v = reflected;
 				mirrorFlips[idx]++;
 				allFlips.Add( idx );
 				return false;
@@ -642,15 +957,16 @@
 				Sphere s = fundamentalRegion[i];
 				Sphere facetSphere;
 				if( i == 0 )
-				//if( i == 2 )	// Dual
-				//if( true )  XXX - try with all and see how it looks!
 				{
 					//facetSphere = GeodesicOffset( s, 0.01 );
 					facetSphere = AlteredFacetForTrueApparent2DTilings( fundamentalRegion );
 
-					//facetSphere = fundamentalRegion[0].Clone();
-					//facetSphere = new Sphere() { Center = facetSphere.Center, Radius = facetSphere.Radius * 1.05 };
-				}
+                    // XXX - Is this general? Maybe it shrinks sometimes.
+					facetSphere = fundamentalRegion[0].Clone();
+                    //facetSphere.Radius *= 1.005;
+                    //facetSphere.Radius *= 1.035;
+                    facetSphere.Radius *= 0.998;    // spherical
+                }
 				else
 					facetSphere = s;
 
@@ -714,7 +1030,7 @@
 
 			double bananaThickness = 0.025;
 			//bananaThickness = 0.15;
-			bananaThickness = 0.05;
+			//bananaThickness = 0.05;
 
 			// Transform the intersection points to a standard Poincare disk.
 			// The midsphere radius is the scale of the apparent 2D tilings.
@@ -855,6 +1171,8 @@
 			Color c = Coloring.ColorAlongHexagon( (int)colorScaling, reflections );
 			if( invert )
 				c = Coloring.Inverse( c );
+			//if( c == Color.Black )
+			//	c = Color.Gray;
 			return c;
 		}
 	}

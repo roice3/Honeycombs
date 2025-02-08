@@ -570,9 +570,9 @@
 
 			// Bananas
 			public bool ThinEdges = false;
-			public double AngularThickness = 0.06;	// an angle (the slope of the banana)
+			//public double AngularThickness = 0.06;	// an angle (the slope of the banana)
 			//public double AngularThickness = 0.04;
-			//public double AngularThickness = 0.25;
+			public double AngularThickness = 0.25;
 
 			// Position and associated Mobius to apply
 			public Polytope.Projection Position = Polytope.Projection.CellCentered;

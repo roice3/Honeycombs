@@ -131,6 +131,7 @@
 			switch( cellGeometry )
 			{
 				case Geometry.Spherical:
+				case Geometry.Hyperbolic:
 				{
 					Sphere sphereInBall = H3Models.UHSToBall( new Sphere() { Center = edge.Center, Radius = edge.Radius } );
 					Vector3D mid = sphereInBall.ProjectToSurface( new Vector3D() );	// Project origin to sphere.
@@ -140,10 +141,6 @@
 				{
 					Vector3D mid = H3Models.UHSToBall( edge.Center + new Vector3D( 0, 0, edge.Radius ) );
 					return mid;
-				}
-				case Geometry.Hyperbolic:
-				{
-					throw new System.NotImplementedException();
 				}
 			}
 
@@ -159,7 +156,8 @@
 			switch( cellGeometry )
 			{
 			case Geometry.Spherical:
-				{
+			case Geometry.Hyperbolic:
+					{
 					Vector3D cellCenter = CellCenterBall( p, q, r );
 					Sphere[] mirrors = Mirrors( p, q, r, moveToBall: true );
 					return mirrors[0].ProjectToSurface( cellCenter );
@@ -170,10 +168,6 @@
 					Vector3D faceCenterUHS = mirrors[0].Center;
 					faceCenterUHS.Z += mirrors[0].Radius;
 					return H3Models.UHSToBall( faceCenterUHS );
-				}
-			case Geometry.Hyperbolic:
-				{
-					throw new System.NotImplementedException();
 				}
 			}
 
@@ -421,11 +415,27 @@
 		/// </summary>
 		public static H3.Cell.Edge[] SimplexEdgesUHS( int p, int q, int r )
 		{
-			// Only implemented for honeycombs with hyperideal cells right now.
-			if( !( Geometry2D.GetGeometry( p, q ) == Geometry.Hyperbolic ) )
-				throw new System.NotImplementedException();
-
+			Geometry g = Geometry2D.GetGeometry( p, q );
 			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, moveToBall: false );
+
+			if( g == Geometry.Spherical )
+			{
+				Vector3D[] simplexVerts = VertsBall( p, q, r ).Select( v => H3Models.BallToUHS( v ) ).ToArray();
+				H3.Cell.Edge[] simplexEdges = new H3.Cell.Edge[]
+				{
+					new H3.Cell.Edge( simplexVerts[0], simplexVerts[1] ),
+					new H3.Cell.Edge( simplexVerts[0], simplexVerts[2] ),
+					new H3.Cell.Edge( simplexVerts[0], simplexVerts[3] ),
+					new H3.Cell.Edge( simplexVerts[1], simplexVerts[2] ),
+					new H3.Cell.Edge( simplexVerts[1], simplexVerts[3] ),
+					new H3.Cell.Edge( simplexVerts[2], simplexVerts[3] ),
+				};
+				return simplexEdges;
+			}
+
+			// Below implements for honeycombs with hyperideal cells.
+			if( !( g == Geometry.Hyperbolic ) )
+				throw new System.NotImplementedException();
 
 			Circle[] circles = simplex.Select( s => H3Models.UHS.IdealCircle( s ) ).ToArray();
 

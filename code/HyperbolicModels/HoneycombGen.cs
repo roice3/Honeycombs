@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Drawing;
 	using System.IO;
 	using System.Linq;
 	using R3.Core;
@@ -338,7 +339,7 @@
 			active = active.Select( i => mapMirror( i ) ).OrderBy( i => i ).ToArray();
 			polyMirrors = polyMirrors.Select( i => mapMirror( i ) ).OrderBy( i => i ).ToArray();
 
-			Vector3D startingPoint = IterateToStartingPoint( null, active, simplex );
+			Vector3D startingPoint = IterateToStartingPoint( Geometry.Hyperbolic, simplex.Facets, simplex.Verts, active );
 			List<H3.Cell.Edge> startingEdges = new List<H3.Cell.Edge>();
 			foreach( int a in active )
 			{
@@ -500,7 +501,7 @@
 			simplex.Facets = SimplexCalcs.Mirrors( def.P, def.Q, def.R );
 			simplex.Verts = SimplexCalcs.VertsBall( def.P, def.Q, def.R );
 
-			Vector3D startingPoint = IterateToStartingPoint( def, active, simplex );
+			Vector3D startingPoint = IterateToStartingPoint( Geometry.Hyperbolic, simplex.Facets, simplex.Verts, active );
 			if( startingPoint.DNE )
 				return null;
 			List<H3.Cell.Edge> startingEdges = new List<H3.Cell.Edge>();
@@ -539,42 +540,55 @@
 					H3Models.Transform_PointToOrigin( e.End, p ) ) ).ToList();
 			}
 
-			SetupBaseHue( fileName, mirrorsString, baseHue );
+			//SetupBaseHue( fileName, mirrorsString, baseHue );
+			Color cTemp = Color.FromArgb( 255, 0, 99, 99 );
+			baseHue = (int)( cTemp.GetHue() * 255 );
 			Recurse.m_background =  baseHue == -1 ? new Vector3D() : new Vector3D( baseHue, 1, .1 );
 
 			H3.Cell.Edge[] edges = Recurse.CalcEdgesSmart2( simplex.Facets, startingEdges.ToArray(), numEdges );
 			//H3.Cell.Edge[] edges = Recurse.CalcEdges( simplex.Facets, startingEdges.ToArray(), 
 			//	new Recurse.Settings() { ThreshType = Recurse.EdgeThreshType.Radial, Threshold = H3Models.Ball.FindLocationForDesiredRadius( settings.PovRay.EdgeWidth, 0.8/100 ) } );
 			//edges = edges.Where( e => e.Depths[0] % 2 == 1 ).ToArray();	// Used for Borromean Rings complement image.
+			//edges = edges.Where( e => e.Depths[0] == 0 ).ToArray();
 
 			// Shapeways truncated 436.
 			if( false )
-			if( true )
+			//if( true )
 			{
-				Mobius m = Mobius.Scale( 1.0 / H3Models.UHS.ToE( Honeycomb.InRadius( def.P, def.Q, def.R ) ) );
+				Vector3D vUHS = H3Models.BallToUHS( SimplexCalcs.VertexPointBall( settings.P, settings.Q, settings.R ) );
+				double scale = 1.0 / vUHS.Z;
+				Mobius m = Mobius.Scale( scale );
+				//Mobius m = Mobius.Scale( 1.0 / H3Models.UHS.ToE( Honeycomb.InRadius( def.P, def.Q, def.R ) ) );
 				double a = -Math.PI / 2 + Math.Asin( 1 / Math.Sqrt( 3 ) );
 				edges = edges.Select( e =>
 				{
 					Vector3D v1 = e.Start; 
 					Vector3D v2 = e.End;
-					v1.RotateAboutAxis( new Vector3D( 1, 0, 0 ), a );
-					v2.RotateAboutAxis( new Vector3D( 1, 0, 0 ), a );
+					//v1.RotateAboutAxis( new Vector3D( 1, 0, 0 ), a );
+					//v2.RotateAboutAxis( new Vector3D( 1, 0, 0 ), a );
 					v1 = H3Models.Ball.ApplyMobius( m, v1 );
 					v2 = H3Models.Ball.ApplyMobius( m, v2 );
 					return new H3.Cell.Edge( v1, v2 );
 				} ).ToArray();
 
-				double thresh = -.01;
-				Vector3D looking = new Vector3D( 0, 0, -1 );
-				edges = edges.Where( e => e.Start.Dot( looking ) > thresh && e.End.Dot( looking ) > thresh ).ToArray();
+				//double thresh = -.01;
+				//Vector3D looking = new Vector3D( 0, 0, -1 );
+				//edges = edges.Where( e => e.Start.Dot( looking ) > thresh && e.End.Dot( looking ) > thresh ).ToArray();
+
+				//thresh = 0.85;
+				//edges = edges.Where( e => e.Start.Abs() < thresh || e.End.Abs() < thresh ).ToArray();
 
 				Dictionary<H3.Cell.Edge, int> edgeDict = edges.ToDictionary( e => e, e => 1 );
-				H3.RemoveDanglingEdgesRecursive( edgeDict );
-				edges = edgeDict.Keys.ToArray();
+				//H3.RemoveDanglingEdgesRecursive( edgeDict );
+				//edges = edgeDict.Keys.ToArray();
+
+				//int depth = 2;
+				//edges = H3.TraverseNEdges( new HashSet<H3.Cell.Edge>( edges, new H3.Cell.EdgeEqualityComparer() ), new Vector3D(), depth ).ToArray();
 			}
 			else
 			{
-				Mobius m = Mobius.Scale( 2 );
+				/* Apply a mobius. Note! This causes us to lose color information.
+				 * Mobius m = Mobius.Scale( 1 );
 				edges = edges.Select( e =>
 				{
 					Vector3D v1 = e.Start;
@@ -582,15 +596,25 @@
 					v1 = H3Models.Ball.ApplyMobius( m, v1 );
 					v2 = H3Models.Ball.ApplyMobius( m, v2 );
 					return new H3.Cell.Edge( v1, v2 );
-				} ).ToArray();
+				} ).ToArray();*/
 
 				Dictionary<H3.Cell.Edge, int> edgeDict = edges.ToDictionary( e => e, e => 1 );
 				H3.RemoveDanglingEdgesRecursive( edgeDict );
 				edges = edgeDict.Keys.ToArray();
 			}
 
-			//H3.m_settings.Output = H3.Output.STL;
-			//H3.m_settings.Scale = 50;
+            // only keep edges in the direction we are looking.
+            bool cullEdges = false;
+            if( cullEdges )
+            {
+                double thresh = -.01;
+                Vector3D looking = new Vector3D(0, 1, 0);
+                looking.RotateAboutAxis(new Vector3D(0, 0, 1), Math.Acos(1.0 / Math.Sqrt(3)));
+                edges = edges.Where(e => e.Start.Dot(looking) > thresh || e.End.Dot(looking) > thresh).ToArray();
+            }
+
+			H3.m_settings.Output = H3.Output.STL;
+			H3.m_settings.Scale = 50;
 			H3.SaveToFile( fileName, edges, finite: true, append: true );
 
 			bool doCells = false;
@@ -601,19 +625,24 @@
 				active = active.Select( i => mapMirror( i ) ).OrderBy( i => i ).ToArray();
 
 				H3.Cell startingCell = PolyhedronToHighlight( Geometry.Hyperbolic, polyMirrors, simplex, startingPoint );
-				cellsToHighlight = Recurse.CalcCells( simplex.Facets, new H3.Cell[] { startingCell } );
-				H3.AppendFacets( fileName, cellsToHighlight );
+				//cellsToHighlight = Recurse.CalcCells( simplex.Facets, new H3.Cell[] { startingCell } );
+				//cellsToHighlight = cellsToHighlight.Where( c => !c.Depths.Contains( 0 ) ).ToArray();
+				//H3.AppendFacets( fileName, cellsToHighlight );
+				H3.AppendFacets( fileName, new H3.Cell[] { startingCell } );
 			}
-
+																										   
 			return edges;
 		}
 
 		// CHEAT! (would be better to do a geometrical construction)
 		// We are going to iterate to the starting point that will make all edge lengths the same.
-		public static Vector3D IterateToStartingPoint( HoneycombDef? def, int[] activeMirrors, Simplex simplex )
+		public static Vector3D IterateToStartingPoint( Geometry g, Sphere[] mirrors, Vector3D[] verts, int[] activeMirrors )
 		{
 			if( activeMirrors.Length == 1 )
-				return simplex.Verts[activeMirrors[0]];
+				return verts[activeMirrors[0]];
+
+			// We'll assume spherical otherwise.
+			bool hyperbolic = g == Geometry.Hyperbolic;
 
 			// We are minimizing the output of this function, 
 			// because we want all edge lengths to be as close as possible.
@@ -623,34 +652,31 @@
 				List<double> lengths = new List<double>();
 				for( int i = 0; i < activeMirrors.Length; i++ )
 				{
-					Vector3D reflected = simplex.ReflectInFacet( v, activeMirrors[i] );
-					lengths.Add( H3Models.Ball.HDist( v, reflected ) );
+					int m = activeMirrors[i];
+					Vector3D reflected = mirrors[m].ReflectPoint( v );
+					double dist = hyperbolic ?
+						H3Models.Ball.HDist( v, reflected ) :
+						H3Models.Ball.SDist( v, reflected );
+					lengths.Add( dist );
 				}
 
 				double result = 0;
 				double average = lengths.Average();
 				foreach( double length in lengths )
 					result += Math.Abs( length - average );
-				if( Infinity.IsInfinite( result ) )
-					result = double.PositiveInfinity;
 				return result;
 			};
 
 			// So that we can leverage Euclidean barycentric coordinates, we will first convert our simplex to the Klein model.
 			// We will need to take care to properly convert back to the Ball as needed.
-			Vector3D[] kleinVerts = simplex.Verts.Select( v => HyperbolicModels.PoincareToKlein( v ) ).ToArray();
-			if( def != null )
-			{
-				HoneycombDef d = def.Value;
-				Geometry vertexGeometry = Geometry2D.GetGeometry( d.Q, d.R );
-				if( vertexGeometry == Geometry.Hyperbolic )
-					kleinVerts[3] = SimplexCalcs.VertexPointKlein( d.P, d.Q, d.R );
-			}
+			Vector3D[] kleinVerts = verts.Select( v => hyperbolic ?
+				HyperbolicModels.PoincareToKlein( v ) :
+				SphericalModels.StereoToGnomonic( v ) ).ToArray();
 
 			// Normalizing barycentric coords amounts to making sure the 4 coords add to 1.
 			Func<Vector3D, Vector3D> baryNormalize = b =>
 			{
-				return b / ( b.X + b.Y + b.Z + b.W );
+				return b / (b.X + b.Y + b.Z + b.W);
 			};
 
 			// Bary Coords to Euclidean
@@ -659,6 +685,15 @@
 				Vector3D result =
 					kv[0] * b.X + kv[1] * b.Y + kv[2] * b.Z + kv[3] * b.W;
 				return result;
+			};
+
+			Func<Vector3D[], Vector3D, Vector3D> toConformal = ( kv, b ) =>
+			{
+				Vector3D klein = baryToEuclidean( kv, b );
+				if( g == Geometry.Hyperbolic )
+					return HyperbolicModels.KleinToPoincare( klein );
+				else
+					return SphericalModels.GnomonicToStereo( klein );
 			};
 
 			// Our starting barycentric coords (halfway between all active mirrors).
@@ -670,16 +705,14 @@
 			// For each iteration, we'll shrink this search offset.
 			// NOTE: The starting offset and decrease factor I'm using don't guarantee convergence, 
 			// but it seems to be working pretty well (even when varying these parameters).
-			//double searchOffset = 1.0 - bary[activeMirrors[0]];
-			//double searchOffset = bary[activeMirrors[0]];
-			double factor = 1.5;	// Adjusting this helps get some to converge, e.g. 4353-1111 
-			double searchOffset = bary[activeMirrors[0]] / factor;		
+			double factor = 1.5;    // Adjusting this helps get some to converge, e.g. 4353-1111 
+			double searchOffset = bary[activeMirrors[0]] / factor;
 
 			double min = double.MaxValue;
 			int iterations = 1000;
 			for( int i = 0; i < iterations; i++ )
 			{
-				min = diffFunc( HyperbolicModels.KleinToPoincare( baryToEuclidean( kleinVerts, bary ) ) );
+				min = diffFunc( toConformal( kleinVerts, bary ) );
 				foreach( int a in activeMirrors )
 				{
 					Vector3D baryTest1 = bary, baryTest2 = bary;
@@ -688,14 +721,14 @@
 					baryTest1 = baryNormalize( baryTest1 );
 					baryTest2 = baryNormalize( baryTest2 );
 
-					double t1 = diffFunc( HyperbolicModels.KleinToPoincare( baryToEuclidean( kleinVerts, baryTest1 ) ) );
-					double t2 = diffFunc( HyperbolicModels.KleinToPoincare( baryToEuclidean( kleinVerts, baryTest2 ) ) );
-					if( t1 < min )
+					double t1 = diffFunc( toConformal( kleinVerts, baryTest1 ) );
+					double t2 = diffFunc( toConformal( kleinVerts, baryTest2 ) );
+					if( t1 < min && baryTest1[a] > 0 && baryTest1[a] < 1 )
 					{
 						min = t1;
 						bary = baryTest1;
 					}
-					if( t2 < min )
+					if( t2 < min && baryTest2[a] > 0 && baryTest2[a] < 1 )
 					{
 						min = t2;
 						bary = baryTest2;
@@ -711,21 +744,13 @@
 				searchOffset /= factor;
 			}
 
-			if( !Tolerance.Equal( min, 0.0, 1e-14 ) )
+			if( !Tolerance.Equal( min, 0.0, 1e-12 ) )
 			{
 				System.Console.WriteLine( "Did not converge: " + min );
-
-				// Be a little looser before thrown an exception.
-				if( !Tolerance.Equal( min, 0.0, 1e-12 ) )
-				{
-					System.Console.ReadKey( true );
-					//throw new System.Exception( "Boo. We did not converge." );
-					return Vector3D.DneVector();
-				}
+				System.Console.ReadKey( true );
 			}
 
-			Vector3D euclidean = baryToEuclidean( kleinVerts, bary );
-			return HyperbolicModels.KleinToPoincare( euclidean );
+			return toConformal( kleinVerts, bary );
 		}
 
 		public static H3.Cell PolyhedronToHighlight( Geometry g, int[] mirrors, Simplex simplex, Vector3D startingPoint )

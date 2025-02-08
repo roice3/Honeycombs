@@ -3,6 +3,7 @@
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
+	using System.Numerics;
 	using R3.Core;
 	using R3.Drawing;
 	using R3.Geometry;
@@ -277,24 +278,36 @@
 			m_thresh = 0.007;
 			HoneycombFiniteVertexFig( def, 1, complete );
 
-			//m_thresh = 0.005;
-			//CreateHoneycombSTL( def, 0, complete );
+			m_thresh = 0.005;
+			//HoneycombFiniteVertexFig( def, 0, complete );
 
 			string filename = "cell.stl";
 			System.IO.File.Delete( filename );
 			using( StreamWriter sw = File.AppendText( filename ) )
 			{
+				// Do we want to thicken?
+				bool thinMesh = true;
+
 				foreach( H3.Cell cell in complete.Values )
 				{
-					//STL.AppendMeshToSTL( cell.Mesh, sw );
-
 					bool reverse = cell.Depths.Sum() % 2 == 1;
+					//if( reverse )
+					//	continue;
 
 					Mesh m = new Mesh();
 					Sphere normal = cell.Facets[0].Sphere;
 					foreach( Mesh.Triangle tri in cell.Mesh.Triangles )
 					{
-						Mesh.Triangle[] thickened = ThickenSimple( tri, normal );
+						Mesh.Triangle copy = tri;
+
+						Mobius mob = Mobius.CreateFromIsometry( Geometry.Hyperbolic, 0, new Complex( .314, .271 ) );
+						copy.a = H3Models.Ball.ApplyMobius( mob, tri.a );
+						copy.b = H3Models.Ball.ApplyMobius( mob, tri.b );
+						copy.c = H3Models.Ball.ApplyMobius( mob, tri.c );
+
+						Mesh.Triangle[] thickened = thinMesh ? 
+							new Mesh.Triangle[] { copy } :
+							ThickenSimple( copy, normal );
 						m.Triangles.AddRange( thickened );
 					}
 
@@ -303,22 +316,29 @@
 
 					STL.AppendMeshToSTL( m, sw );
 
-					System.Func<Vector3D, System.Tuple<Vector3D, Vector3D>> thickenFn = v => ThickenSimple( v, normal );
-					int stride = (int)Math.Sqrt( cell.Mesh.Triangles.Count ) + 1;
-					Vector3D[] e1 = cell.AuxPoints.Skip( 1 + 0 * stride ).Take( stride ).ToArray();
-					Vector3D[] e2 = cell.AuxPoints.Skip( 1 + 1 * stride ).Take( stride ).ToArray();
-					Vector3D[] e3 = cell.AuxPoints.Skip( 1 + 2 * stride ).Take( stride ).ToArray();
-					Mesh m1 = ThickenBoundary( e1, thickenFn ), m2 = ThickenBoundary( e2, thickenFn ), m3 = ThickenBoundary( e3, thickenFn );
-					if( reverse )
+					if( thinMesh )
 					{
-						ReverseTris( m1 );
-						ReverseTris( m2 );
-						ReverseTris( m3 );
+						// We're done.
 					}
+					else
+					{
+						System.Func<Vector3D, System.Tuple<Vector3D, Vector3D>> thickenFn = v => ThickenSimple( v, normal );
+						int stride = (int)Math.Sqrt( cell.Mesh.Triangles.Count ) + 1;
+						Vector3D[] e1 = cell.AuxPoints.Skip( 1 + 0 * stride ).Take( stride ).ToArray();
+						Vector3D[] e2 = cell.AuxPoints.Skip( 1 + 1 * stride ).Take( stride ).ToArray();
+						Vector3D[] e3 = cell.AuxPoints.Skip( 1 + 2 * stride ).Take( stride ).ToArray();
+						Mesh m1 = ThickenBoundary( e1, thickenFn ), m2 = ThickenBoundary( e2, thickenFn ), m3 = ThickenBoundary( e3, thickenFn );
+						if( reverse )
+						{
+							ReverseTris( m1 );
+							ReverseTris( m2 );
+							ReverseTris( m3 );
+						}
 
-					STL.AppendMeshToSTL( m1, sw );
-					STL.AppendMeshToSTL( m2, sw );
-					STL.AppendMeshToSTL( m3, sw );
+						STL.AppendMeshToSTL( m1, sw );
+						STL.AppendMeshToSTL( m2, sw );
+						STL.AppendMeshToSTL( m3, sw );
+					}
 				}
 			}
 		}
@@ -331,7 +351,7 @@
 
 			double scale = 1.0;
 			Vector3D vUHS = H3Models.BallToUHS( SimplexCalcs.VertexPointBall( p, q, r ) );
-			if( Geometry2D.GetGeometry( q, r ) != Geometry.Hyperbolic ) // Vertex-centered if possible
+			if( Geometry2D.GetGeometry( q, r ) == Geometry.Spherical ) // Vertex-centered if possible
 				scale = 1.0 / vUHS.Z;
 			System.Func<Vector3D, Vector3D> trans = v =>
 			{
@@ -408,16 +428,16 @@
 			// The key is the cell center.
 			Dictionary<Vector3D, H3.Cell> complete = new Dictionary<Vector3D, H3.Cell>();
 
-			m_thresh = 0.05;
-			//m_thresh = 0.07;
+			//m_thresh = 0.05;
+			m_thresh = 0.07;
 			HoneycombHyperidealLegs( def, 3, complete );
 
-			m_thresh = 0.01;
-			//m_thresh = 0.02;
+			//m_thresh = 0.01;
+			m_thresh = 0.02;
 			HoneycombHyperidealLegs( def, 2, complete );
 
-			m_thresh = 0.004;
-			//m_thresh = 0.007;
+			//m_thresh = 0.004;
+			m_thresh = 0.007;
 			HoneycombHyperidealLegs( def, 1, complete );
 
 			string filename = "cell.stl";

@@ -14,5 +14,10 @@
 		{
 			return Honeycomb.GetGeometry( p, q, r );
 		}
+
+		public static double Smoothed( double input, double max = 1.0 )
+		{
+			return ( max / 2.0 ) * ( -Math.Cos( Math.PI * input / max ) + 1 );
+		}
 	}
 }

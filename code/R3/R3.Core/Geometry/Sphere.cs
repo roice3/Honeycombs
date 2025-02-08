@@ -321,7 +321,7 @@
 			if( IsPlane )
 			{
 				// Normal vector points to the "outside" (same in pov-ray).
-				inside = ( test - this.Offset ).Dot( this.Normal ) < 0;
+				inside = ( test - this.Offset ).Dot( this.Normal ) < 0; // hmmmm
 				//inside = Tolerance.LessThanOrEqual( ( test - this.Offset ).Dot( this.Normal ), 0 );
 			}
 			else

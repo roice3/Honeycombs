@@ -3,8 +3,12 @@
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
+    using R3.Core;
+    using R3.Drawing;
+    using R3.Geometry;
+    using R3.Math;
 
-	class Program
+    class Program
 	{
 		/*
 		Known problems:
@@ -15,6 +19,39 @@
 
 		static void Main( string[] args )
 		{
+			HoneycombPaper.DoStuff( new Settings()
+			{
+				Angles = new[] { -1, -1, -1 },
+				PovRay = new PovRaySettings()
+				{
+					Active = new int[] { 0 },
+				}
+			});
+			return;
+
+			HoneycombDef def = new HoneycombDef(7, 3, 3);
+			//StlGen.HoneycombHyperidealLegs( def );
+			StlGen.HoneycombFiniteVertexFig( def );
+			return;
+
+			Sections.AnimationSections( new Settings()
+			{
+				Angles = new int[] { 7, 3, 4 },
+			} );
+			return;
+
+			HoneycombGen.OneHoneycombOrthoscheme(new Settings()
+            {
+                Angles = new[] { 3, 3, 6 },
+                PovRay = new PovRaySettings()
+                {
+                    Active = new int[] { 1 },
+                    NumEdges = 5000,
+                    EdgeWidth = .07
+                }
+            });
+            return;
+
 			try
 			{
 				List<string> filenames = new List<string>();
