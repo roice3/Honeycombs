@@ -28,7 +28,7 @@
 			//CreateSimplex( imageData );
 			//HoneycombGen_old.OneHoneycombNew( new HoneycombDef() { P = imageData.P, Q = imageData.Q, R = imageData.R } );
 			//SphericalAnimate( imageData );
-			OneImage( settings );
+			//OneImage( settings );
 
 			HoneycombDef[] scaleLarger = GetImageSet().Where( h =>
 				Geometry2D.GetGeometry( h.P, h.Q ) == Geometry.Euclidean ||
@@ -37,7 +37,7 @@
 			//foreach( HoneycombAndView h in scaleLarger )
 			//	Trace.WriteLine( h.FormatFilename() );
 
-			//BatchRun( settings );
+			BatchRun( settings );
 		}
 
 		private static int ReadArg( string arg )
@@ -140,7 +140,8 @@
 				//if( !( Geometry2D.GetGeometry( p, q ) == Geometry.Spherical || Geometry2D.GetGeometry( q, r ) == Geometry.Spherical ) )
 					//continue;
 
-				if( !((p==7&&q==3&&r==3))) continue;
+				if( !((p==-1&&q==-1&&r==-1))) continue;
+				//if( !((p==7&&q==3&&r==3))) continue;
 				//if( !(p==3) ) continue;
 				//if( !(p ==4||p==5) ) continue;
 				//if( q!=7 ) continue;
@@ -440,9 +441,13 @@
 						facets = facets.Select( s => H3Models.BallToKlein( s ) ).ToArray();
 
 					int depth = cell.Depths[0] + 1;
+					depth += 5;
 					Color c = Coloring.ColorAlongHexagon( maxDepth,  depth );
 					if( cell.Depths.Sum() % 2 == 0 )
-						c = Coloring.Inverse( c );
+					{
+						c = Coloring.ColorAlongHexagon( maxDepth, 0.25 + depth );
+						//c = Coloring.Inverse( c );
+					}
 					PovRay.AddSimplex( sw, facets, cell.Center, include, filename, Coloring.ToVec( c ) );
 				}
 
@@ -507,7 +512,7 @@
 
 			startingCell = startingCell.Clone();	// So our mirrors don't get munged after we reflect around later.
 			//H3.Cell[] simplices = Recurse.CalcCells( mirrors, new H3.Cell[] { startingCell }, new Recurse.Settings() { Ball = ball } );
-			H3.Cell[] simplices = Recurse.CalcCellsSmart( mirrors, new H3.Cell[] { startingCell }, new Recurse.Settings() { Ball = ball }, (int)(2.5e6) );
+			H3.Cell[] simplices = Recurse.CalcCellsSmart( mirrors, new H3.Cell[] { startingCell }, new Recurse.Settings() { Ball = ball }, (int)(1.3e6) );
 			//H3.Cell[] simplices = new H3.Cell[] { startingCell };
 
 			// Layers.

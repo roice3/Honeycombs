@@ -484,10 +484,10 @@
 
 				if( color.W == 0 )
 				{
-					//sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1}}} clipped_by {{ ball }}",
-						//FormatSphereNoMaterialOffset( facet, invert, false ), FormatVecLowRes( color ) ) );
-					sb.Append( string.Format( "{0} texture {{ facet_tex }} clipped_by {{ ball }}",
+					sb.Append( string.Format( "{0} finish {{ fin }} pigment {{color rgb {1}}} clipped_by {{ ball }}",
 						FormatSphereNoMaterialOffset( facet, invert, false ), FormatVecLowRes( color ) ) );
+					//sb.Append( string.Format( "{0} texture {{ facet_tex }} clipped_by {{ ball }}",
+					//	FormatSphereNoMaterialOffset( facet, invert, false ), FormatVecLowRes( color ) ) );
 				}
 				else
 				{
@@ -502,7 +502,7 @@
 					sb.Append( string.Format( " clipped_by {{ {0} }}", FormatSphereNoMaterial( otherFacet, invert ) ) );
 				}
 
-				sb.Append( " }\n" );
+				sb.Append( " }" );
 			}
 
 			return sb.ToString();
