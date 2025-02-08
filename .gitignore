@@ -45,11 +45,9 @@ Temporary Items
 code/HyperbolicModels/.vs
 code/HyperbolicModels/*.suo
 code/HyperbolicModels/packages/
-code/HyperbolicModels/bin/Debug
-code/HyperbolicModels/bin/Release
+code/HyperbolicModels/bin
 code/HyperbolicModels/obj
-code/R3/R3.Core/bin/Debug
-code/R3/R3.Core/bin/Release
+code/R3/R3.Core/bin
 code/R3/R3.Core/obj
 *.suo
 *.vsp
