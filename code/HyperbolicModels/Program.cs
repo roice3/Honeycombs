@@ -19,6 +19,12 @@
 
 		static void Main( string[] args )
 		{
+			Sections.AnimationSections( new Settings()
+			{
+				Angles = new int[] { 5, 3, 7 },
+			} );
+			return;
+
 			HoneycombPaper.DoStuff( new Settings()
 			{
 				Angles = new[] { -1, -1, -1 },
@@ -32,12 +38,6 @@
 			HoneycombDef def = new HoneycombDef(7, 3, 3);
 			//StlGen.HoneycombHyperidealLegs( def );
 			StlGen.HoneycombFiniteVertexFig( def );
-			return;
-
-			Sections.AnimationSections( new Settings()
-			{
-				Angles = new int[] { 7, 3, 4 },
-			} );
 			return;
 
 			HoneycombGen.OneHoneycombOrthoscheme(new Settings()

@@ -27,7 +27,7 @@
 			Sphere[] mirrors = SimplexCalcs.Mirrors( p, q, r );
 			Vector3D[] verts = SimplexCalcs.VertsBall( p, q, r );
 			double bounds = 1.0; //config.UhsBoundary.Bounds;
-            //bounds = 12.0;
+            bounds = 12.0;
             //bounds = 0.25;
             //bounds = 0.75;
 
@@ -60,7 +60,7 @@
 			double inrad = Honeycomb.InRadius( p, q, r );
 			double circum = Honeycomb.CircumRadius( p, q, r );
 
-			int numSteps = 20;
+			int numSteps = 1;
 			for( int i = 0; i <= numSteps; i++ )
 			//int i = 20;
 			//int i = 0;
@@ -72,6 +72,7 @@
 				// Center and radius of cutting circle
 				Vector3D cen = new Vector3D();
 				double rad = 0.995;
+				rad = .99;
 
 				// 6,3,3 horosphere
 				if( false )
@@ -105,7 +106,7 @@
 				//rad = 0.95 + t * 0.49;
 
 				// 7,3,3 cell
-				if( true )
+				if( false )
 				{
 					// The offset point.
 					Vector3D off = verts[3];

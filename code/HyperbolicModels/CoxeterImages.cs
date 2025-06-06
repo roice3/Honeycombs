@@ -751,7 +751,7 @@
 			cellFlips = flips[0];
 			int totalFlips = flips.Sum();
 
-			if( true )
+			if( false )
 			{
 				//double dEuc = 0.02;
 				double dEuc = 0.025;
@@ -963,9 +963,9 @@
 
                     // XXX - Is this general? Maybe it shrinks sometimes.
 					facetSphere = fundamentalRegion[0].Clone();
-                    //facetSphere.Radius *= 1.005;
+                    facetSphere.Radius *= 1.005;
                     //facetSphere.Radius *= 1.035;
-                    facetSphere.Radius *= 0.998;    // spherical
+                    //facetSphere.Radius *= 0.998;    // spherical
                 }
 				else
 					facetSphere = s;
