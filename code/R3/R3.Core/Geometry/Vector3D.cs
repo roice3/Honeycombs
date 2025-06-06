@@ -280,7 +280,7 @@
 		public bool Normalize()
 		{
 			double magnitude = Abs();
-			if( Tolerance.Zero( magnitude, 1E-10 ) )
+			if( Tolerance.Zero( magnitude, Tolerance.ThresholdStrict ) )
 				return false;
 			Divide( magnitude );
 			return true;
@@ -306,6 +306,12 @@
 		public double Abs()
 		{
 			return Math.Sqrt( MagSquared() );
+		}
+
+		public void SetMag( double d )
+		{
+			this.Normalize();
+			this *= d;
 		}
 
 		public bool IsOrigin

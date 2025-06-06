@@ -106,7 +106,7 @@
 
 			foreach( Edge edge in edges )
 			//foreach( Sphere mirror in simplex )
-			for( int m=0; m<simplex.Length; m++ )
+			for( int m=simplex.Length-1; m>=0; m-- )
 			{
 				Sphere mirror = simplex[m];
 
@@ -121,7 +121,7 @@
 				if( !EdgeOk( newEdge, settings ) )
 					continue;
 
-				// This tracks reflections across the cell facets.
+				// Track reflections.
 				newEdge.Depths[m]++;
 
 				// Edge color.
@@ -142,9 +142,9 @@
 					percentWhite = 0;
 				if( percentWhite > 1 )
 					percentWhite = 1;
-				//newEdge.Color = new Vector3D( percentWhite, percentWhite, percentWhite );
-				newEdge.Color = m_background;
-				newEdge.Color.Z = 0.1 + 0.9 * percentWhite;
+				newEdge.Color = new Vector3D( percentWhite, percentWhite, percentWhite );
+				//newEdge.Color = m_background;
+				//newEdge.Color.Z = 0.1 + 0.9 * percentWhite;
 
 				if( completedEdges.Add( newEdge ) )
 				{
@@ -162,6 +162,7 @@
 		public static H3.Cell[] CalcCells( Sphere[] mirrors, H3.Cell[] cells )
 		{
 			Settings settings = new Settings();
+			settings.Threshold = 0.95;
 			return CalcCells( mirrors, cells, settings );
 		}
 

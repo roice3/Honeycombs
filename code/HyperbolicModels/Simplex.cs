@@ -143,7 +143,8 @@
 				}
 				case Geometry.Hyperbolic:
 				{
-					throw new System.NotImplementedException();
+					//throw new System.NotImplementedException();
+					return new Vector3D();
 				}
 			}
 
@@ -173,7 +174,8 @@
 				}
 			case Geometry.Hyperbolic:
 				{
-					throw new System.NotImplementedException();
+					//throw new System.NotImplementedException();
+					return new Vector3D();
 				}
 			}
 
@@ -210,7 +212,7 @@
 		{
 			Sphere[] facets = Mirrors( p, q, r, moveToBall: true );
 			Vector3D[] verts = VertsBall( p, q, r );
-			return HoneycombEdgeBall( facets, verts[2] );
+			return HoneycombEdgeBall( facets, verts[0] );
 		}
 
 		public static H3.Cell.Edge HoneycombEdgeBall( Sphere[] facets, Vector3D vertex )
@@ -661,7 +663,7 @@
 			Sphere[] surfaces = new Sphere[] { cellBoundary, interior[0], interior[1], interior[2] };
 
 			// Apply rotations.
-			bool applyRotations = true;
+			bool applyRotations = false;
 			if( applyRotations )
 			{
 				foreach( Sphere s in surfaces )

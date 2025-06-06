@@ -98,32 +98,6 @@
 			}
 		}
 
-		internal static void TileImages()
-		{
-			List<HoneycombDef> images = HoneycombPaper.GetImageSet().ToList();
-			string[] inputImages = images.Select( i => i.FormatFilename() ).ToArray();
-			inputImages = new string[]
-			{
-				"46.png",
-				"4_10.png",
-				"4_20.png",
-				"4i.png",
-				"64.png",
-				"10_4.png",
-				"20_4.png",
-				"i4.png",
-			};
-
-			ImageGrid imageGrid = new ImageGrid();
-			imageGrid.Generate( new ImageGrid.Settings()
-			{
-				//Directory = @"C:\Users\hrn\Documents\roice\2D Tilings\2D Tilings 9-7-15\2D Tilings\bin\Release",
-				Directory = @"C:\Users\hrn\Documents\roice\G4G\Figures",
-				//Directory = @"./",
-				InputImages = inputImages
-			} );
-		}
-
 		internal static void CalcSelfSimilarityScale()
 		{
 			double inRadius = DonHatch.h2eNorm( Honeycomb.InRadius( 4, 3, 7 ) );

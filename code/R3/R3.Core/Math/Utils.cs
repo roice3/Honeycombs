@@ -7,7 +7,8 @@
 	public static class Tolerance
 	{
 		//public static readonly double Threshold = 0.0000001;
-		public static readonly double Threshold = 0.000001;	// Made less strict to avoid some problems near Poincare boundary.
+		public static readonly double Threshold = 0.000001;		// Made less strict to avoid some problems near Poincare boundary.
+		public static readonly double ThresholdStrict = 1E-10;
 
 		public static bool Equal( double d1, double d2 )
 		{

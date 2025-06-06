@@ -14,10 +14,10 @@
 		static int m_div = 7;
 		static double m_thresh = 0.1;//0.004;
 
-		public static void H3Helicoid()
+		public static void H3Helicoid( double coreOffset )
 		{
 			H3Ruled ruled = new H3Ruled();
-			H3.Cell.Edge[] edgesBall = ruled.Helicoid();
+			H3.Cell.Edge[] edgesBall = ruled.Helicoid( coreOffset );
 
 			System.Func<H3.Cell.Edge, Vector3D[]> divider = e =>
 			{
@@ -27,7 +27,10 @@
 			Mesh thinMesh;
 			List<Vector3D[]> boundaryPoints;
 			ThinMesh( edgesBall, divider, out thinMesh, out boundaryPoints );
-			HelicoidHelper( thinMesh, boundaryPoints );
+
+			string fileName = string.Format( "helicoid_0.3_{0:G6}.stl", coreOffset );
+			coreOffset = 0.3;
+			HelicoidHelper( thinMesh, boundaryPoints, coreOffset, fileName );
 		}
 
 		public static void S3BiHelicoid()
@@ -194,7 +197,7 @@
 			boundaryPoints.Add( ends.ToArray() );
 		}
 
-		private static void HelicoidHelper( Mesh thinMesh, List<Vector3D[]> boundaryPoints )
+		private static void HelicoidHelper( Mesh thinMesh, List<Vector3D[]> boundaryPoints, double coreOffset = 0.5, string filename = "helicoid.stl" )
 		{ 
 			// Build a normal map.
 			Dictionary<Vector3D, Vector3D> normalMap = new Dictionary<Vector3D, Vector3D>();
@@ -228,12 +231,14 @@
 			}
 
 			Mesh fullMesh = new Mesh();
+			fullMesh.Append( thinMesh );
+
+			/*
 			foreach( Mesh.Triangle tri in thinMesh.Triangles )
 			{
 				Mesh.Triangle[] thickened = ThickenSimple( tri, normalMap );
 				fullMesh.Triangles.AddRange( thickened );
 			}
-			//fullMesh.Append( thinMesh );
 
 			System.Func<Vector3D, System.Tuple<Vector3D, Vector3D>> thickenFn = v => ThickenSimple( v, normalMap );
 			fullMesh.Append( ThickenBoundary( boundaryPoints[0], thickenFn ) );
@@ -242,8 +247,12 @@
 			var temp = ThickenBoundary( boundaryPoints[1], thickenFn );
 			ReverseTris( temp );
 			fullMesh.Append( temp );
+			*/
 
-			string filename = "helicoid.stl";
+			Vector3D aStart = H3Ruled.Transform( new Vector3D( 0, 0, -1 ), coreOffset );
+			Vector3D aEnd = H3Ruled.Transform( new Vector3D( 0, 0, 1 ), coreOffset );
+			AddEdge( fullMesh, aStart, aEnd );
+
 			SaveMesh( fullMesh, filename );
 		}
 
@@ -253,12 +262,6 @@
 			using( StreamWriter sw = File.AppendText( filename ) )
 			{
 				STL.AppendMeshToSTL( mesh, sw );
-
-				Vector3D aStart = H3Ruled.Transform( new Vector3D( 0, 0, -1 ) );
-				Vector3D aEnd = H3Ruled.Transform( new Vector3D( 0, 0, 1 ) );
-				Mesh m3 = new Mesh();
-				AddEdge( m3, aStart, aEnd );
-				//STL.AppendMeshToSTL( m3, sw );
 			}
 		}
 

@@ -13,11 +13,18 @@
 	/// </summary>
 	public class H3
 	{
+		public abstract class Element
+		{
+			public int ElementId;
+
+			public abstract Vector3D ID { get; }
+		}
+
 		/// <summary>
 		/// We can track a cell by its ideal vertices.
 		/// We'll work with these in the plane.
 		/// </summary>
-		public class Cell
+		public class Cell : Element
 		{
 			public Cell( Facet[] facets ) : this( -1, facets )
 			{
@@ -82,7 +89,7 @@
 				this.Center = center;
 			}
 
-			public class Facet
+			public class Facet : Element
 			{
 				public Facet( Vector3D[] verts ) { Verts = verts; }
 				public Facet( Sphere sphere ) { Sphere = sphere; }
@@ -182,7 +189,7 @@
 						Sphere.Reflect( sphere );
 				}
 
-				public Vector3D ID
+				public override Vector3D ID
 				{
 					get
 					{
@@ -216,7 +223,7 @@
 				}
 			}
 
-			public class Edge
+			public class Edge : Element
 			{
 				public Edge( Vector3D v1, Vector3D v2, bool order = true )
 				{
@@ -254,7 +261,7 @@
 					return (Edge)MemberwiseClone();
 				}
 
-				public Vector3D ID
+				public override Vector3D ID
 				{
 					get
 					{
@@ -295,6 +302,23 @@
 				private double m_tolerance = 0.0001;
 			}
 
+			public class ElementEqualityComparer : IEqualityComparer<Element>
+			{
+				public bool Equals( Element e1, Element e2 )
+				{
+					return
+						e1.ID.Compare( e2.ID, m_tolerance );
+				}
+
+				public int GetHashCode( Element e )
+				{
+					return e.ID.GetHashCode();
+				}
+
+				private double m_tolerance = 0.0001;
+			}
+
+
 			public bool HasVerts
 			{
 				get
@@ -324,7 +348,7 @@
 			/// </summary>
 			public Vector3D[] AuxPoints { get; set; }
 
-			public Vector3D ID
+			public override Vector3D ID
 			{
 				get 
 				{
@@ -968,16 +992,19 @@
 
 			bool finite = cellScale != 1;
 
-			double thresh = -.01;
+			/*double thresh = -.01;
 			Vector3D looking = new Vector3D( 0, 0,  -1 );
 			var culled = completedEdges.Keys.Where( e => e.Start.Dot( looking ) > thresh && e.End.Dot( looking ) > thresh ).ToArray();
 			completedEdges = new Dictionary<Cell.Edge, int>();
 			foreach( var c in culled )
 				completedEdges[c] = 1;
-			RemoveDanglingEdgesRecursive( completedEdges );
+			RemoveDanglingEdgesRecursive( completedEdges );*/
 
-			SaveToFile( honeycombString, completedEdges, finite );
+			//SaveToFile( honeycombString, completedEdges, finite );
 			//PovRay.AppendFacets( completedCells.ToArray(), m_baseDir + honeycombString + ".pov" );
+
+			Flags.m_level = m_maxLevel;
+			Flags.Gen( completedCells.ToArray() );
 		}
 
 		public static void SaveToFile( string honeycombString, Cell.Edge[] edges, bool finite, bool append = false )
@@ -1062,7 +1089,7 @@
 
 		public static void RemoveDanglingEdgesRecursive( Dictionary<Cell.Edge, int> edges )
 		{
-			const int requiredVertexValence = 3;
+			const int requiredVertexValence = 2;
 
 			List<Cell.Edge> needRemoval = new List<Cell.Edge>();
 
@@ -1090,6 +1117,76 @@
 					edges.Remove( edge );
 				RemoveDanglingEdgesRecursive( edges );
 			}
+		}
+
+		public static HashSet<H3.Cell.Edge> TraverseNEdges( HashSet<H3.Cell.Edge> edges, Vector3D start, int n )
+		{
+			// Info we'll need.
+			Dictionary<Vector3D, HashSet<H3.Cell.Edge>> vertexToEdges = new Dictionary<Vector3D, HashSet<Cell.Edge>>();
+			foreach( Cell.Edge edge in edges )
+			{
+				CheckAndAdd( vertexToEdges, edge.Start, edge );
+				CheckAndAdd( vertexToEdges, edge.End, edge );
+			}
+
+			HashSet<Vector3D> locations = new HashSet<Vector3D>(), completed = new HashSet<Vector3D>();
+			locations.Add( start );
+			completed.Add( start );
+			HashSet<H3.Cell.Edge> result = new HashSet<Cell.Edge>( new H3.Cell.EdgeEqualityComparer() );
+			VisitRecursive( locations, completed, vertexToEdges, result, n );
+
+			return result;
+		}
+
+		private static void VisitRecursive( HashSet<Vector3D> locations, HashSet<Vector3D> completed,
+			Dictionary<Vector3D, HashSet<H3.Cell.Edge>> vertexToEdges, HashSet<H3.Cell.Edge> result, int depth )
+		{
+			if( 0 == depth )
+				return;
+			depth--;
+
+			HashSet<Vector3D> newlyVisited = new HashSet<Vector3D>();
+			foreach( Vector3D v in locations )
+			{
+				var connected = vertexToEdges[v];
+				foreach( H3.Cell.Edge e in connected )
+				{
+					result.Add( e );
+					if( !completed.Contains( e.Start ) )
+					{
+						completed.Add( e.Start );
+						newlyVisited.Add( e.Start );
+					}
+					if( !completed.Contains( e.End ) )
+					{
+						completed.Add( e.End );
+						newlyVisited.Add( e.End );
+					}
+				}
+			}
+
+			VisitRecursive( newlyVisited, completed, vertexToEdges, result, depth );
+		}
+
+		private static void CheckAndAdd( Dictionary<Vector3D, int> vertexCounts, Vector3D v )
+		{
+			int count;
+			if( vertexCounts.TryGetValue( v, out count ) )
+				count++;
+			else
+				count = 1;
+
+			vertexCounts[v] = count;
+		}
+
+		private static void CheckAndAdd( Dictionary<Vector3D, HashSet<H3.Cell.Edge>> vertexToEdges, Vector3D v, H3.Cell.Edge e )
+		{
+			HashSet<H3.Cell.Edge> edges;
+			if( !vertexToEdges.TryGetValue( v, out edges ) )
+				edges = new HashSet<Cell.Edge>( new H3.Cell.EdgeEqualityComparer() );
+
+			edges.Add( e );
+			vertexToEdges[v] = edges;
 		}
 
 		/// <summary>
@@ -1176,17 +1273,6 @@
 			}
 		}
 
-		private static void CheckAndAdd( Dictionary<Vector3D, int> vertexCounts, Vector3D v )
-		{
-			int count;
-			if( vertexCounts.TryGetValue( v, out count ) )
-				count++;
-			else
-				count = 1;
-
-			vertexCounts[v] = count;
-		}
-
 		private static void SaveOutEdges( Dictionary<Cell.Edge, int> edges, string fileName )
 		{
 			using( StreamWriter sw = File.CreateText( fileName ) )
@@ -1195,6 +1281,8 @@
 					kvp.Key.Write( sw, kvp.Value );
 			}
 		}
+
+		public static int m_maxLevel = 1;
 
 		/// <summary>
 		/// This method works for honeycombs having cells with a finite number of facets.
@@ -1209,7 +1297,7 @@
 			if( 0 == cells.Count )
 				return;
 
-			if( level > 4 )
+			if( level > m_maxLevel )
 				return;
 
 			level++;
@@ -1240,6 +1328,11 @@
 					if( completedCellCenters.Contains( newCell.ID ) ||
 						!CellOk( newCell ) )
 						continue;
+
+					if( newCell.ID.DNE )
+					{
+						int stop = 1;
+					}
 
 					Util.AddEdges( newCell, level, completedEdges );
 					reflected.Add( newCell );

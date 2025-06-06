@@ -49,16 +49,19 @@
 			return fiberList.ToArray();
 		}
 
-		public H3.Cell.Edge[] Helicoid()
+		public H3.Cell.Edge[] Helicoid( double coreOffset )
 		{
 			List<H3.Cell.Edge> fiberList = new List<H3.Cell.Edge>();
 
 			// These two params affect each other (changing numFibers will affect rotation rate).
-			double rotationRate = Math.PI / 78.5;
+			//double rotationRate = Math.PI / 78.5;
+			double twistRate = coreOffset * 2;
+			double rotationRate = Math.PI / 100 * twistRate;
 			int numFibers = 1000;
+			coreOffset = 0.3;
 
 			// Note: we need to increment a constant hyperbolic distance each step.
-			int count = 0;
+			int count = -numFibers / 2;
 			double max = DonHatch.e2hNorm( 0.998 );
 			double offset = max * 2 / (numFibers - 1);
 			for( double z_h = -max; z_h <= max; z_h += offset )
@@ -72,11 +75,17 @@
 				Vector3D v1 = new Vector3D( c.Radius, 0, c.Center.Z );
 				Vector3D v2 = new Vector3D( -c.Radius, 0, c.Center.Z );
 
+				if( count == 0 )
+				{
+					int stop = 1;
+				}
+
 				v1.RotateXY( rotationRate * count );
 				v2.RotateXY( rotationRate * count );
+				count++;
 
-				v1 = Transform( v1 );
-				v2 = Transform( v2 );
+				v1 = Transform( v1, coreOffset );
+				v2 = Transform( v2, coreOffset );
 
 				Vector3D t = Transform( new Vector3D( 0, 0, z ) );
 				double cutoff = 0.995;
@@ -84,22 +93,22 @@
 					continue;
 
 				fiberList.Add( new H3.Cell.Edge( v1, v2, order: false ) );
-				count++;
 			}
 
 			return fiberList.ToArray();
 		}
 
-		public static Vector3D Transform( Vector3D v )
+		public static Vector3D Transform( Vector3D v, double offset = 0.5 )
 		{
-			double angle = Math.PI / 3;	// Kind of weird, and not really controllable.
-			v.RotateAboutAxis( new Vector3D( 1, 0 ), angle );
+			double angle = Math.PI / 2;
+			v.RotateAboutAxis( new Vector3D( 0, 1 ), angle );
 
 			Mobius m = new Mobius();
-			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, 0.5 ) );
+			double h = offset;
+			m.Isometry( Geometry.Hyperbolic, 0, new Complex( 0, h ) );
 			v = H3Models.TransformHelper( v, m );
 
-			v.RotateAboutAxis( new Vector3D( 1, 0 ), -angle );
+			v.RotateAboutAxis( new Vector3D( 0, 1 ), -angle );
 			return v;
 		}
 	}

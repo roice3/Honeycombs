@@ -54,6 +54,13 @@
 		public int MaxTiles { get; set; }
 
 		/// <summary>
+		/// The number of levels to include in the tiling.
+		/// NOTE: If this is set, MaxTiles will be ignored.
+		/// </summary>
+		public int Levels { get; set; }
+		public bool RecurseByLevels {  get { return Levels != 0; } }
+
+		/// <summary>
 		/// A shrinkage to apply to the drawn portion of a tile.
 		/// Default is 1.0 (no shrinkage).
 		/// </summary>
@@ -181,7 +188,8 @@
 			tiles.Add( tile );
 			Dictionary<Vector3D,bool> completed = new Dictionary<Vector3D,bool>();
 			completed[tile.Boundary.Center] = true;
-			ReflectRecursive( tiles, completed );
+			int depth = 1;
+			ReflectRecursive( tiles, completed, depth );
 
 			FillOutIsometries( tile, m_tiles, config.Geometry );
 			FillOutIncidences();
@@ -200,13 +208,16 @@
 		/// Fill out all the incidence information.
 		/// If performance became an issue, we could do some of this at tile generation time.
 		/// </summary>
-		private void FillOutIncidences()
+		public void FillOutIncidences()
 		{
 			Dictionary<Vector3D, List<Tile>> Edges = new Dictionary<Vector3D, List<Tile>>();
 			Dictionary<Vector3D, List<Tile>> Vertices = new Dictionary<Vector3D, List<Tile>>();
 
 			foreach( Tile t in m_tiles )
 			{
+				t.EdgeIncidences = new List<Tile>();
+				t.VertexIndicences = new List<Tile>();
+
 				foreach( Vector3D edge in t.Boundary.EdgeMidpoints )
 				{
 					List<Tile> list;
@@ -318,12 +329,16 @@
 			return !completed.ContainsKey( testCenter );
 		}
 
-		private void ReflectRecursive( List<Tile> tiles, Dictionary<Vector3D,bool> completed ) 
+		private void ReflectRecursive( List<Tile> tiles, Dictionary<Vector3D,bool> completed, int depth ) 
 		{
 			// Breadth first recursion.
 
 			if( 0 == tiles.Count )
 				return;
+
+			if( TilingConfig.RecurseByLevels && depth > TilingConfig.Levels )
+				return;
+			depth++;
 
 			List<Tile> reflected = new List<Tile>();
 
@@ -335,7 +350,7 @@
 					continue;
 
 				// Are we done?
-				if( m_tiles.Count >= this.TilingConfig.MaxTiles )
+				if( !TilingConfig.RecurseByLevels && m_tiles.Count >= this.TilingConfig.MaxTiles )
 					return;
 
 				for( int s=0; s<tile.Boundary.NumSides; s++ )
@@ -355,7 +370,7 @@
 				}
 			}
 
-			ReflectRecursive( reflected, completed );
+			ReflectRecursive( reflected, completed, depth );
 		}
 
 		/// <summary>
@@ -372,6 +387,11 @@
 		public IEnumerable<Tile> Tiles
 		{
 			get { return m_tiles; }
+		}
+
+		public void SetTiles( IEnumerable<Tile> tiles )
+		{
+			m_tiles = tiles.ToList();
 		}
 
 		/// <summary>

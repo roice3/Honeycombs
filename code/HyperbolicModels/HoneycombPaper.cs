@@ -22,7 +22,7 @@
 			//HyperidealSquares();
 			//S3.Hypercube();
 			//R3.Geometry.Euclidean.GenEuclidean();
-			//HoneycombGen.OneHoneycombOldCode();
+			//HoneycombGen_old.OneHoneycombOldCode();
 			//AnimateCell( imageData );
 			//CreateCellPovRay( imageData, "cell.pov" );
 			//CreateSimplex( imageData );
@@ -73,8 +73,8 @@
 			};
 
 			CoxeterImages imageCalculator = new CoxeterImages();
-			imageCalculator.AutoCalcScale( settings );
-			if( settings.ColorScaling < 1 )
+			//imageCalculator.AutoCalcScale( settings );
+			//if( settings.ColorScaling < 1 )
 				settings.ColorScaling = 15;
 
 			Program.Log( "\nGenerating full image..." );
@@ -414,9 +414,10 @@
 				if( simplex[i].IsPointInside( cen ) )
 					simplex[i].Invert = true;
 
-			Sphere[] simplexForColorScale = SimplexCalcs.Mirrors( p, q, r, moveToBall: true );
-			CoxeterImages.Settings temp = AutoCalcScale( def, simplexForColorScale );
-			int maxDepth = (int)temp.ColorScaling;
+			//Sphere[] simplexForColorScale = SimplexCalcs.Mirrors( p, q, r, moveToBall: true );
+			//CoxeterImages.Settings temp = AutoCalcScale( def, simplexForColorScale );
+			//int maxDepth = (int)temp.ColorScaling;
+			int maxDepth = 10;
 			//Random rand = new Random( p+q+r );
 			//int randOffset = rand.Next( maxDepth );
 
@@ -511,13 +512,13 @@
 			//FCOrient( startingCell );
 
 			startingCell = startingCell.Clone();	// So our mirrors don't get munged after we reflect around later.
-			//H3.Cell[] simplices = Recurse.CalcCells( mirrors, new H3.Cell[] { startingCell }, new Recurse.Settings() { Ball = ball } );
-			H3.Cell[] simplices = Recurse.CalcCellsSmart( mirrors, new H3.Cell[] { startingCell }, new Recurse.Settings() { Ball = ball }, (int)(1.3e6) );
+			H3.Cell[] simplices = Recurse.CalcCells( mirrors, new H3.Cell[] { startingCell }, new Recurse.Settings() { Ball = ball, Threshold = .1 } );
+			//H3.Cell[] simplices = Recurse.CalcCellsSmart( mirrors, new H3.Cell[] { startingCell }, new Recurse.Settings() { Ball = ball }, (int)(2.5e6) );
 			//H3.Cell[] simplices = new H3.Cell[] { startingCell };
 
 			// Layers.
-			//int layer = 0;
-			//return simplices.Where( s => s.Depths[0] <= layer /*&& s.Depths[0] == 3 && s.Depths[1] == 3*/ ).ToArray();
+			int layer = 0;
+			return simplices.Where( s => s.Depths[0] <= layer /*&& s.Depths[0] == 3 && s.Depths[1] == 3*/ ).ToArray();
 			return simplices.ToArray();
 		}
 
@@ -527,9 +528,17 @@
 			int q = imageData.Q;
 			int r = imageData.R;
 
-			Vector3D cen = InteriorPointBall;
+			//Vector3D cen = InteriorPointBall;
+			Vector3D[] verts = SimplexCalcs.VertsBall( p, q, r ).Select( v => HyperbolicModels.PoincareToKlein( v ) ).ToArray();
+			Vector3D cen = new Vector3D();
+			foreach( Vector3D v in verts )
+				cen += v;
+			cen /= 4;
+			cen = HyperbolicModels.KleinToPoincare( cen );
+
 			bool ball = true;
-			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, ref cen, moveToBall: ball );
+			Vector3D dummy = new Vector3D();
+			Sphere[] simplex = SimplexCalcs.Mirrors( p, q, r, ref dummy, moveToBall: ball );
 
 			// Offset as we do for the boundary images.
 			//Sphere s = H3Models.UHSToBall( simplex[0] );
@@ -543,11 +552,15 @@
 			File.Delete( "simplex.pov" );
 			PovRay.AppendSimplex( simplex, cen, include, "simplex.pov" );
 
-			bool includeEdges = false;
+			bool includeEdges = true;
 			if( includeEdges )
 			{
-				H3.Cell.Edge[] edges = SimplexCalcs.SimplexEdgesUHS( p, q, r );
+				/*H3.Cell.Edge[] edges = SimplexCalcs.SimplexEdgesUHS( p, q, r );
 				PovRay.WriteEdges( new PovRay.Parameters { Halfspace = true, AngularThickness = 0.03 },
+					Geometry.Hyperbolic, edges, "simplex.pov", append: true );*/
+
+				H3.Cell.Edge[] edges = new H3.Cell.Edge[] { SimplexCalcs.HoneycombEdgeBall( p, q, r ) };
+				PovRay.WriteEdges( new PovRay.Parameters { Halfspace = false, AngularThickness = 0.025 },
 					Geometry.Hyperbolic, edges, "simplex.pov", append: true );
 			}
 		}

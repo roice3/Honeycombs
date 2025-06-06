@@ -85,6 +85,7 @@
     <Compile Include="Geometry\Transformable.cs" />
     <Compile Include="Geometry\UltraInf.cs" />
     <Compile Include="Geometry\VectorND.cs" />
+    <Compile Include="Honeycombs\Flags.cs" />
     <Compile Include="Math\DonHatch.cs" />
     <Compile Include="Drawing\GraphicsUtils.cs" />
     <Compile Include="Geometry\Euclidean2D.cs" />

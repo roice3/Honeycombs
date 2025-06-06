@@ -159,8 +159,9 @@
 					//bool use = ( poly.Length > 0.01 ) && ( poly.Center.Abs() < 10 );
 					//bool use = ( poly.Center.Abs() < 0.9 );	// Only disk
 
-					CircleNE c = VertexCircle;
-					bool use = c.CenterNE.Abs() < 0.9999;
+					//CircleNE c = VertexCircle;
+					//bool use = c.CenterNE.Abs() < 0.9999;
+					bool use = true;
 
 					/*List<Vector3D> points = poly.GetEdgePoints();
 					double maxdist = points.Max( point => point.Abs() );

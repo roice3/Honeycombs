@@ -133,11 +133,11 @@
 			else
 			{
 				thickness = thicknessHyperbolic;
-				threshold = 0.01;
+				threshold = 0.05;
 
 				simplex = SimplexCalcs.Mirrors( p, q, r );
 				Vector3D[] verts = SimplexCalcs.VertsBall( p, q, r );
-				vertex = verts[2];
+				vertex = verts[3];
 
 				//Vector3D[] simplexVerts = SimplexCalcs.VertsBall( p, q, r );
 				//H3.Cell.Edge edge = new H3.Cell.Edge( simplexVerts[2], simplexVerts[3] );
@@ -185,21 +185,20 @@
 					startingEdges = new H3.Cell.Edge[] { SimplexCalcs.DualEdgeBall( simplex ) };
 				else
 				{
-					//startingEdges = new H3.Cell.Edge[] { SimplexCalcs.HoneycombEdgeBall( simplex, vertex ) };
-					Vector3D[] verts = SimplexCalcs.VertsEuclidean();
+					startingEdges = new H3.Cell.Edge[] { SimplexCalcs.HoneycombEdgeBall( simplex, vertex ) };
+					/*Vector3D[] verts = SimplexCalcs.VertsEuclidean();
 					Vector3D v1 = verts[0] + 2*verts[2]; // adjacent cube center
 					Vector3D corner = verts[3];
-
-					startingEdges = new H3.Cell.Edge[] { new H3.Cell.Edge( v1, corner ) };
+					startingEdges = new H3.Cell.Edge[] { new H3.Cell.Edge( v1, corner ) };*/
 				}
 
 				edges = Recurse.CalcEdges( simplex, startingEdges, new Recurse.Settings() { G = g, Threshold = threshold } );
 
-				edges = edges.Where( e =>
+				/*edges = edges.Where( e =>
 				{
 					int sum = e.Depths.Count( d => d == 0 );
 					return true;
-				} ).ToArray();
+				} ).ToArray();*/
 
 				//CullHalfOfEdges( ref edges );
 
@@ -226,16 +225,17 @@
 				{
 					int[] polyMirrors = new int[] { 1, 2, 3 };
 					H3.Cell startingCell = HoneycombGen.PolyhedronToHighlight( g, polyMirrors, tet, vertex );
-					//cellsToHighlight = Recurse.CalcCells( simplex, new H3.Cell[] { startingCell } );
-					cellsToHighlight = new H3.Cell[] { startingCell };
+					cellsToHighlight = Recurse.CalcCells( simplex, new H3.Cell[] { startingCell } );
+					//cellsToHighlight = new H3.Cell[] { startingCell };
 				}
 
-				// Include just one cell?
-				bool includeOne = false;
-				if( includeOne )
+				// Cutoff recursion
+				bool cutoffRecursion = true;
+				if( cutoffRecursion )
 				{
-					edges = edges.Where( e => e.Depths[0] == 0 ).ToArray();
-					//cellsToHighlight = cellsToHighlight.Where( c => c.Depths[0] == 0 ).ToArray();
+					int level = 3;
+					edges = edges.Where( e => e.Depths[0] <= level ).ToArray();
+					cellsToHighlight = cellsToHighlight.Where( c => c.Depths[0] <= level ).ToArray();
 				}
 			}
 
@@ -251,10 +251,11 @@
 			if( pov )
 			{
 				string filename = string.Format( "{0}{1}{2}.pov", p, q, r );
+				thickness = 0.07;
 				PovRay.WriteEdges( new PovRay.Parameters() { AngularThickness = thickness }, g, edges,
 					filename, append: false );
 				//File.Delete( filename );
-				//PovRay.AppendFacets( cellsToHighlight, filename );
+				PovRay.AppendFacets( cellsToHighlight, filename );
 
 				HashSet<Vector3D> verts = new HashSet<Vector3D>();
 				foreach( H3.Cell.Edge e in edges )
