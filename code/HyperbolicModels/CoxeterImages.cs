@@ -125,7 +125,10 @@
 					{
 						lock( m_lock )
 						{
-							Vector3D v = PlaneModelToBall( new Vector3D( x, y ) );
+							Vector3D v = new Vector3D( x, y );
+							v = ApplyTransformation( v, t ); 
+							v = PlaneModelToBall( v );
+							v *= m_z;
 							int cellFlips;
 							image.SetPixel( i, j, CalcColor( settings, ref v, out cellFlips ) );
 						}
@@ -144,7 +147,7 @@
 			image.Save( settings.FileName, jgpEncoder, encoderParams );*/
 		}
 
-		internal double m_z = 1.0;
+		internal double m_z = 0.9999;
 
 		/// <summary>
 		/// http://www.wolframalpha.com/input/?i=1%2F+%281%2Be%5E%28-10*%28x-0.5%29%29%29
@@ -288,8 +291,8 @@
 			else
 			{
 				// If you want output to have twice the width.
-				double xScale = 2;
-				v.X /= xScale;
+				//double xScale = 2;
+				//v.X /= xScale;
 
 				// http://mathworld.wolfram.com/EquirectangularProjection.html
 				// y is the latitude
@@ -348,15 +351,16 @@
 		private Vector3D ApplyTransformation( Vector3D v, double t = 0.0 )
 		{
 			//v.RotateXY( Math.PI / 4 + 0.01 );
-			bool applyNone = true;
+			bool applyNone = false;
 			if( applyNone )
 				return v;
 
 			Mobius m0 = new Mobius(), m1 = new Mobius(), m2 = new Mobius(), m3 = new Mobius();
 			Sphere unitSphere = new Sphere();
+			//return unitSphere.ReflectPoint( v );
 
-			v.Y -= .8;
-			v *= 7;
+			//v.Y -= .8;
+			//v *= 7;
 			m0.UpperHalfPlane();
 			v = m0.Apply( v );
 			
@@ -465,7 +469,7 @@
 			float scale = 2;
 
 			List<Sphere> toDraw = new List<Sphere>();
-			toDraw.AddRange( settings.Mirrors );
+			toDraw.AddRange( settings.Mirrors.Select( m => H3Models.BallToUHS( m ) ) );
 			//toDraw.Add( AlteredFacetForTrueApparent2DTilings( settings.Mirrors ) );
 
 			using( Graphics g = Graphics.FromImage( image ) )
@@ -483,8 +487,8 @@
 				}
 				else
 				{
-					Sphere temp = H3Models.BallToUHS( s );
-					DrawUtils.DrawCircle( new Circle { Center = temp.Center, Radius = temp.Radius }, g, i, m == 0 ? p2 : m == 4 ? p3 : p );
+					//Sphere temp = H3Models.BallToUHS( s );
+					DrawUtils.DrawCircle( new Circle { Center = c.Center, Radius = c.Radius }, g, i, m == 0 ? p2 : m == 4 ? p3 : p );
 				}
 
 				/* // iii
@@ -505,7 +509,7 @@
 
 		private readonly object m_lock = new object();
 
-		private Color AvgColor( List<Color> colors )
+		public static Color AvgColor( List<Color> colors )
 		{
 			//if( colors.Contains( Color.White ) )
 			//	return Color.White;
@@ -714,7 +718,7 @@
 
 			double bananaThickness = 0.025;
 			//bananaThickness = 0.15;
-			bananaThickness = 0.05;
+			//bananaThickness = 0.05;
 
 			// Transform the intersection points to a standard Poincare disk.
 			// The midsphere radius is the scale of the apparent 2D tilings.

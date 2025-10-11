@@ -3,6 +3,7 @@
 	using R3.Math;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Drawing;
 	using System.Numerics;
 
 	public class Tile

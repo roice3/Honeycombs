@@ -73,12 +73,13 @@
 			};
 
 			CoxeterImages imageCalculator = new CoxeterImages();
-			imageCalculator.AutoCalcScale( settings );
-			if( settings.ColorScaling < 1 )
-				settings.ColorScaling = 15;
+			//imageCalculator.AutoCalcScale( settings );
+			//if( settings.ColorScaling < 1 )
+			//	settings.ColorScaling = 15;
+			//settings.ColorScaling = 32.5;
+			settings.ColorScaling = 15.0;
 
 			Program.Log( "\nGenerating full image..." );
-			size = 500;
 			settings.Width = config.UhsBoundary.ImageWidth;
 			settings.Height = config.UhsBoundary.ImageHeight;
 			settings.FileName = filename;

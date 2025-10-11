@@ -1,18 +1,11 @@
 ﻿namespace HyperbolicModels
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Drawing;
-	using System.IO;
-	using System.Linq;
-	using R3.Core;
-	using R3.Drawing;
 	using R3.Geometry;
 	using R3.Math;
 
 	public class Sections
 	{
-		public void AnimationSections( Settings config )
+		public static void AnimationSections( Settings config )
 		{
 			HoneycombDef imageData = new HoneycombDef( config.P, config.Q, config.R );
 			int p = imageData.P, q = imageData.Q, r = imageData.R;
@@ -58,7 +51,7 @@
 				imageCalculator.m_z = 1.0 / 0.5;
 				Spherical2D.s2eNorm( min + step * i );
 				DonHatch.h2eNorm( step * i );
-				settings.FileName = string.Format( "533_{0:D4}.png", i );
+				settings.FileName = string.Format( "633_{0:D4}.png", i );
 				imageCalculator.GenImage( settings );
 			}
 		}

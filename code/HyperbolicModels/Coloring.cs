@@ -48,51 +48,80 @@
 			Func<double, int> subtractive = d => (int)( 255.0 * ( 1.0 - d ) );
 			Func<double, int> addative = d => (int)( 255.0 * d );
 
-			bool blue = true;
-			if( blue )
+			int a = 0, b = 0, c = 0;
+			if( distAlongHex < 1 )
 			{
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, subtractive( distAlongHex ), 255, 255 );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 0, subtractive( distAlongHex ), 255 );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 0, 0, subtractive( distAlongHex ) );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, addative( distAlongHex ), 0, 0 );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 255, addative( distAlongHex ), 0 );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 255, 255, addative( distAlongHex ) );
+				a = subtractive( distAlongHex );
+				b = c = 255;
+			}
+			else if( --distAlongHex < 1 )
+			{
+				a = 0;
+				b = subtractive( distAlongHex );
+				c = 255;
+			}
+			else if( --distAlongHex < 1 )
+			{
+				a = b = 0;
+				c = subtractive( distAlongHex );
+			}
+			else if( --distAlongHex < 1 )
+			{
+				a = addative( distAlongHex );
+				b = c = 0;
+			}
+			else if( --distAlongHex < 1 )
+			{
+				a = 255;
+				b = addative( distAlongHex );
+				c = 0;
+			}
+			else if( --distAlongHex < 1 )
+			{
+				a = b = 255;
+				c = addative( distAlongHex );
 			}
 			else
 			{
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 255, 255, subtractive( distAlongHex ) );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 255, subtractive( distAlongHex ), 0 );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, subtractive( distAlongHex ), 0, 0 );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 0, 0, addative( distAlongHex ) );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, 0, addative( distAlongHex ), 255 );
-				distAlongHex--;
-				if( distAlongHex < 1 )
-					return Color.FromArgb( 255, addative( distAlongHex ), 255, 255 );
+				throw new System.Exception( "Bad impl" );
 			}
 
-			throw new System.Exception( "Bad impl" );
+			//return Color.FromArgb( 255, a, b, c );	// blue
+			//return Color.FromArgb( 255, c, b, a );	// yellow -> red
+
+			//return Color.FromArgb( 255, a, c, b );	// green
+			//return Color.FromArgb( 255, b, c, a );	// yellow -> green
+
+			//return Color.FromArgb( 255, b, a, c );	// purple -> blue
+			//return Color.FromArgb( 255, c, a, b );	// purple -> red
+
+
+			//return Color.FromArgb( 255, a, b, a );
+			//return Color.FromArgb( 255, a, c, a );
+
+			// ARTISTIC B&W
+			//return Color.FromArgb( 255, a, a, a );
+			int avg = (a + b + c) / 3;
+			avg = (a + b) / 2;		// Really good!!
+			return Color.FromArgb( 255, avg, avg, avg );
+
+			//
+			// Different functions below. not working well at all...
+			//
+
+			double norm = (distAlongHex / 6);	// 0 to 1
+
+			// sigmoid
+			double fn = 1.0 / (1.0 + Math.Exp( -norm ) );
+
+			fn = Math.Exp( - norm * norm );
+			fn = Math.Pow( fn, 5 );
+
+			int fnInt = (int)(fn*255);
+			return Color.FromArgb( 255, fnInt, fnInt, fnInt );
+
 		}
-											 
+
 		/// <summary>
 		/// This method allows calculating a color based on a color scaling input.
 		/// This was the way I did this for a long time and for many images, until working with Henry on coloring.

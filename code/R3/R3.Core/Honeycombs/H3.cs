@@ -3,6 +3,7 @@
 	using R3.Core;
 	using R3.Math;
 	using System.Collections.Generic;
+	using System.Drawing;
 	using System.IO;
 	using System.Linq;
 	using Math = System.Math;
@@ -220,6 +221,17 @@
 			{
 				public Edge( Vector3D v1, Vector3D v2, bool order = true )
 				{
+					Setup( v1, v2, order );
+				}
+
+				public Edge( Vector3D v1, Vector3D v2, Color color )
+				{
+					Setup( v1, v2, order: true );
+					Color2 = color;
+				}
+
+				private void Setup( Vector3D v1, Vector3D v2, bool order )
+				{
 					// Keep things "ordered", so we can easily compare edges.
 					if( order )
 					{
@@ -243,6 +255,8 @@
 				// The reason we use a vector here is so the components 
 				// can be interpreted in different color schemes (HLS, RGB, etc.)
 				public Vector3D Color = new Vector3D( 1, 1, 1 );
+
+				public Color Color2 { get; set; }
 
 				/// <summary>
 				/// Used to track recursing depth of reflections across various mirrors.
