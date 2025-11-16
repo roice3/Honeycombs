@@ -15,7 +15,7 @@
 
 		static void Main( string[] args )
 		{
-			bool moire = false;
+			bool moire = true;
 			if( moire )
 			{
 				double bounds = 50;

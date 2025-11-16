@@ -141,6 +141,7 @@
 			// THIS IS WHERE WE CHOOSE SQUARE V EISENSTEIN
 			//Vector3D quantized = RoundGaussian( settings, v );
 			Vector3D quantized = RoundEisenstein( settings, v );
+			// Hyperbolic tiling pixels?
 
 			// Neartree makes our grid. Ugh, too slow once I scale.
 			/*NearTreeObject closest;
@@ -153,6 +154,14 @@
 			//double mag = quantized.Abs();
 			double ds2 = quantized.X * quantized.X + quantized.Y * quantized.Y;    // euclidean	
 			//double ds2 = quantized.X * quantized.X - quantized.Y * quantized.Y;        // lorentz metric
+			
+			//double dist = Spherical2D.SDist( new Vector3D(), quantized );
+			//ds2 = dist * dist;
+			//ds2 *= 1000.0;	// scaling.
+
+			double dist = H3Models.Ball.HDist( new Vector3D(), quantized/20 );
+			ds2 = dist * dist;
+			ds2 *= 100;
 
 
 			double scaled = ds2;	// use with lorentz??
