@@ -19,10 +19,18 @@
 
 		static void Main( string[] args )
 		{
+			bool gaussian = true;
+			int[] angles = gaussian ? new int[] { 4, 4, 3 } : new int[] { 6, 3, 3 };
+
 			Sections.AnimationSections( new Settings()
 			{
-				Angles = new int[] { 5, 3, 7 },
+				Angles = angles
 			} );
+			return;
+
+			string input = @"C:\GitHub\TilingBot\TilingBot\working\test.png";
+			string output = @"C:\GitHub\TilingBot\TilingBot\working\test_out.png";
+			R3.Core.Drawing.SimpleImageScaler.ScaleUpAndSaveBitmap( input, 2*10, output );
 			return;
 
 			HoneycombPaper.DoStuff( new Settings()

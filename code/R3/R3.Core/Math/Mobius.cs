@@ -90,6 +90,22 @@
 		}
 
 		/// <summary>
+		/// https://math.stackexchange.com/questions/2270722/finding-the-fixed-points-of-a-m%C3%B6bius-transformation
+		/// https://www.wolframalpha.com/input/?i=%28az%2Bb%29%2F%28cz%2Bd%29%3Dz%2C+solve+for+z
+		/// </summary>
+		public Complex[] FixedPoints
+		{
+			get
+			{
+				Complex t1 = Complex.Sqrt( A * A - 2 * A * D + 4 * B * C + D * D );
+				Complex t2 = A - D;
+				Complex f1 = (t1 + t2) / (2 * C);
+				Complex f2 = (-t1 + t2) / (2 * C);
+				return new Complex[] { f1, f2 };
+			}
+		}
+
+		/// <summary>
 		/// This will calculate the Mobius transform that represents an isometry in the given geometry.
 		/// The isometry will rotate CCW by angle A about the origin, then translate the origin to P (and -P to the origin).
 		/// </summary>
@@ -142,6 +158,43 @@
 			B = Complex.Zero;
 			C = Complex.Zero;
 			D = Complex.One;
+		}
+
+		/// <summary>
+		/// Given a Mobius transform and a time from 0 to 1, 
+		/// return a Mobius that interpolates the transform using the exponential map.
+		/// </summary>
+		public static Mobius InterpMobius( Mobius m, double t )
+		{
+			Complex[] fixedPoints = m.FixedPoints;
+			Vector3D p1 = new Vector3D( Math.PI, Math.E ); // This should not be a fixed point.
+			Vector3D p2 = m.Apply( p1 );
+
+			Complex p1c = p1.ToComplex();
+			Complex p2c = p2.ToComplex();
+
+			Mobius reorient = new Mobius();
+			Complex one = new Complex( 1, 0 );
+			reorient.MapPoints(
+				fixedPoints[0], fixedPoints[1], p1c,
+				new Complex(), Infinity.InfinityComplex, one );
+
+			Complex p2_ = reorient.Apply( p2c );
+
+			// If the y component is 0, the Mobius is hyperbolic.
+			// if the magnitude is 1, the Mobius is elliptic.
+			// Otherwize, it is loxodromic.
+
+			Complex final = Complex.Log( p2_ );
+			Complex interim = t * final;
+			Complex p2_interp = Complex.Exp( interim );
+
+			Mobius result = new Mobius();
+			result.MapPoints(
+				fixedPoints[0], fixedPoints[1], p1,
+				fixedPoints[0], fixedPoints[1], reorient.Inverse().Apply( p2_interp ) );
+
+			return result;
 		}
 
 		/// <summary>

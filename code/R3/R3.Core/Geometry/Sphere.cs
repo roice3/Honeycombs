@@ -540,6 +540,51 @@
 				Invert = !Invert;
 		}
 
+		/// <summary>
+		/// Apply a Mobius transformation to us, assuming we are in the ball model.
+		/// Meaning of Mobius transform is on boundary of UHS model,
+		/// so we go Ball->UHS, mobius, UHS->Ball
+		/// </summary>
+		public void ApplyMobius( Mobius m )
+		{
+			// This feels so inneficient, but whatever.
+			Vector3D[] points = Get4Points();
+			for( int i = 0; i < points.Length; i++ )
+				points[i] = H3Models.Ball.ApplyMobius( m, points[i] );
+			Sphere result = Sphere.From4Points( points[0], points[1], points[2], points[3] );
+
+			if( result.IsPlane )
+			{
+				// ZZZ - Hack, not general.
+				Sphere temp = Sphere.Plane( result.Normal );
+				Reset();
+				Center = temp.Center;
+				Radius = temp.Radius;
+				System.Console.WriteLine( "a plane {0}\t{1}\t{2}\t{3}\t{4}", result.Center, Invert, m_center, m_normal, m_radius );
+				return;
+			}
+
+			Center = result.Center;
+			Radius = result.Radius;
+		}
+
+		public void BallToUHS()
+		{
+			// This feels so inneficient, but whatever.
+			Vector3D[] points = Get4Points();
+			for( int i = 0; i < points.Length; i++ )
+				points[i] = H3Models.BallToUHS( points[i] );
+			Sphere result = Sphere.From4Points( points[0], points[1], points[2], points[3] );
+
+			if( result.IsPlane )
+			{
+				int stop = 1;
+			}
+
+			Center = result.Center;
+			Radius = result.Radius;
+		}
+
 		// Sphere from 4 points.
 		// Potentially good resource:  http://paulbourke.net/geometry/circlesphere/
 		// Try to generalize Circle3D.From3Points
@@ -584,7 +629,7 @@
 
 			double radius = o.Abs();
 			Vector3D center = O + o;
-			return new Sphere() { Center = center, Radius = radius };
+			return new Sphere( center, radius );
 		}
 
 		/// <summary>

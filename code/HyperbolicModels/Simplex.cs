@@ -383,7 +383,7 @@
 		static double m_eScale = 0.5;
 
 		/// <summary>
-		/// Return the 4 simplex vertices in the ball model.
+		/// Return the 4 simplex vertices in the ball model
 		/// </summary>
 		public static Vector3D[] VertsBall( int p, int q, int r )
 		{

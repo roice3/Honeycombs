@@ -1,10 +1,12 @@
 ﻿namespace HyperbolicModels
 {
+	using System;
 	using System.Collections.Generic;
 	using System.Drawing;
 	using System.Drawing.Imaging;
 	using System.Linq;
 	using System.Numerics;
+	using System.Runtime.InteropServices;
 	using System.Threading.Tasks;
 	using R3.Core;
 	using R3.Drawing;
@@ -16,7 +18,7 @@
 	{
 		public class Settings
 		{
-			public Settings() { Antialias = true; Dual = true; }
+			public Settings() { Antialias = true; }
 
 			public HoneycombDef Honeycomb { get; set; }
 			public Geometry G { get; set; }
@@ -28,7 +30,6 @@
 			public string FileName { get; set; }
 			public bool Antialias { get; set; }
 			public double ColorScaling { get; set; }	// Depth to cycle through one hexagon
-			public bool Dual { get; set; }
 
 			private double Aspect
 			{
@@ -264,6 +265,10 @@
 
 		Sphere[] m_whiteBoundary;
 
+		int m_insideCount = 0;
+		int m_outsideCount = 0;
+		int m_total = 0;
+
 		/// <summary>
 		/// Generate an image.
 		/// </summary>
@@ -274,7 +279,16 @@
 		{
 			int width = settings.Width;
 			int height = settings.Height;
-			Bitmap image = new Bitmap( width, height );
+			// Bitmap image = new Bitmap( width, height );
+
+			// BW only, but can't use SetPixel
+			Bitmap image = new Bitmap( width, height, PixelFormat.Format1bppIndexed );
+
+			// Lock the bitmap for direct memory access
+			BitmapData data = image.LockBits(
+				new Rectangle( 0, 0, image.Width, image.Height ),
+				ImageLockMode.ReadWrite,
+				PixelFormat.Format1bppIndexed );
 
 			bool drawMirrors = false;
 			if( drawMirrors )
@@ -285,9 +299,13 @@
 			}
 
 			// Setup the boundary which will determine coloring.
-			m_whiteBoundary = WhiteBoundary( settings );
-			CalcLayers( settings );
-			settings.CalcElements();
+			//m_whiteBoundary = WhiteBoundary( settings );
+			//CalcLayers( settings );
+			//settings.CalcElements();
+
+			m_insideCount = 0;
+			m_outsideCount = 0;
+			m_total = 0;
 
 			// Cycle through all the pixels and calculate the color.
 			int row = 0;
@@ -297,7 +315,7 @@
 			Parallel.For( 0, width, i =>
 			//for( int i=0; i<width; i++ )
 			{
-				if( row++ % 20 == 0 )
+				if( row++ % 100 == 0 )
 					System.Console.WriteLine( string.Format( "Processing Line {0}", row ) );
 
 				for( int j=0; j<height; j++ )
@@ -309,43 +327,65 @@
 					{
 						int cellFlips = 0;
 
-						const int div = 3;
+						//const int div = 3;
 						//const int div = 2;
+						//const int div = 1;
+						const int div = 0;
 						List<Color> colors = new List<Color>();
 						for( int k=0; k<=div; k++ )
 						for( int l=0; l<=div; l++ )
 						{
-							double xa = x - xoff/2 + k * xoff/div;
-							double ya = y - yoff/2 + l * yoff/div;
+							double xa = x;
+							double ya = y;
+							if( div > 0 )
+							{
+								xa = x - xoff/2 + k * xoff/div;
+								ya = y - yoff/2 + l * yoff/div;
+							}
 							Vector3D v = new Vector3D( xa, ya );
 
 							v = ApplyTransformation( v, t );
 							v = PlaneModelToBall( v, t );
 
-							v *= m_r;
-							v += m_cen;
-							//v.RotateAboutAxis( m_cen, t*Math.PI );							
-							//v = H3Models.TransformHelper( v, m_z );
-							//v.Z = -m_r;
-							//v.RotateAboutAxis( new Vector3D( 1, 0 ), m_r * Math.PI / 2 );
-							
-							if( settings.G == Geometry.Spherical || v.Abs() < 1 )
-							{
-								Color? color = CalcColor( settings, ref v, out cellFlips );
-                                if( color.HasValue)
-								    colors.Add( color.Value );
+								//v *= 0.999;
+								// UGH, why is this effectively "zooming" {6,3} cells in the view????? maybe because this is a euclidean operation, and it should be hyperbolic in the space.
+								v *= m_cuttingSphereRad;
+								v += m_cuttingSphereCenter;
+
+								// Now move us around in hyperbolic space.
+								v = H3Models.Ball.ApplyMobius( m_mobiusInBall, v );
+
+								//v.RotateAboutAxis( m_cen, t*Math.PI );							
+								//v = H3Models.TransformHelper( v, m_z );
+								//v.Z = -m_r;
+								//v.RotateAboutAxis( new Vector3D( 1, 0 ), m_r * Math.PI / 2 );
+
+								//lock( m_lock )	// This was needed for pixel tracking variables like m_total, but slows things significantly. Should rework.
+								{
+									if( settings.G == Geometry.Spherical || v.Abs() < 1 )
+								{
+									m_total++;
+									Color? color = CalcColor( settings, ref v, out cellFlips );
+									if( color.HasValue )
+										colors.Add( color.Value );
+								}
 							}
 						}
 
 						lock( m_lock )
 						{
-                            if (colors.Count > 0)
+							bool isBlack = colors.Count == 1 && colors[0] == Color.Black;
+							SetPixel1bpp( data, i, j, !isBlack );
+
+							/* not antialiasing right now!
+                            else if (colors.Count > 0)
                             {
                                 Color avg = Coloring.AvgColor(colors);
-                                image.SetPixel(i, j, avg);
-                            }
+								image.SetPixel(i, j, avg);
+							}
                             else
                                 image.SetPixel(i, j, Color.White);
+							*/
 						}
 					}
 					else
@@ -359,7 +399,10 @@
 					}
 				}
 			} );
-			
+
+			image.UnlockBits( data );
+
+			//System.Console.Write( string.Format( "inside\t{0}\toutside\t{1}\ttotal\t{2}", m_insideCount, m_outsideCount, m_total ) );
 			image.Save( settings.FileName, ImageFormat.Png );
 
 			// Save as high quality jpeg.
@@ -371,9 +414,86 @@
 			image.Save( settings.FileName, jgpEncoder, encoderParams );*/
 		}
 
-		internal Vector3D m_cen = new Vector3D();
-		internal double m_r = 1.0;
+		// Set a pixel in a 1bpp bitmap
+		static void SetPixel1bpp( BitmapData data, int x, int y, bool isBlack )
+		{
+			int stride = data.Stride; // Bytes per row (may include padding)
+			IntPtr scan0 = data.Scan0;
+
+			// Calculate byte position
+			int byteIndex = (y * stride) + (x >> 3); // x >> 3 = x / 8
+			byte mask = (byte)(0x80 >> (x & 0x7));   // Bit mask for pixel
+
+			// Get pointer to the byte
+			byte[] pixelData = new byte[1];
+			Marshal.Copy( scan0 + byteIndex, pixelData, 0, 1 );
+
+			if( isBlack )
+				pixelData[0] |= mask;  // Set bit to 1
+			else
+				pixelData[0] &= (byte)~mask; // Clear bit to 0
+
+			// Write back the modified byte
+			Marshal.Copy( pixelData, 0, scan0 + byteIndex, 1 );
+			
+		}
+
+		internal static Vector3D TransformBetweenNorthPole( Vector3D np, Vector3D v, bool goTo = true )
+		{
+			Vector3D standardNorthPole = new Vector3D( 0, 0, 1 );
+			Vector3D axis = np.Cross( standardNorthPole );
+			if( !axis.Normalize() ) // North or south pole?
+				return v;
+			double angleTo = np.AngleTo( standardNorthPole );
+			if( !goTo )
+				angleTo *= -1;
+			v.RotateAboutAxis( axis, angleTo );
+
+			if( v.DNE || Infinity.IsInfinite( v ) )
+				throw new System.Exception();
+			return v;
+		}
+
+		internal static Mobius MobiusFromReflections( Sphere[] mirrors, int[] word )
+		{
+			var mirrorsUHS = mirrors.Select( s => H3Models.BallToUHS( s ) ).ToArray();
+
+			// This was in the 733 project, where strings were reversed.
+			//word = word.Select( r => 3 - r ).ToArray();
+
+			Circle3D circ = new Circle3D();
+			Vector3D[] orig = circ.RepresentativePoints;
+			List<Vector3D> transformed = new List<Vector3D>();
+
+			foreach( Vector3D p in orig )
+			{
+				Vector3D p_ = p;
+				foreach( int r in word )
+					p_ = mirrorsUHS[r].ReflectPoint( p_ );
+				transformed.Add( p_ );
+			}
+
+			bool invert = word.Length % 2 != 0;
+			Vector3D t1 = transformed[0];
+			Vector3D t2 = invert ? transformed[2] : transformed[1];
+			Vector3D t3 = invert ? transformed[1] : transformed[2];
+
+			Mobius result = new Mobius();
+			result.MapPoints( orig[0], orig[1], orig[2], t1, t2, t3 );
+			return result;
+		}
+
+		// A Ford circle (Euclidean)
+		internal Sphere m_ford = null;
+		internal Sphere m_ford2 = null;
+
+		// Cutting props.
+		internal Vector3D m_cuttingSphereCenter = new Vector3D();
+		internal double m_cuttingSphereRad = 1.0;
+		internal Vector3D m_cuttingSphereNorthPole = new Vector3D();
 		internal Mobius m_z = Mobius.Identity();
+
+		internal Mobius m_mobiusInBall = Mobius.Identity();
 
 		/// <summary>
 		/// http://www.wolframalpha.com/input/?i=1%2F+%281%2Be%5E%28-10*%28x-0.5%29%29%29
@@ -556,9 +676,13 @@
 			*/
 
 			// Center cell head in KolorEyes.
-			Mobius m = new Mobius();
-			m.UpperHalfPlane();
-			v = m.Inverse().Apply( v );
+			bool kolorEyeCenter = false;
+			if( kolorEyeCenter )
+			{
+				Mobius m = new Mobius();
+				m.UpperHalfPlane();
+				v = m.Inverse().Apply( v );
+			}
 			
 			return H3Models.UHSToBall( v );
 		}
@@ -581,8 +705,20 @@
 			if( applyNone )
 				return v;
 
+			// Common needs.
 			Mobius m0 = new Mobius(), m1 = new Mobius(), m2 = new Mobius(), m3 = new Mobius();
 			Sphere unitSphere = new Sphere();
+
+			// Rotate a point to the north pole.
+			//m0 = Mobius.CreateFromIsometry( Geometry.Euclidean, 0, new Complex( -Math.Sqrt( 3 ) / 6, -1.0 / 6 ) );
+			m0 = Mobius.CreateFromIsometry( Geometry.Euclidean, 0, new Complex( 0, 1.0/3 ) / m_cuttingSphereRad );
+			m1 = Mobius.Identity();
+			m2 = Mobius.Identity();
+			m3 = Mobius.Identity();
+			v = (m0 * m1 * m2 * m3).Apply( v );
+			return v;
+
+
 
 			v -= new Vector3D( .8, 1.1 );
 			v = unitSphere.ReflectPoint( v );
@@ -742,6 +878,8 @@
 		{
 			int[] flips = new int[4];
 			List<int> allFlips = new List<int>();
+			//v.X = v.Y = 0;
+			//v.Z = -.85;
 			if( !ReflectToFundamental( settings, ref v, ref flips, ref allFlips ) )
 			{
 				cellFlips = 0;
@@ -750,6 +888,22 @@
 
 			cellFlips = flips[0];
 			int totalFlips = flips.Sum();
+
+			if( m_ford != null )
+			{
+				Color almostBlack = Color.FromArgb( 20, 20, 20 );
+				Color almostWhite = Color.FromArgb( 235, 235, 235 );
+
+				if( m_ford.IsPointInside( v ) && !m_ford2.IsPointInside( v ) )
+				//if( m_ford.IsPointInside( v ) )
+				{
+					m_insideCount++;
+					return Color.Black;
+				}
+
+				m_outsideCount++;
+				return Color.White;
+			}
 
 			if( false )
 			{
