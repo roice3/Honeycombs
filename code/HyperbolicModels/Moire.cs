@@ -141,7 +141,7 @@
 			// THIS IS WHERE WE CHOOSE SQUARE V EISENSTEIN
 			//Vector3D quantized = RoundGaussian( settings, v );
 			Vector3D quantized = RoundEisenstein( settings, v );
-			// Hyperbolic tiling pixels?
+			// Spherical or Hyperbolic tiling pixels? On a "geodesic sphere" grid maybe??
 
 			// Neartree makes our grid. Ugh, too slow once I scale.
 			/*NearTreeObject closest;
