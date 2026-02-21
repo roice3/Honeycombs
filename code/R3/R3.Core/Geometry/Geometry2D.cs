@@ -50,7 +50,8 @@
 			return Geometry.Hyperbolic;
 		}
 
-		public static double EuclideanHypotenuse = 1.0 / 3; // / Math.Sqrt( 2 );	// ZZZ - ??????????
+		//public static double EuclideanHypotenuse = 1.0 / Math.Sqrt( 2 );	// 4,4,4
+		public static double EuclideanHypotenuse = 1.0 / 2;				// 3,6,3
 		public static double DiskRadius = 1;
 
 		public static double GetNormalizedCircumRadius( int p, double q )

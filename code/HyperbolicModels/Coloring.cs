@@ -4,6 +4,7 @@
 	using System.Collections.Generic;
 	using System.Drawing;
 	using System.Linq;
+	using R3.Core;
 	using R3.Geometry;
 
 	internal static class Coloring
@@ -17,7 +18,7 @@
 		{
 			//if( 0 == increments )
 			//	return Color.FromArgb( 255, 187, 23, 23 );
-				//return Color.FromArgb( 0, 255, 255, 255 );
+			//return Color.FromArgb( 0, 255, 255, 255 );
 
 			//int temp = (increments - 2) * 125 + 80;
 			/*int temp = increments * 40;
@@ -31,6 +32,9 @@
 
 			//464
 			//increments = (int)( Math.Pow( (double)increments, 1.35 ) );
+
+			// move along the hexagon
+			//increments += 5;
 
 			// Bring to main hexagon (handle looping)
 			increments = increments % incrementsUntilRepeat;
@@ -81,6 +85,29 @@
 				a = b = 255;
 				c = addative( distAlongHex );
 			}
+			/*
+			if( distAlongHex < 2 )
+			{
+				double perc = (distAlongHex - 0) / 2.0;
+				double frac = 1.0 - 2.0/3.0 * perc;
+				a = b = 0;
+				c = addative( frac );
+				
+			}
+			else if( distAlongHex < 4 )
+			{
+				double perc = (distAlongHex - 2) / 2.0;
+				a = addative( 2.0 / 3 * perc );
+				b = addative( 1.0 / 3 * perc );
+				c = addative( 1.0 / 3 );
+			}
+			else if( distAlongHex < 6 )
+			{
+				double perc = (distAlongHex - 4) / 2.0;
+				a = addative( 2.0 / 3 + (1.0 / 3) * perc );
+				b = addative( 1.0 / 3 + (2.0 / 3) * perc );
+				c = addative( 1.0 / 3 );
+			}*/
 			else
 			{
 				throw new System.Exception( "Bad impl" );
@@ -101,8 +128,13 @@
 
 			// ARTISTIC B&W
 			//return Color.FromArgb( 255, a, a, a );
-			int avg = (a + b + c) / 3;
-			avg = (a + b) / 2;		// Really good!!
+			int avg = (a + b + c) / 3;							// 4,4,4
+			//avg = (a + b) / 2;      // Really good!!
+			avg = (3*a + 2*b + 1*c) / 6;						// 3,6,3
+
+			Color color = Color.Blue;
+			return ColorUtil.AdjustL( color, (double)avg/255.0 );
+
 			return Color.FromArgb( 255, avg, avg, avg );
 
 			//

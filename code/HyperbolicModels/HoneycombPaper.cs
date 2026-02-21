@@ -76,8 +76,9 @@
 			//imageCalculator.AutoCalcScale( settings );
 			//if( settings.ColorScaling < 1 )
 			//	settings.ColorScaling = 15;
-			//settings.ColorScaling = 32.5;
+			settings.ColorScaling = 32.5;
 			settings.ColorScaling = 15.0;
+			settings.ColorScaling = 20;
 
 			Program.Log( "\nGenerating full image..." );
 			settings.Width = config.UhsBoundary.ImageWidth;

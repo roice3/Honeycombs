@@ -15,7 +15,7 @@
 
 		static void Main( string[] args )
 		{
-			bool moire = true;
+			bool moire = false;
 			if( moire )
 			{
 				double bounds = 50;
@@ -73,9 +73,13 @@
 				
 				list.Add( new int[] { 4, 3, 6 } );
 				list.Add( new int[] { 6, 3, 4 } );
-				list.Add( new int[] { 5, 3, 6 } );*/
+				list.Add( new int[] { 5, 3, 6 } );
 				list.Add( new int[] { 6, 3, 3 } );
-				//list.Add( new int[] { 6, 3, 5 } );
+				//list.Add( new int[] { 6, 3, 5 } );*/
+
+				//list.Add( new int[] { 4, 4, 4 } );
+				list.Add( new int[] { 3, 6, 3 } );
+				list.Add( new int[] { 6, 3, 6 } );
 
 				// Go through any settings files.
 				foreach( int[] angles in list )
@@ -92,8 +96,8 @@
 					{
 						Log( "\nGenerating UHS boundary image for the following honeycomb:\n" + settings.HoneycombString );
 						Log( "\nSettings...\n" + settings.UhsBoundary.DisplayString );
-						//HoneycombPaper.OneImage( settings );
-						Sections.AnimationSections( settings );
+						HoneycombPaper.OneImage( settings );
+						//Sections.AnimationSections( settings );
 					}
 
 					// POV-Ray definition files.

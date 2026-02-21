@@ -351,7 +351,7 @@
 		private Vector3D ApplyTransformation( Vector3D v, double t = 0.0 )
 		{
 			//v.RotateXY( Math.PI / 4 + 0.01 );
-			bool applyNone = false;
+			bool applyNone = true;
 			if( applyNone )
 				return v;
 
