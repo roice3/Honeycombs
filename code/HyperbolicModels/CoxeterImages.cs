@@ -347,22 +347,13 @@
 							v = ApplyTransformation( v, t );
 							v = PlaneModelToBall( v, t );
 
-								//v *= 0.999;
-								// UGH, why is this effectively "zooming" {6,3} cells in the view????? maybe because this is a euclidean operation, and it should be hyperbolic in the space.
-								v *= m_cuttingSphereRad;
-								v += m_cuttingSphereCenter;
+							// Now move us around in hyperbolic space.
+							v = H3Models.Ball.ApplyMobius( m_mobiusInBall, v );
 
-								// Now move us around in hyperbolic space.
-								v = H3Models.Ball.ApplyMobius( m_mobiusInBall, v );
 
-								//v.RotateAboutAxis( m_cen, t*Math.PI );							
-								//v = H3Models.TransformHelper( v, m_z );
-								//v.Z = -m_r;
-								//v.RotateAboutAxis( new Vector3D( 1, 0 ), m_r * Math.PI / 2 );
-
-								//lock( m_lock )	// This was needed for pixel tracking variables like m_total, but slows things significantly. Should rework.
-								{
-									if( settings.G == Geometry.Spherical || v.Abs() < 1 )
+							//lock( m_lock )	// This lock was needed for pixel tracking variables like m_total, but slows things significantly. Should rework.
+							{
+								if( settings.G == Geometry.Spherical || v.Abs() < 1 )
 								{
 									m_total++;
 									Color? color = CalcColor( settings, ref v, out cellFlips );
@@ -628,6 +619,17 @@
 		/// </summary>
 		private Vector3D PlaneModelToBall( Vector3D v, double t = 0.0 )
 		{
+			// Do a vertical slice through the ball.
+			bool verticalSlice = true;
+			if( verticalSlice )
+			{
+				//v /= 2;
+				v.Y -= .25;
+				double temp = v.X * Math.Sqrt( 2 ) / 2;
+				Vector3D uhs = new Vector3D( 1.0 + temp, 0.0 + temp, -v.Y );
+				return H3Models.UHSToBall( uhs );
+			}
+
 			bool equirectangular = false;
 			if( !equirectangular )
 			{
@@ -894,8 +896,9 @@
 				Color almostBlack = Color.FromArgb( 20, 20, 20 );
 				Color almostWhite = Color.FromArgb( 235, 235, 235 );
 
-				if( m_ford.IsPointInside( v ) && !m_ford2.IsPointInside( v ) )
-				//if( m_ford.IsPointInside( v ) )
+				// sphere vs. ball
+				if( m_ford.IsPointInside( v ) && !m_ford2.IsPointInside( v ) )	// sphere
+				//if( m_ford.IsPointInside( v ) )	// ball
 				{
 					m_insideCount++;
 					return Color.Black;

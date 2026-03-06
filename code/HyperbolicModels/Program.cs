@@ -28,9 +28,12 @@
 			} );
 			return;
 
-			string input = @"C:\GitHub\TilingBot\TilingBot\working\test.png";
-			string output = @"C:\GitHub\TilingBot\TilingBot\working\test_out.png";
-			R3.Core.Drawing.SimpleImageScaler.ScaleUpAndSaveBitmap( input, 2*10, output );
+			string inputName = "2026-2-08_17-16-13";
+			string input = @"C:\GitHub\TilingBot\TilingBot\working\" + inputName + ".png";
+			string output = @"C:\GitHub\TilingBot\TilingBot\working\" + inputName + "_scaled.png";
+			int scale = 2 * 10;
+			scale = 4;
+			R3.Core.Drawing.SimpleImageScaler.ScaleUpAndSaveBitmap( input, scale, output );
 			return;
 
 			HoneycombPaper.DoStuff( new Settings()

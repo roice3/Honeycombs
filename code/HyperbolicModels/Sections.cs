@@ -53,7 +53,7 @@
 			settings.ColorScaling = 11;
 
 			Program.Log( "\nGenerating sections..." );
-			size = 50000;
+			size = 4000;
 			settings.Width = size;
 			settings.Height = size;
 			settings.FileName = filename;
@@ -111,15 +111,15 @@
 					double hDist = 5 * t;
 					hDist = 12;
 					hDist = 14;
-					//hDist = 2;
+					hDist = 2;
 					pointOnZAxis = Hyperbolic2D.Offset( pointOnZAxis, hDist );
 					double vZ = pointOnZAxis.Z;
 
-					settings.Bounds = 0.5;
+					//settings.Bounds = .01;
 					System.Console.WriteLine( string.Format( "\n\ttime\t{0}\th-dist\t{1}\tbounds\t{2}", t, hDist, settings.Bounds ) );
 
 					// Special zooming to keep a circle the same size.
-					bool specialZoom = true;
+					bool specialZoom = false;
 					if( specialZoom )
 					{
 						double eDist = HyperbolicModels.PoincareToUpper( new Vector3D( 0, vZ ) ).Y;
@@ -259,10 +259,11 @@
 				}
 
 				// H-plane slices
-				if( false )
+				if( true )
 				{
-					double startOffset = 0.001;
-					Vector3D off = Hyperbolic2D.Offset( new Vector3D( 0, 0, startOffset ), startOffset + (5.5 + startOffset) * t );
+					double startOffset = 0.99;
+					//Vector3D off = Hyperbolic2D.Offset( new Vector3D( 0, 0, startOffset ), startOffset + (5.5 + startOffset) * t );
+					Vector3D off = Hyperbolic2D.Offset( new Vector3D( 0, startOffset, 0 ), startOffset + (5.5 + startOffset) * t );
 
 					Sphere slice = H3Models.Ball.OrthogonalSphereInterior( off );
 					cen = slice.Center;
