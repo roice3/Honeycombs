@@ -53,7 +53,7 @@
 			settings.ColorScaling = 11;
 
 			Program.Log( "\nGenerating sections..." );
-			size = 4000;
+			size = 100000;
 			settings.Width = size;
 			settings.Height = size;
 			settings.FileName = filename;
@@ -79,6 +79,7 @@
 				//settings.Bounds = 1.0 - t * .75;
 				//settings.Bounds = 1.0 - t * .99;
 				//settings.Bounds = .01;
+				settings.Bounds = 1.0 / 2;
 
 				// Center and radius of cutting circle
 				Vector3D cen = new Vector3D(), horoCen = new Vector3D();
@@ -112,6 +113,7 @@
 					hDist = 12;
 					hDist = 14;
 					hDist = 2;
+					hDist = 8;
 					pointOnZAxis = Hyperbolic2D.Offset( pointOnZAxis, hDist );
 					double vZ = pointOnZAxis.Z;
 
@@ -259,7 +261,7 @@
 				}
 
 				// H-plane slices
-				if( true )
+				if( false )
 				{
 					double startOffset = 0.99;
 					//Vector3D off = Hyperbolic2D.Offset( new Vector3D( 0, 0, startOffset ), startOffset + (5.5 + startOffset) * t );

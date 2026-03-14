@@ -347,6 +347,9 @@
 							v = ApplyTransformation( v, t );
 							v = PlaneModelToBall( v, t );
 
+							v *= m_cuttingSphereRad;
+							v += m_cuttingSphereCenter;
+
 							// Now move us around in hyperbolic space.
 							v = H3Models.Ball.ApplyMobius( m_mobiusInBall, v );
 
@@ -620,7 +623,7 @@
 		private Vector3D PlaneModelToBall( Vector3D v, double t = 0.0 )
 		{
 			// Do a vertical slice through the ball.
-			bool verticalSlice = true;
+			bool verticalSlice = false;
 			if( verticalSlice )
 			{
 				//v /= 2;
@@ -897,8 +900,8 @@
 				Color almostWhite = Color.FromArgb( 235, 235, 235 );
 
 				// sphere vs. ball
-				if( m_ford.IsPointInside( v ) && !m_ford2.IsPointInside( v ) )	// sphere
-				//if( m_ford.IsPointInside( v ) )	// ball
+				//if( m_ford.IsPointInside( v ) && !m_ford2.IsPointInside( v ) )	// sphere
+				if( m_ford.IsPointInside( v ) )	// ball
 				{
 					m_insideCount++;
 					return Color.Black;
