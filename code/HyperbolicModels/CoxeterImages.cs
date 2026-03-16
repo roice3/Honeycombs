@@ -265,6 +265,23 @@
 
 		Sphere[] m_whiteBoundary;
 
+
+		public void TestSize( Settings settings )
+		{
+			int width = settings.Width;
+			int height = settings.Height;
+
+			System.Console.WriteLine( string.Format( "Can we save a {0}x{1} sized image?", width, height ) );
+
+			// BW only, but can't use SetPixel
+			//Bitmap image = new Bitmap( width, height );
+			Bitmap image = new Bitmap( width, height, PixelFormat.Format8bppIndexed );
+			//Bitmap image = new Bitmap( width, height, PixelFormat.Format1bppIndexed );
+
+			string filename = string.Format( "{0}x{1}", width, height );
+			image.Save( filename, ImageFormat.Png );
+		}
+
 		int m_insideCount = 0;
 		int m_outsideCount = 0;
 		int m_total = 0;
@@ -320,8 +337,10 @@
 
 				for( int j=0; j<height; j++ )
 				{
-					double x = -bounds + i * xoff;
-					double y = -bounds + j * yoff;
+					//double x = -bounds + i * xoff;
+					//double y = -bounds + j * yoff;
+					double x = i * xoff;
+					double y = j * yoff;
 
 					if( settings.Antialias )
 					{
@@ -899,16 +918,18 @@
 				Color almostBlack = Color.FromArgb( 20, 20, 20 );
 				Color almostWhite = Color.FromArgb( 235, 235, 235 );
 
+				bool reverseColors = false;
+
 				// sphere vs. ball
 				//if( m_ford.IsPointInside( v ) && !m_ford2.IsPointInside( v ) )	// sphere
 				if( m_ford.IsPointInside( v ) )	// ball
 				{
 					m_insideCount++;
-					return Color.Black;
+					return reverseColors ? Color.White : Color.Black;
 				}
 
 				m_outsideCount++;
-				return Color.White;
+				return reverseColors ? Color.Black : Color.White;
 			}
 
 			if( false )

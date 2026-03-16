@@ -53,7 +53,9 @@
 			settings.ColorScaling = 11;
 
 			Program.Log( "\nGenerating sections..." );
-			size = 100000;
+			size = 1000;
+			int maxPossibleSize = (int)(Math.Pow( 2, 16 ) - 1); // For a 1-bit image.
+			size = maxPossibleSize;
 			settings.Width = size;
 			settings.Height = size;
 			settings.FileName = filename;
@@ -80,6 +82,7 @@
 				//settings.Bounds = 1.0 - t * .99;
 				//settings.Bounds = .01;
 				settings.Bounds = 1.0 / 2;
+				//settings.Bounds = 1.0 / 3;
 
 				// Center and radius of cutting circle
 				Vector3D cen = new Vector3D(), horoCen = new Vector3D();
@@ -293,6 +296,19 @@
 				settings.FileName = string.Format( "frame_{0:D4}.png", i );
 				//if( File.Exists( settings.FileName ) )
 				//	continue;
+
+				// max size testing...
+				if( false )
+				{
+					for( int w = 20000; w <= 50000; w += 5000 )
+					{
+						// got to this with iterative testing.
+						//int maxPossibleSize = (int)(Math.Pow( 2, 16 ) - 1);	// For a 1-bit image.
+						//w = maxPossibleSize;
+						settings.Width = settings.Height = w;
+						imageCalculator.TestSize( settings );
+					}
+				}
 
 				imageCalculator.GenImage( settings, 0.0 );
 			}

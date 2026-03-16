@@ -21,6 +21,8 @@
 		{
 			bool gaussian = true;
 			int[] angles = gaussian ? new int[] { 4, 4, 3 } : new int[] { 6, 3, 3 };
+			angles = new int[] { 3, 6, 3 };
+			//angles = new int[] { 6, 3, 6 };
 
 			Sections.AnimationSections( new Settings()
 			{
